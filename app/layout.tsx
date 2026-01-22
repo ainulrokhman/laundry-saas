@@ -27,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} layout-fixed sidebar-expand-lg bg-body-tertiary`}
+        className={`${geistSans.variable} ${geistMono.variable} layout-fixed sidebar-expand-lg`}
       >
         <SessionProvider>
           {children}

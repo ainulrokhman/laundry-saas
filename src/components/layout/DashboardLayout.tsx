@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { Sidebar } from "./Sidebar";
 import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
@@ -13,11 +13,26 @@ interface DashboardLayoutProps {
 
 /**
  * Main dashboard layout component using AdminLTE 4
- * Includes sidebar, navbar, and footer
- * Structure matches AdminLTE 4 layout pattern
+ * Structure: app-wrapper > app-sidebar + app-main (app-header + content + app-footer)
+ * Follows AdminLTE 4 best practices
  */
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { data: session } = useSession();
+
+  // Initialize theme on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedTheme = localStorage.getItem("theme") || "light";
+      const html = document.documentElement;
+      if (savedTheme === "dark") {
+        html.setAttribute("data-bs-theme", "dark");
+        html.classList.add("dark-mode");
+      } else {
+        html.setAttribute("data-bs-theme", "light");
+        html.classList.remove("dark-mode");
+      }
+    }
+  }, []);
 
   // Don't render dashboard layout if no session
   if (!session) {
@@ -28,15 +43,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="app-wrapper">
-      {/* Sidebar - Sibling to app-main */}
+      {/* Sidebar - AdminLTE 4 structure */}
       <Sidebar role={userRole} />
 
       {/* Main Content Area */}
       <div className="app-main">
-        {/* Navbar */}
+        {/* Header/Navbar */}
         <Navbar user={session.user} />
 
-        {/* Content Wrapper */}
+        {/* Content */}
         <div className="app-content">
           <div className="container-fluid py-4">{children}</div>
         </div>
