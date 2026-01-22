@@ -1,5 +1,203 @@
 # Cursor Rules for Laundry SaaS Platform
 
+## 📚 Prerequisites: Always Read First
+
+**BEFORE implementing any feature or making changes, ALWAYS read:**
+1. `blueprint.md` - Arsitektur sistem, teknologi stack, dan prinsip SOLID
+2. `development-plan.md` - Roadmap pengembangan dan fase-fase implementasi
+
+These documents contain critical context about architecture, security, and development standards.
+
+---
+
+## 🏗️ Architecture & Technology Stack
+
+### Core Technologies
+- **Framework:** Next.js 14+ (App Router) - Serverless deployment di Vercel
+- **UI Framework:** AdminLTE 3/4 (Bootstrap 5) untuk dashboard internal
+- **Database:** PostgreSQL (Neon.tech) - Region: Singapore (ap-southeast-1)
+- **ORM:** Prisma atau Drizzle untuk database management
+- **Auth:** NextAuth.js dengan role-based access (SUPERADMIN, OWNER, STAFF)
+- **Storage:** Cloudinary atau Supabase untuk gambar (bukti transfer, logo outlet)
+- **Region:** Singapore (sin1) untuk latensi terendah di Indonesia
+
+### Code Structure (SOLID Principles)
+```
+src/
+├── components/     # Reusable UI components (AdminLTE-based)
+├── controllers/    # API route handlers (Next.js App Router)
+├── services/       # Business logic layer
+├── repositories/   # Data access layer (database queries)
+├── types/          # TypeScript types & enums
+└── lib/            # Utilities & constants
+```
+
+**Layer Separation:**
+- **Controllers:** Handle HTTP requests/responses, validation, error handling
+- **Services:** Business logic, orchestration, validation rules
+- **Repositories:** Database queries, data access, Prisma/Drizzle operations
+- **Components:** UI components, AdminLTE integration
+
+---
+
+## 🔐 Security & Multi-Tenancy (CRITICAL)
+
+### Tenant Isolation (MANDATORY)
+**Every database query MUST include outlet_id filter to prevent data leakage:**
+
+```typescript
+// ✅ CORRECT - Always filter by outletId
+const orders = await prisma.order.findMany({
+  where: {
+    id: orderId,
+    outletId: session.outletId  // MANDATORY
+  }
+});
+
+// ❌ WRONG - Missing outletId filter
+const orders = await prisma.order.findMany({
+  where: { id: orderId }
+});
+```
+
+**Rules:**
+1. **Every API request** must verify `session.outletId`
+2. **Every database query** must include `outletId` in WHERE clause
+3. **Middleware** must enforce tenant isolation before route handlers
+4. **Never trust client-side outlet_id** - always use server-side session
+
+### Data Transfer Objects (DTO Pattern)
+**Never return raw database objects from API:**
+
+```typescript
+// ✅ CORRECT - Use DTO to scrub sensitive fields
+interface OrderResponseDTO {
+  id: string;
+  trackingCode: string;
+  status: OrderStatus;
+  totalAmount: number;
+  // Exclude: outletId, internal IDs, sensitive fields
+}
+
+// ❌ WRONG - Returning raw Prisma model
+return order; // Exposes outletId, internal fields
+```
+
+**Scrub these fields from responses:**
+- `outletId` (internal use only)
+- `isPro` (prevent client-side manipulation)
+- Internal IDs that shouldn't be exposed
+- Password hashes (never expose)
+- Sensitive configuration
+
+### Public Tracking Privacy
+- Use `trackingCode` (random string) instead of internal IDs for public URLs
+- Only show minimal data: status, masked customer name (An***), estimated completion
+- Implement rate limiting on public endpoints (Vercel Edge)
+- Never expose outlet information on public pages
+
+### Input Validation
+- **Always use Zod** for API input validation
+- Validate all user inputs before database operations
+- Sanitize strings to prevent SQL injection
+- Validate file uploads (type, size limits)
+
+---
+
+## 🎨 UI/UX Standards (AdminLTE)
+
+### AdminLTE Components
+**Use AdminLTE 3/4 (Bootstrap 5) components for dashboard:**
+
+- **Sidebar Navigation:** Role-based menu (Owner vs Staff)
+- **Cards & Widgets:** Info Box untuk statistik (Order hari ini, Omzet, Cucian tertunda)
+- **Datatables:** Bootstrap Datatables untuk list dengan search & filter
+- **Modals:** AdminLTE modals untuk input forms
+- **Badges:** AdminLTE color classes untuk status
+  - `bg-warning` untuk Washing
+  - `bg-success` untuk Ready
+  - `bg-danger` untuk Failed
+  - `bg-info` untuk Pending
+
+### Icons
+- **Use FontAwesome** (default AdminLTE) untuk semua ikon
+- Consistent icon usage across navigation dan buttons
+
+### Responsive Design
+- All components must be mobile-responsive
+- Test on different screen sizes
+- Use Bootstrap grid system
+
+---
+
+## 📊 Database Schema & Enums
+
+### Enums (Use from `src/types/enums/`)
+- **Role:** SUPERADMIN, OWNER, STAFF
+- **OrderStatus:** QUEUED → WASHING → DRYING → IRONING → READY → TAKEN
+- **PaymentStatus:** UNPAID, PENDING, SETTLEMENT, FAILURE
+- **TransType:** SUBSCRIPTION, LAUNDRY_ORDER
+
+### Database Models (Prisma Schema)
+**Key Models:**
+- `Outlet` - Multi-tenant isolation key
+- `Order` - Core business entity dengan `trackingCode` untuk public access
+- `Transaction` - Payment & subscription tracking
+- `Service` - Laundry services (Kiloan, Satuan, Paket)
+- `User` - Authentication dengan role-based access
+
+**Important Fields:**
+- `outletId` - Mandatory untuk semua tenant-scoped entities
+- `trackingCode` - Unique random string untuk public tracking (bukan ID)
+- `slug` - URL-friendly identifier untuk outlet microsite
+
+---
+
+## 💻 Code Quality & Best Practices
+
+### SOLID Principles
+
+**S - Single Responsibility:**
+- Repositories: Only database access
+- Services: Only business logic
+- Controllers: Only HTTP handling
+- Components: Only UI rendering
+
+**O - Open/Closed:**
+- Use interfaces for extensibility (e.g., `PaymentProcessor`)
+- Add new payment gateways without modifying core code
+
+**L - Liskov Substitution:**
+- All service types (Kiloan, Satuan, Paket) handled uniformly
+
+**I - Interface Segregation:**
+- Separate public API from internal dashboard API
+- Use specific interfaces, not monolithic ones
+
+**D - Dependency Inversion:**
+- Services depend on repository interfaces, not concrete implementations
+- Use dependency injection patterns
+
+### TypeScript
+- **Always use TypeScript** - no `any` types unless absolutely necessary
+- Define proper interfaces for all data structures
+- Use enums from `src/types/enums/` instead of magic strings
+- Type all function parameters and return values
+
+### Error Handling
+- Use try-catch blocks for all async operations
+- Return proper HTTP status codes (400, 401, 403, 404, 500)
+- Log errors appropriately (don't expose sensitive info to client)
+- Use consistent error response format
+
+### Code Comments
+- Add JSDoc comments for complex functions
+- Explain business logic, not obvious code
+- Document security considerations
+- Note performance optimizations
+
+---
+
 ## 📝 Documentation Rules
 
 ### ❌ DO NOT Create Documentation Unless Explicitly Requested
@@ -12,7 +210,6 @@ This includes:
 - ❌ "Helpful" documentation files
 - ❌ Example documentation
 - ❌ Tutorial files
-- ❌ Guide files
 
 ### ✅ When Documentation IS Appropriate
 
@@ -33,106 +230,94 @@ The project already has comprehensive documentation in `docs/` directory:
 
 **Do NOT duplicate or recreate this documentation.**
 
-## 🎯 Code-First Approach
+### Code-First Approach
 
-### Priority Order:
+**Priority Order:**
 1. **Code implementation** - Focus on writing working code
 2. **Code comments** - Add inline comments for complex logic
 3. **Type definitions** - Use TypeScript types for documentation
 4. **Documentation files** - Only when explicitly requested
 
-### Code Documentation Best Practices:
-- Use JSDoc comments for functions/classes
-- Use TypeScript types and interfaces
-- Write self-documenting code with clear names
-- Add inline comments for complex business logic
+---
 
-## 🚫 What NOT to Do
+## 🚀 Development Workflow
 
-### Don't Create:
-- ❌ `README.md` in every folder
-- ❌ `USAGE.md`, `GUIDE.md`, `TUTORIAL.md` without request
-- ❌ Documentation "just in case"
-- ❌ Auto-generated API docs unless requested
-- ❌ Example documentation files
+### Feature Implementation Order
+1. **Database Schema** - Update Prisma schema if needed
+2. **Types/Enums** - Define TypeScript types
+3. **Repository** - Data access layer
+4. **Service** - Business logic
+5. **Controller** - API endpoint
+6. **Component** - UI (if needed)
 
-### Don't Suggest:
-- ❌ "Should I create documentation for this?"
-- ❌ "Would you like me to document this?"
-- ❌ "I can create a guide for..."
+### Testing Requirements
+- Test tenant isolation for every feature
+- Test security (input validation, DTO scrubbing)
+- Test error handling
+- Test edge cases
 
-## ✅ What TO Do
+### Migration & Deployment
+- Always create Prisma migrations for schema changes
+- Test migrations on development database first
+- Never modify production schema directly
 
-### Focus On:
-- ✅ Writing clean, working code
-- ✅ Following SOLID principles
-- ✅ Adding TypeScript types
-- ✅ Writing meaningful variable/function names
-- ✅ Adding JSDoc for complex functions
-- ✅ Following existing code patterns
+---
 
-### When User Asks for Documentation:
-- ✅ Create it in the appropriate `docs/` subdirectory
-- ✅ Follow existing documentation structure
-- ✅ Use consistent formatting
-- ✅ Link to related documentation
+## 🎯 Feature-Specific Guidelines
 
-## 📋 File Creation Rules
+### Order Management
+- Auto-generate `trackingCode` (random string, not sequential)
+- Implement workflow: QUEUED → WASHING → DRYING → IRONING → READY → TAKEN
+- Use AdminLTE Steps/Timeline untuk visualisasi progress
+- Always filter by `outletId`
 
-### Always Create:
-- ✅ Source code files (.ts, .tsx, .js, .jsx)
-- ✅ Configuration files (.json, .config.js, etc.)
-- ✅ Type definition files (.d.ts)
-- ✅ Test files when implementing features
+### Payment System
+- Manual payment: Upload bukti transfer ke Cloudinary
+- Use `Transaction` model dengan `TransType` enum
+- Verify payment status before allowing order completion
+- Never expose payment gateway credentials
 
-### Only Create When Requested:
-- ⚠️ Documentation files (.md)
-- ⚠️ Example files
-- ⚠️ Tutorial files
+### Public Tracking Page
+- Route: `/track/[trackingCode]`
+- Minimal data display (privacy protection)
+- Rate limiting mandatory
+- No outlet information exposed
 
-## 🔍 Code Comments vs Documentation
+### Outlet Microsite
+- Route: `/outlet/[slug]`
+- Public-facing, clean & minimal design
+- No authentication required
+- Display outlet info, services, contact
 
-### Use Code Comments For:
-- Complex business logic
-- Non-obvious code
-- Workarounds or hacks
-- Performance considerations
-- Security notes
+---
 
-### Use Documentation Files For:
-- Architecture overview
-- API specifications
-- User guides
-- Setup instructions
-- Contributing guidelines
+## ⚠️ Common Mistakes to Avoid
 
-## 💡 Example Scenarios
+1. **❌ Missing outletId filter** - Always include in queries
+2. **❌ Returning raw database objects** - Use DTO pattern
+3. **❌ Using internal IDs for public URLs** - Use trackingCode
+4. **❌ Exposing sensitive fields** - Scrub responses
+5. **❌ Skipping input validation** - Always validate with Zod
+6. **❌ Mixing business logic in controllers** - Use service layer
+7. **❌ Direct database access from controllers** - Use repository layer
+8. **❌ Creating documentation without request** - Code first
 
-### ❌ Bad - Auto-creating docs:
-```
-User: "Add a new service endpoint"
-AI: *creates endpoint* + *creates API_DOCS.md* ❌
-```
+---
 
-### ✅ Good - Code only:
-```
-User: "Add a new service endpoint"
-AI: *creates endpoint with proper types and comments* ✅
-```
+## 📋 Summary Checklist
 
-### ✅ Good - When requested:
-```
-User: "Document the new service endpoint"
-AI: *updates docs/api/services.md* ✅
-```
+Before implementing any feature, ensure:
+- [ ] Read `blueprint.md` and `development-plan.md`
+- [ ] Understand multi-tenancy requirements
+- [ ] Plan tenant isolation strategy
+- [ ] Define DTOs for API responses
+- [ ] Use proper AdminLTE components
+- [ ] Follow SOLID principles
+- [ ] Add TypeScript types
+- [ ] Implement input validation (Zod)
+- [ ] Test tenant isolation
+- [ ] Scrub sensitive fields from responses
 
-## 🎯 Summary
+---
 
-**Default behavior: Write code, not documentation.**
-
-Only create `.md` files when:
-1. Explicitly requested by user
-2. Part of an explicit documentation task
-3. User asks to "document" something
-
-**Remember:** Good code with types and comments is often better than separate documentation files.
+**Remember:** Security and multi-tenancy are CRITICAL. Always prioritize tenant isolation and data protection over convenience.

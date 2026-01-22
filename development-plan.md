@@ -21,12 +21,12 @@ Membangun platform SaaS manajemen laundry multi-tenant yang scalable, secure, da
   - [x] Setup ESLint & Prettier
   - [x] Setup folder structure mengikuti SOLID principles (repositories, services, controllers, components)
 
-- [ ] **Database & ORM Setup**
-  - [ ] Setup PostgreSQL di Neon.tech (Singapore region)
-  - [ ] Setup Prisma atau Drizzle ORM
-  - [ ] Buat schema database berdasarkan blueprint
-  - [ ] Setup migration system
-  - [ ] Buat seed data untuk testing
+- [x] **Database & ORM Setup**
+  - [x] Setup PostgreSQL di Neon.tech (Singapore region)
+  - [x] Setup Prisma atau Drizzle ORM
+  - [x] Buat schema database berdasarkan blueprint
+  - [x] Setup migration system
+  - [x] Buat seed data untuk testing
 
 - [ ] **Authentication Setup**
   - [ ] Setup NextAuth.js

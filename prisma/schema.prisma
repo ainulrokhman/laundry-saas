@@ -1,0 +1,128 @@
+// Prisma Schema for Laundry SaaS Platform
+// Based on blueprint.md and database-schema.md
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Enums
+// ============================================
+
+enum Role {
+  SUPERADMIN
+  OWNER
+  STAFF
+}
+
+enum OrderStatus {
+  QUEUED
+  WASHING
+  DRYING
+  IRONING
+  READY
+  TAKEN
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING
+  SETTLEMENT
+  FAILURE
+}
+
+enum TransType {
+  SUBSCRIPTION
+  LAUNDRY_ORDER
+}
+
+// ============================================
+// Models
+// ============================================
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String // Hashed password (bcrypt)
+  role      Role
+  outletId  String
+  outlet    Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([outletId])
+  @@index([email])
+}
+
+model Outlet {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique // URL: domain.com/outlet/[slug]
+  address   String
+  bankInfo  String? // Informasi rekening untuk transfer pelanggan
+  isPro     Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     User[]
+  services  Service[]
+  orders    Order[]
+
+  @@index([slug])
+}
+
+model Service {
+  id        String   @id @default(uuid())
+  name      String
+  type      String // KILOAN, SATUAN, PAKET
+  price     Float
+  outletId  String
+  outlet    Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([outletId])
+}
+
+model Order {
+  id           String        @id @default(uuid())
+  trackingCode String        @unique // Kode pendek acak untuk publik
+  status       OrderStatus   @default(QUEUED)
+  paymentStatus PaymentStatus @default(UNPAID)
+  totalAmount  Float
+  outletId     String
+  outlet       Outlet        @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([outletId])
+  @@index([trackingCode])
+  @@index([status])
+  @@index([paymentStatus])
+}
+
+model Transaction {
+  id         String        @id @default(uuid())
+  type       TransType // Pembeda antara langganan SaaS atau pesanan cucian
+  amount     Float
+  proofUrl   String? // URL gambar bukti transfer (Cloudinary)
+  status     PaymentStatus @default(PENDING)
+  externalId String? // ID referensi jika nanti menggunakan Payment Gateway
+  orderId    String?
+  order      Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  outletId   String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([outletId])
+  @@index([orderId])
+  @@index([type])
+  @@index([status])
+}
