@@ -34,16 +34,16 @@ Membangun platform SaaS manajemen laundry multi-tenant yang scalable, secure, da
   - [x] Setup session management dengan outlet context
   - [x] Buat proxy untuk route protection (migrated from middleware per Next.js 16)
 
-- [ ] **UI Framework Integration**
-  - [ ] Install AdminLTE 3/4 (Bootstrap 5)
-  - [ ] Setup layout dasar (sidebar, navbar, footer)
-  - [ ] Setup FontAwesome icons
-  - [ ] Buat komponen reusable dasar
+- [x] **UI Framework Integration**
+  - [x] Install AdminLTE 3/4 (Bootstrap 5)
+  - [x] Setup layout dasar (sidebar, navbar, footer)
+  - [x] Setup FontAwesome icons
+  - [x] Buat komponen reusable dasar
 
-- [ ] **Storage Setup**
-  - [ ] Setup Cloudinary atau Supabase Storage
-  - [ ] Buat utility untuk upload gambar
-  - [ ] Setup environment variables
+- [x] **Storage Setup**
+  - [x] Setup Cloudinary atau Supabase Storage
+  - [x] Buat utility untuk upload gambar
+  - [x] Setup environment variables
 
 **Deliverables:**
 - Project structure yang rapi

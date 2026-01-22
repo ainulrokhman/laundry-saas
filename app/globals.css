@@ -1,26 +1,11 @@
+/* Bootstrap 5 */
+@import "bootstrap/dist/css/bootstrap.min.css";
+
+/* FontAwesome Icons */
+@import "@fortawesome/fontawesome-free/css/all.min.css";
+
+/* AdminLTE 4 */
+@import "admin-lte/dist/css/adminlte.min.css";
+
+/* Tailwind CSS (optional, for utility classes) */
 @import "tailwindcss";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
