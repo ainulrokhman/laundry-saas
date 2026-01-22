@@ -31,7 +31,7 @@ const publicRoutes = [
 /**
  * Routes that require SUPERADMIN role
  */
-const superAdminRoutes = ["/admin", "/api/admin"];
+const superAdminRoutes = ["/admin", "/api/admin", "/dashboard/outlets", "/api/outlets"];
 
 /**
  * Routes that require OWNER or higher role

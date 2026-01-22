@@ -34,12 +34,14 @@ export function Button({
     >
       {icon && iconPosition === "left" && (
         <>
-          {iconElement} {children}
+          {iconElement}
+          <span className="ms-1">{children}</span>
         </>
       )}
       {icon && iconPosition === "right" && (
         <>
-          {children} {iconElement}
+          <span className="me-1">{children}</span>
+          {iconElement}
         </>
       )}
       {!icon && children}

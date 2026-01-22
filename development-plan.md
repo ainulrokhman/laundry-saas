@@ -57,22 +57,22 @@ Membangun platform SaaS manajemen laundry multi-tenant yang scalable, secure, da
 **Status:** Core Infrastructure & Multi-Tenant Isolation
 
 #### Tugas:
-- [ ] **Dashboard Layout AdminLTE**
-  - [ ] Implementasi sidebar navigation dengan role-based menu
-  - [ ] Setup navbar dengan user profile dropdown
-  - [ ] Buat footer AdminLTE
-  - [ ] Implementasi responsive design
-  - [ ] Setup dark/light mode (optional)
+- [x] **Dashboard Layout AdminLTE**
+  - [x] Implementasi sidebar navigation dengan role-based menu
+  - [x] Setup navbar dengan user profile dropdown
+  - [x] Buat footer AdminLTE
+  - [x] Implementasi responsive design
+  - [x] Setup dark/light mode (optional)
 
-- [ ] **Multi-Tenancy Implementation**
-  - [ ] Implementasi tenant isolation di middleware
-  - [ ] Buat utility function untuk filter outlet_id di setiap query
-  - [ ] Setup context provider untuk outlet context
-  - [ ] Buat helper untuk validasi tenant access
-  - [ ] Test isolasi data antar tenant
+- [x] **Multi-Tenancy Implementation**
+  - [x] Implementasi tenant isolation di middleware
+  - [x] Buat utility function untuk filter outlet_id di setiap query
+  - [x] Setup context provider untuk outlet context
+  - [x] Buat helper untuk validasi tenant access
+  - [x] Test isolasi data antar tenant
 
 - [ ] **Outlet Management**
-  - [ ] Halaman list outlet (SuperAdmin only)
+  - [x] Halaman list outlet (SuperAdmin only)
   - [ ] Form create/edit outlet
   - [ ] Halaman outlet microsite publik di `/outlet/[slug]`
   - [ ] Setup outlet settings page
