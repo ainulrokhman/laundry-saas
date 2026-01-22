@@ -1,0 +1,3 @@
+# Repositories Layer
+# Data access layer following Single Responsibility Principle
+# Each repository handles data operations for a specific entity

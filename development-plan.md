@@ -15,11 +15,11 @@ Membangun platform SaaS manajemen laundry multi-tenant yang scalable, secure, da
 **Status:** Prerequisites & Infrastructure Setup
 
 #### Tugas:
-- [ ] **Setup Project Structure**
-  - [ ] Inisialisasi Next.js 14+ dengan App Router
-  - [ ] Setup TypeScript configuration
-  - [ ] Setup ESLint & Prettier
-  - [ ] Setup folder structure mengikuti SOLID principles (repositories, services, controllers, components)
+- [x] **Setup Project Structure**
+  - [x] Inisialisasi Next.js 14+ dengan App Router
+  - [x] Setup TypeScript configuration
+  - [x] Setup ESLint & Prettier
+  - [x] Setup folder structure mengikuti SOLID principles (repositories, services, controllers, components)
 
 - [ ] **Database & ORM Setup**
   - [ ] Setup PostgreSQL di Neon.tech (Singapore region)

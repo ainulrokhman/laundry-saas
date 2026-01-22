@@ -1,0 +1,3 @@
+# API Routes
+# Next.js App Router API routes
+# Each route handler should be thin and delegate to controllers/services

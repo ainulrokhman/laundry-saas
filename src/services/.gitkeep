@@ -1,0 +1,3 @@
+# Services Layer
+# Business logic layer following Single Responsibility Principle
+# Each service handles business logic for a specific domain

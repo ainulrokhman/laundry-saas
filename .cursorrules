@@ -1,0 +1,138 @@
+# Cursor Rules for Laundry SaaS Platform
+
+## 📝 Documentation Rules
+
+### ❌ DO NOT Create Documentation Unless Explicitly Requested
+
+**NEVER create documentation files (.md) unless the user explicitly asks for them.**
+
+This includes:
+- ❌ README.md files in subdirectories
+- ❌ Auto-generated documentation
+- ❌ "Helpful" documentation files
+- ❌ Example documentation
+- ❌ Tutorial files
+- ❌ Guide files
+
+### ✅ When Documentation IS Appropriate
+
+Only create documentation when:
+1. User explicitly requests it (e.g., "create documentation for X")
+2. User asks to document something specific
+3. User wants a guide or tutorial
+4. It's part of an explicit task (e.g., "document the API")
+
+### 📁 Existing Documentation Structure
+
+The project already has comprehensive documentation in `docs/` directory:
+- Architecture documentation
+- API documentation
+- Development guides
+- User guides
+- Setup guides
+
+**Do NOT duplicate or recreate this documentation.**
+
+## 🎯 Code-First Approach
+
+### Priority Order:
+1. **Code implementation** - Focus on writing working code
+2. **Code comments** - Add inline comments for complex logic
+3. **Type definitions** - Use TypeScript types for documentation
+4. **Documentation files** - Only when explicitly requested
+
+### Code Documentation Best Practices:
+- Use JSDoc comments for functions/classes
+- Use TypeScript types and interfaces
+- Write self-documenting code with clear names
+- Add inline comments for complex business logic
+
+## 🚫 What NOT to Do
+
+### Don't Create:
+- ❌ `README.md` in every folder
+- ❌ `USAGE.md`, `GUIDE.md`, `TUTORIAL.md` without request
+- ❌ Documentation "just in case"
+- ❌ Auto-generated API docs unless requested
+- ❌ Example documentation files
+
+### Don't Suggest:
+- ❌ "Should I create documentation for this?"
+- ❌ "Would you like me to document this?"
+- ❌ "I can create a guide for..."
+
+## ✅ What TO Do
+
+### Focus On:
+- ✅ Writing clean, working code
+- ✅ Following SOLID principles
+- ✅ Adding TypeScript types
+- ✅ Writing meaningful variable/function names
+- ✅ Adding JSDoc for complex functions
+- ✅ Following existing code patterns
+
+### When User Asks for Documentation:
+- ✅ Create it in the appropriate `docs/` subdirectory
+- ✅ Follow existing documentation structure
+- ✅ Use consistent formatting
+- ✅ Link to related documentation
+
+## 📋 File Creation Rules
+
+### Always Create:
+- ✅ Source code files (.ts, .tsx, .js, .jsx)
+- ✅ Configuration files (.json, .config.js, etc.)
+- ✅ Type definition files (.d.ts)
+- ✅ Test files when implementing features
+
+### Only Create When Requested:
+- ⚠️ Documentation files (.md)
+- ⚠️ Example files
+- ⚠️ Tutorial files
+
+## 🔍 Code Comments vs Documentation
+
+### Use Code Comments For:
+- Complex business logic
+- Non-obvious code
+- Workarounds or hacks
+- Performance considerations
+- Security notes
+
+### Use Documentation Files For:
+- Architecture overview
+- API specifications
+- User guides
+- Setup instructions
+- Contributing guidelines
+
+## 💡 Example Scenarios
+
+### ❌ Bad - Auto-creating docs:
+```
+User: "Add a new service endpoint"
+AI: *creates endpoint* + *creates API_DOCS.md* ❌
+```
+
+### ✅ Good - Code only:
+```
+User: "Add a new service endpoint"
+AI: *creates endpoint with proper types and comments* ✅
+```
+
+### ✅ Good - When requested:
+```
+User: "Document the new service endpoint"
+AI: *updates docs/api/services.md* ✅
+```
+
+## 🎯 Summary
+
+**Default behavior: Write code, not documentation.**
+
+Only create `.md` files when:
+1. Explicitly requested by user
+2. Part of an explicit documentation task
+3. User asks to "document" something
+
+**Remember:** Good code with types and comments is often better than separate documentation files.
