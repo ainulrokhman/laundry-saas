@@ -249,17 +249,136 @@ The project already has comprehensive documentation in `docs/` directory:
 4. **Service** - Business logic
 5. **Controller** - API endpoint
 6. **Component** - UI (if needed)
+7. **Tests** - Create tests to verify functionality (MANDATORY)
 
-### Testing Requirements
-- Test tenant isolation for every feature
-- Test security (input validation, DTO scrubbing)
-- Test error handling
-- Test edge cases
+### Testing Requirements (MANDATORY)
+**After implementing any feature, ALWAYS create and run tests to verify functionality:**
+
+1. **Tenant Isolation Tests** - Verify data isolation between outlets
+   - Test that users can only access their own outlet data
+   - Test that SUPERADMIN can access all outlets
+   - Test that queries include `outletId` filter
+
+2. **Security Tests** - Verify security measures
+   - Test input validation (Zod schemas)
+   - Test DTO scrubbing (sensitive fields not exposed)
+   - Test authentication and authorization
+   - Test role-based access control
+
+3. **Error Handling Tests** - Verify proper error responses
+   - Test invalid inputs return 400
+   - Test unauthorized access returns 401
+   - Test forbidden access returns 403
+   - Test not found returns 404
+   - Test server errors return 500
+
+4. **Edge Cases Tests** - Verify edge cases are handled
+   - Test empty/null inputs
+   - Test boundary values
+   - Test concurrent operations
+   - Test data integrity
+
+5. **Integration Tests** - Verify end-to-end functionality
+   - Test complete workflows
+   - Test API endpoints with real requests
+   - Test database operations
+
+**Testing Implementation:**
+- Create test files alongside implementation files
+- Use descriptive test names that explain what is being tested
+- Test both success and failure scenarios
+- Run tests before marking task as complete
+- Ensure all tests pass before proceeding
 
 ### Migration & Deployment
 - Always create Prisma migrations for schema changes
 - Test migrations on development database first
 - Never modify production schema directly
+
+### Testing Workflow (MANDATORY)
+**After implementing any feature, ALWAYS create tests before marking as complete:**
+
+1. **Create Test Files** - Create test files alongside implementation
+   - Repository tests: `src/repositories/__tests__/UserRepository.test.ts`
+   - Service tests: `src/services/__tests__/UserService.test.ts`
+   - API tests: `app/api/users/__tests__/route.test.ts`
+   - Component tests: `src/components/__tests__/UserForm.test.tsx`
+
+2. **Test Categories (All Required):**
+   - ✅ **Tenant Isolation** - Verify `outletId` filtering works
+   - ✅ **Security** - Verify validation, DTO scrubbing, auth
+   - ✅ **Error Handling** - Verify proper error responses
+   - ✅ **Edge Cases** - Verify boundary conditions
+   - ✅ **Integration** - Verify end-to-end workflows
+
+3. **Run Tests** - Execute tests and verify all pass
+   ```bash
+   npm test
+   # or
+   npm run test:watch
+   ```
+
+4. **Fix Issues** - If tests fail, fix implementation until all pass
+
+5. **Document Test Coverage** - Note what is tested in test files
+
+**Do NOT mark task as complete until:**
+- ✅ All tests are written
+- ✅ All tests pass
+- ✅ Test coverage includes all critical paths
+- ✅ Tenant isolation is verified
+- ✅ Security measures are verified
+
+**Example Test Structure:**
+```typescript
+// src/repositories/__tests__/UserRepository.test.ts
+describe('UserRepository', () => {
+  describe('findByEmail', () => {
+    it('should find user by email', async () => {
+      // Test implementation
+    });
+    
+    it('should return null if user not found', async () => {
+      // Test implementation
+    });
+  });
+  
+  describe('tenant isolation', () => {
+    it('should only return users from specified outlet', async () => {
+      // Test tenant isolation
+    });
+    
+    it('should prevent cross-outlet data access', async () => {
+      // Test security
+    });
+  });
+});
+```
+
+### Update Development Plan (MANDATORY)
+**After completing any task or feature implementation, ALWAYS update `development-plan.md`:**
+
+1. **Mark completed tasks** - Change `[ ]` to `[x]` for completed items
+2. **Update status** - Update phase status if all tasks in a phase are complete
+3. **Add notes** - Add implementation notes if relevant (dates, decisions, blockers)
+4. **Track progress** - Ensure checklist accurately reflects current project state
+
+**Example:**
+```markdown
+- [x] **Authentication Setup** ✅ Completed
+  - [x] Setup NextAuth.js
+  - [x] Implementasi role-based access (SUPERADMIN, OWNER, STAFF)
+  - [x] Setup session management dengan outlet context
+  - [x] Buat middleware untuk route protection
+```
+
+**When to update:**
+- ✅ After completing a task (mark as done)
+- ✅ After completing a phase (update phase status)
+- ✅ When starting a new phase (update timeline)
+- ✅ When encountering blockers (add notes)
+
+**Do NOT skip this step** - Keeping development-plan.md updated ensures accurate project tracking and helps with planning.
 
 ---
 
@@ -301,12 +420,16 @@ The project already has comprehensive documentation in `docs/` directory:
 6. **❌ Mixing business logic in controllers** - Use service layer
 7. **❌ Direct database access from controllers** - Use repository layer
 8. **❌ Creating documentation without request** - Code first
+9. **❌ Skipping tests** - Always create tests after implementation
+10. **❌ Not testing tenant isolation** - Must verify data isolation works
+11. **❌ Not testing security** - Must verify security measures work
+12. **❌ Marking task complete without tests** - Tests must pass before completion
 
 ---
 
 ## 📋 Summary Checklist
 
-Before implementing any feature, ensure:
+### Before Implementing Any Feature
 - [ ] Read `blueprint.md` and `development-plan.md`
 - [ ] Understand multi-tenancy requirements
 - [ ] Plan tenant isolation strategy
@@ -317,6 +440,19 @@ Before implementing any feature, ensure:
 - [ ] Implement input validation (Zod)
 - [ ] Test tenant isolation
 - [ ] Scrub sensitive fields from responses
+
+### After Completing Implementation
+- [ ] **Create and run tests** - Verify feature works as expected
+  - [ ] Test tenant isolation
+  - [ ] Test security measures
+  - [ ] Test error handling
+  - [ ] Test edge cases
+  - [ ] Test integration/end-to-end
+  - [ ] Ensure all tests pass
+- [ ] Update `development-plan.md` - Mark completed tasks as `[x]`
+- [ ] Update phase status if phase is complete
+- [ ] Add implementation notes if relevant
+- [ ] Verify all checkboxes reflect actual progress
 
 ---
 

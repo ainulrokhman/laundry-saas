@@ -7,3 +7,4 @@ export * from "./enums/Role";
 export * from "./enums/OrderStatus";
 export * from "./enums/PaymentStatus";
 export * from "./enums/TransType";
+export * from "./auth";

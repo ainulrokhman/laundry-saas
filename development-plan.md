@@ -28,11 +28,11 @@ Membangun platform SaaS manajemen laundry multi-tenant yang scalable, secure, da
   - [x] Setup migration system
   - [x] Buat seed data untuk testing
 
-- [ ] **Authentication Setup**
-  - [ ] Setup NextAuth.js
-  - [ ] Implementasi role-based access (SUPERADMIN, OWNER, STAFF)
-  - [ ] Setup session management dengan outlet context
-  - [ ] Buat middleware untuk route protection
+- [x] **Authentication Setup** ✅ Completed
+  - [x] Setup NextAuth.js
+  - [x] Implementasi role-based access (SUPERADMIN, OWNER, STAFF)
+  - [x] Setup session management dengan outlet context
+  - [x] Buat proxy untuk route protection (migrated from middleware per Next.js 16)
 
 - [ ] **UI Framework Integration**
   - [ ] Install AdminLTE 3/4 (Bootstrap 5)
