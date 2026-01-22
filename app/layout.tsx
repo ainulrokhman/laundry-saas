@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
+import { OutletProvider } from "@/components/providers/OutletProvider";
 import { AdminLTEScripts } from "@/components/AdminLTEScripts";
 
 const geistSans = Geist({
@@ -30,8 +31,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} layout-fixed sidebar-expand-lg`}
       >
         <SessionProvider>
-          {children}
-          <AdminLTEScripts />
+          <OutletProvider>
+            {children}
+            <AdminLTEScripts />
+          </OutletProvider>
         </SessionProvider>
       </body>
     </html>

@@ -3,7 +3,11 @@
  * Handles route protection and tenant isolation
  * Following security best practices from .cursorrules
  * 
- * Note: Previously named "middleware" - migrated to "proxy" per Next.js 16 convention
+ * This proxy function intercepts requests at the edge to:
+ * 1. Verify authentication on protected routes
+ * 2. Ensure outletId is present in session (tenant isolation)
+ * 3. Enforce role-based access control
+ * 4. Add tenant context to request headers for downstream use
  */
 
 import { NextResponse } from "next/server";
@@ -38,7 +42,11 @@ const ownerRoutes = ["/dashboard", "/api/outlet"];
  * Check if route is public
  */
 function isPublicRoute(pathname: string): boolean {
-  return publicRoutes.some((route) => pathname.startsWith(route));
+  return (
+    publicRoutes.some((route) => pathname.startsWith(route)) ||
+    pathname.startsWith("/outlet/") ||
+    pathname.startsWith("/track/")
+  );
 }
 
 /**
@@ -81,8 +89,16 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(signInUrl);
   }
 
-  const userRole = token.role as Role;
-  const outletId = token.outletId as string;
+  const userRole = token.role as Role | undefined;
+  const outletId = token.outletId as string | undefined;
+
+  // Validate token has required fields
+  if (!userRole) {
+    return NextResponse.json(
+      { error: "Unauthorized: Invalid session" },
+      { status: 401 }
+    );
+  }
 
   // Check SUPERADMIN routes
   if (isSuperAdminRoute(pathname)) {
@@ -113,6 +129,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Add outlet context to request headers for downstream use
+  // This ensures tenant isolation in API routes and server components
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-outlet-id", outletId || "");
   requestHeaders.set("x-user-role", userRole);

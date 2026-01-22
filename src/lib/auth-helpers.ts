@@ -109,3 +109,57 @@ export async function requireOutletAccess(
 
   return session;
 }
+
+/**
+ * Require outlet ID in session - throws error if missing
+ * SUPERADMIN might not have outletId, which is OK for some operations
+ * But for tenant-scoped operations, we need outletId
+ */
+export async function requireOutletId(): Promise<string> {
+  const session = await requireAuth();
+
+  if (!session.outletId && session.role !== Role.SUPERADMIN) {
+    throw new Error("Missing outletId in session");
+  }
+
+  return session.outletId || "";
+}
+
+/**
+ * Build tenant filter for database queries
+ * Returns outletId filter or null for SUPERADMIN (no filter)
+ * 
+ * @returns Object with outletId or null
+ */
+export async function getTenantFilter(): Promise<{ outletId: string } | null> {
+  const session = await getSession();
+
+  if (!session) {
+    throw new Error("Unauthorized: Authentication required");
+  }
+
+  // SUPERADMIN can access all outlets (no filter)
+  if (session.role === Role.SUPERADMIN) {
+    return null;
+  }
+
+  // OWNER and STAFF must have outletId
+  if (!session.outletId) {
+    throw new Error("Missing outletId in session for non-SUPERADMIN user");
+  }
+
+  return { outletId: session.outletId };
+}
+
+/**
+ * Verify tenant access and return session
+ * Throws error if access is denied
+ * 
+ * @param targetOutletId - Outlet ID to verify access for
+ * @returns ExtendedSession if access is granted
+ */
+export async function verifyTenantAccess(
+  targetOutletId: string
+): Promise<ExtendedSession> {
+  return requireOutletAccess(targetOutletId);
+}

@@ -1,459 +1,342 @@
 # Cursor Rules for Laundry SaaS Platform
 
-## 📚 Prerequisites: Always Read First
+## 📚 Prerequisites
 
-**BEFORE implementing any feature or making changes, ALWAYS read:**
-1. `blueprint.md` - Arsitektur sistem, teknologi stack, dan prinsip SOLID
-2. `development-plan.md` - Roadmap pengembangan dan fase-fase implementasi
-
-These documents contain critical context about architecture, security, and development standards.
+**BEFORE implementing any feature, ALWAYS read:**
+1. `blueprint.md` - Arsitektur sistem, teknologi stack, prinsip SOLID
+2. `development-plan.md` - Roadmap pengembangan dan fase implementasi
 
 ---
 
-## 🏗️ Architecture & Technology Stack
+## 🏗️ Tech Stack & Architecture
 
-### Core Technologies
-- **Framework:** Next.js 14+ (App Router) - Serverless deployment di Vercel
-- **UI Framework:** AdminLTE 3/4 (Bootstrap 5) untuk dashboard internal
-- **Database:** PostgreSQL (Neon.tech) - Region: Singapore (ap-southeast-1)
-- **ORM:** Prisma atau Drizzle untuk database management
-- **Auth:** NextAuth.js dengan role-based access (SUPERADMIN, OWNER, STAFF)
-- **Storage:** Cloudinary atau Supabase untuk gambar (bukti transfer, logo outlet)
-- **Region:** Singapore (sin1) untuk latensi terendah di Indonesia
+**Core Technologies:**
+- Next.js 14+ (App Router) - Vercel serverless
+- AdminLTE 3/4 (Bootstrap 5) untuk dashboard
+- PostgreSQL (Neon.tech) - Region Singapore
+- Prisma/Drizzle untuk ORM
+- NextAuth.js - Role: SUPERADMIN, OWNER, STAFF
+- Cloudinary - Storage gambar
 
-### Code Structure (SOLID Principles)
+**Code Structure (SOLID):**
 ```
 src/
-├── components/     # Reusable UI components (AdminLTE-based)
-├── controllers/    # API route handlers (Next.js App Router)
-├── services/       # Business logic layer
-├── repositories/   # Data access layer (database queries)
+├── components/     # UI components (AdminLTE)
+├── controllers/    # API route handlers
+├── services/       # Business logic
+├── repositories/   # Data access layer
 ├── types/          # TypeScript types & enums
-└── lib/            # Utilities & constants
+└── lib/            # Utilities
 ```
 
 **Layer Separation:**
-- **Controllers:** Handle HTTP requests/responses, validation, error handling
-- **Services:** Business logic, orchestration, validation rules
-- **Repositories:** Database queries, data access, Prisma/Drizzle operations
-- **Components:** UI components, AdminLTE integration
+- Controllers → Services → Repositories → Database
+- Components hanya untuk UI rendering
 
 ---
 
 ## 🔐 Security & Multi-Tenancy (CRITICAL)
 
-### Tenant Isolation (MANDATORY)
-**Every database query MUST include outlet_id filter to prevent data leakage:**
+### Proxy for Tenant Isolation (MANDATORY)
+**Gunakan `proxy.ts` untuk route protection dan tenant isolation:**
+- Proxy intercepts requests di edge runtime
+- Verifikasi authentication pada protected routes
+- Memastikan `outletId` ada di session
+- Menambahkan `x-outlet-id` dan `x-user-role` ke request headers
+- Enforce role-based access control
+
+**File: `proxy.ts`** - Logic untuk tenant isolation
+**File: `middleware.ts`** - Export proxy sebagai default (Next.js requirement)
+
+### Tenant Isolation in Queries (MANDATORY)
+**Setiap query database HARUS filter `outletId`:**
 
 ```typescript
-// ✅ CORRECT - Always filter by outletId
-const orders = await prisma.order.findMany({
-  where: {
-    id: orderId,
-    outletId: session.outletId  // MANDATORY
-  }
+// ✅ CORRECT
+await prisma.order.findMany({
+  where: { id: orderId, outletId: session.outletId }
 });
 
-// ❌ WRONG - Missing outletId filter
-const orders = await prisma.order.findMany({
-  where: { id: orderId }
-});
+// ❌ WRONG
+await prisma.order.findMany({ where: { id: orderId } });
 ```
 
 **Rules:**
-1. **Every API request** must verify `session.outletId`
-2. **Every database query** must include `outletId` in WHERE clause
-3. **Middleware** must enforce tenant isolation before route handlers
-4. **Never trust client-side outlet_id** - always use server-side session
+- Setiap API request verifikasi `session.outletId`
+- Setiap query include `outletId` di WHERE clause
+- Jangan percaya `outlet_id` dari client
+- Gunakan `buildTenantWhere()` dari `tenant-helpers.ts` untuk konsistensi
 
-### Data Transfer Objects (DTO Pattern)
-**Never return raw database objects from API:**
+### DTO Pattern (MANDATORY)
+**Jangan return raw database objects - gunakan DTO untuk scrub:**
+- `outletId` (internal only)
+- `isPro` (prevent manipulation)
+- Password hashes
+- Internal IDs
 
-```typescript
-// ✅ CORRECT - Use DTO to scrub sensitive fields
-interface OrderResponseDTO {
-  id: string;
-  trackingCode: string;
-  status: OrderStatus;
-  totalAmount: number;
-  // Exclude: outletId, internal IDs, sensitive fields
-}
-
-// ❌ WRONG - Returning raw Prisma model
-return order; // Exposes outletId, internal fields
-```
-
-**Scrub these fields from responses:**
-- `outletId` (internal use only)
-- `isPro` (prevent client-side manipulation)
-- Internal IDs that shouldn't be exposed
-- Password hashes (never expose)
-- Sensitive configuration
-
-### Public Tracking Privacy
-- Use `trackingCode` (random string) instead of internal IDs for public URLs
-- Only show minimal data: status, masked customer name (An***), estimated completion
-- Implement rate limiting on public endpoints (Vercel Edge)
-- Never expose outlet information on public pages
+### Public Tracking
+- Gunakan `trackingCode` (random string), bukan internal ID
+- Minimal data exposure, rate limiting wajib
+- Jangan expose outlet information
 
 ### Input Validation
-- **Always use Zod** for API input validation
-- Validate all user inputs before database operations
-- Sanitize strings to prevent SQL injection
-- Validate file uploads (type, size limits)
+- **Selalu pakai Zod** untuk validasi API
+- Validate semua input sebelum database operations
 
 ---
 
-## 🎨 UI/UX Standards (AdminLTE)
+## 🎨 UI/UX Standards
 
-### AdminLTE Components
-**Use AdminLTE 3/4 (Bootstrap 5) components for dashboard:**
-
-- **Sidebar Navigation:** Role-based menu (Owner vs Staff)
-- **Cards & Widgets:** Info Box untuk statistik (Order hari ini, Omzet, Cucian tertunda)
-- **Datatables:** Bootstrap Datatables untuk list dengan search & filter
-- **Modals:** AdminLTE modals untuk input forms
-- **Badges:** AdminLTE color classes untuk status
-  - `bg-warning` untuk Washing
-  - `bg-success` untuk Ready
-  - `bg-danger` untuk Failed
-  - `bg-info` untuk Pending
-
-### Icons
-- **Use FontAwesome** (default AdminLTE) untuk semua ikon
-- Consistent icon usage across navigation dan buttons
-
-### Responsive Design
-- All components must be mobile-responsive
-- Test on different screen sizes
-- Use Bootstrap grid system
+**AdminLTE Components:**
+- Sidebar: Role-based menu
+- Info Box: Statistik (Order hari ini, Omzet, Cucian tertunda)
+- Datatables: List dengan search & filter
+- Modals: Input forms
+- Badges: `bg-warning` (Washing), `bg-success` (Ready), `bg-danger` (Failed), `bg-info` (Pending)
+- Icons: FontAwesome (default AdminLTE)
+- Responsive: Mobile-friendly, Bootstrap grid
 
 ---
 
-## 📊 Database Schema & Enums
+## 📊 Database & Enums
 
-### Enums (Use from `src/types/enums/`)
-- **Role:** SUPERADMIN, OWNER, STAFF
-- **OrderStatus:** QUEUED → WASHING → DRYING → IRONING → READY → TAKEN
-- **PaymentStatus:** UNPAID, PENDING, SETTLEMENT, FAILURE
-- **TransType:** SUBSCRIPTION, LAUNDRY_ORDER
-
-### Database Models (Prisma Schema)
-**Key Models:**
-- `Outlet` - Multi-tenant isolation key
-- `Order` - Core business entity dengan `trackingCode` untuk public access
-- `Transaction` - Payment & subscription tracking
-- `Service` - Laundry services (Kiloan, Satuan, Paket)
-- `User` - Authentication dengan role-based access
+**Enums (`src/types/enums/`):**
+- `Role`: SUPERADMIN, OWNER, STAFF
+- `OrderStatus`: QUEUED → WASHING → DRYING → IRONING → READY → TAKEN
+- `PaymentStatus`: UNPAID, PENDING, SETTLEMENT, FAILURE
+- `TransType`: SUBSCRIPTION, LAUNDRY_ORDER
 
 **Important Fields:**
-- `outletId` - Mandatory untuk semua tenant-scoped entities
-- `trackingCode` - Unique random string untuk public tracking (bukan ID)
-- `slug` - URL-friendly identifier untuk outlet microsite
+- `outletId` - Mandatory untuk tenant-scoped entities
+- `trackingCode` - Random string untuk public tracking
+- `slug` - URL-friendly untuk outlet microsite
 
 ---
 
-## 💻 Code Quality & Best Practices
+## 💻 Code Quality
 
-### SOLID Principles
+**SOLID Principles:**
+- Single Responsibility: Satu layer, satu tanggung jawab
+- Open/Closed: Gunakan interfaces untuk extensibility
+- Dependency Inversion: Services depend on repository interfaces
 
-**S - Single Responsibility:**
-- Repositories: Only database access
-- Services: Only business logic
-- Controllers: Only HTTP handling
-- Components: Only UI rendering
+**TypeScript:**
+- No `any` types
+- Proper interfaces untuk semua data structures
+- Gunakan enums, bukan magic strings
 
-**O - Open/Closed:**
-- Use interfaces for extensibility (e.g., `PaymentProcessor`)
-- Add new payment gateways without modifying core code
-
-**L - Liskov Substitution:**
-- All service types (Kiloan, Satuan, Paket) handled uniformly
-
-**I - Interface Segregation:**
-- Separate public API from internal dashboard API
-- Use specific interfaces, not monolithic ones
-
-**D - Dependency Inversion:**
-- Services depend on repository interfaces, not concrete implementations
-- Use dependency injection patterns
-
-### TypeScript
-- **Always use TypeScript** - no `any` types unless absolutely necessary
-- Define proper interfaces for all data structures
-- Use enums from `src/types/enums/` instead of magic strings
-- Type all function parameters and return values
-
-### Error Handling
-- Use try-catch blocks for all async operations
-- Return proper HTTP status codes (400, 401, 403, 404, 500)
-- Log errors appropriately (don't expose sensitive info to client)
-- Use consistent error response format
-
-### Code Comments
-- Add JSDoc comments for complex functions
-- Explain business logic, not obvious code
-- Document security considerations
-- Note performance optimizations
+**Error Handling:**
+- Try-catch untuk async operations
+- Proper HTTP status codes (400, 401, 403, 404, 500)
+- Jangan expose sensitive info ke client
 
 ---
 
 ## 📝 Documentation Rules
 
-### ❌ DO NOT Create Documentation Unless Explicitly Requested
+**❌ JANGAN buat dokumentasi kecuali diminta:**
+- No README.md di subdirectories
+- No auto-generated docs
+- No "helpful" documentation files
 
-**NEVER create documentation files (.md) unless the user explicitly asks for them.**
+**✅ Buat dokumentasi hanya jika:**
+- User explicitly requests
+- Part of explicit task
 
-This includes:
-- ❌ README.md files in subdirectories
-- ❌ Auto-generated documentation
-- ❌ "Helpful" documentation files
-- ❌ Example documentation
-- ❌ Tutorial files
-
-### ✅ When Documentation IS Appropriate
-
-Only create documentation when:
-1. User explicitly requests it (e.g., "create documentation for X")
-2. User asks to document something specific
-3. User wants a guide or tutorial
-4. It's part of an explicit task (e.g., "document the API")
-
-### 📁 Existing Documentation Structure
-
-The project already has comprehensive documentation in `docs/` directory:
-- Architecture documentation
-- API documentation
-- Development guides
-- User guides
-- Setup guides
-
-**Do NOT duplicate or recreate this documentation.**
-
-### Code-First Approach
-
-**Priority Order:**
-1. **Code implementation** - Focus on writing working code
-2. **Code comments** - Add inline comments for complex logic
-3. **Type definitions** - Use TypeScript types for documentation
-4. **Documentation files** - Only when explicitly requested
+**Code-First Approach:**
+1. Code implementation
+2. Code comments (inline)
+3. Type definitions
+4. Documentation files (only if requested)
 
 ---
 
-## 🚀 Development Workflow
+## 🚀 Development Workflow (MANDATORY)
 
-### Feature Implementation Order
-1. **Database Schema** - Update Prisma schema if needed
-2. **Types/Enums** - Define TypeScript types
-3. **Repository** - Data access layer
-4. **Service** - Business logic
-5. **Controller** - API endpoint
-6. **Component** - UI (if needed)
-7. **Tests** - Create tests to verify functionality (MANDATORY)
+### ⚠️ CRITICAL: Setiap Tahap Development HARUS Mengikuti Workflow Ini
 
-### Testing Requirements (MANDATORY)
-**After implementing any feature, ALWAYS create and run tests to verify functionality:**
+**JANGAN skip langkah apapun. Workflow ini MANDATORY untuk setiap implementasi.**
 
-1. **Tenant Isolation Tests** - Verify data isolation between outlets
-   - Test that users can only access their own outlet data
-   - Test that SUPERADMIN can access all outlets
-   - Test that queries include `outletId` filter
+---
 
-2. **Security Tests** - Verify security measures
-   - Test input validation (Zod schemas)
-   - Test DTO scrubbing (sensitive fields not exposed)
-   - Test authentication and authorization
-   - Test role-based access control
+### 📝 Step 1: Before Implementation
 
-3. **Error Handling Tests** - Verify proper error responses
-   - Test invalid inputs return 400
-   - Test unauthorized access returns 401
-   - Test forbidden access returns 403
-   - Test not found returns 404
-   - Test server errors return 500
+**SEBELUM mulai coding, SELALU:**
+1. ✅ Baca `blueprint.md` & `development-plan.md`
+2. ✅ Pahami requirement dan arsitektur
+3. ✅ Plan tenant isolation strategy
+4. ✅ Define DTOs yang diperlukan
+5. ✅ Plan input validation (Zod schemas)
 
-4. **Edge Cases Tests** - Verify edge cases are handled
-   - Test empty/null inputs
-   - Test boundary values
-   - Test concurrent operations
-   - Test data integrity
+---
 
-5. **Integration Tests** - Verify end-to-end functionality
-   - Test complete workflows
-   - Test API endpoints with real requests
-   - Test database operations
+### 💻 Step 2: Implementation Order
 
-**Testing Implementation:**
-- Create test files alongside implementation files
-- Use descriptive test names that explain what is being tested
-- Test both success and failure scenarios
-- Run tests before marking task as complete
-- Ensure all tests pass before proceeding
+**Urutan implementasi (JANGAN skip):**
+1. Database Schema (Prisma) - jika perlu
+2. Types/Enums - define TypeScript types
+3. Repository - data access layer
+4. Service - business logic
+5. Controller - API route handlers
+6. Component - UI components (jika perlu)
+7. **Tests - BUAT TESTS (MANDATORY)**
 
-### Migration & Deployment
-- Always create Prisma migrations for schema changes
-- Test migrations on development database first
-- Never modify production schema directly
+---
 
-### Testing Workflow (MANDATORY)
-**After implementing any feature, ALWAYS create tests before marking as complete:**
+### ✅ Step 3: After Implementation - MANDATORY CHECKLIST
 
-1. **Create Test Files** - Create test files alongside implementation
-   - Repository tests: `src/repositories/__tests__/UserRepository.test.ts`
-   - Service tests: `src/services/__tests__/UserService.test.ts`
-   - API tests: `app/api/users/__tests__/route.test.ts`
-   - Component tests: `src/components/__tests__/UserForm.test.tsx`
+**SETELAH selesai implementasi, SELALU lakukan SEMUA langkah ini:**
 
-2. **Test Categories (All Required):**
-   - ✅ **Tenant Isolation** - Verify `outletId` filtering works
-   - ✅ **Security** - Verify validation, DTO scrubbing, auth
-   - ✅ **Error Handling** - Verify proper error responses
-   - ✅ **Edge Cases** - Verify boundary conditions
-   - ✅ **Integration** - Verify end-to-end workflows
+#### 3.1. Create Tests (MANDATORY)
+**Buat test files untuk semua yang diimplementasi:**
+- ✅ Unit tests untuk functions/helpers
+- ✅ Integration tests untuk services/repositories
+- ✅ Component tests untuk UI components
+- ✅ Test tenant isolation (jika applicable)
+- ✅ Test security measures (jika applicable)
 
-3. **Run Tests** - Execute tests and verify all pass
-   ```bash
-   npm test
-   # or
-   npm run test:watch
-   ```
+**Test Categories yang harus dicover:**
+- ✅ **Tenant Isolation** - Verify `outletId` filtering
+- ✅ **Security** - Validation, DTO scrubbing, auth
+- ✅ **Error Handling** - Proper status codes
+- ✅ **Edge Cases** - Boundary conditions
+- ✅ **Integration** - End-to-end workflows
 
-4. **Fix Issues** - If tests fail, fix implementation until all pass
+#### 3.2. Run Tests (MANDATORY)
+**JALANKAN TESTS dan pastikan SEMUA PASS:**
 
-5. **Document Test Coverage** - Note what is tested in test files
-
-**Do NOT mark task as complete until:**
-- ✅ All tests are written
-- ✅ All tests pass
-- ✅ Test coverage includes all critical paths
-- ✅ Tenant isolation is verified
-- ✅ Security measures are verified
-
-**Example Test Structure:**
-```typescript
-// src/repositories/__tests__/UserRepository.test.ts
-describe('UserRepository', () => {
-  describe('findByEmail', () => {
-    it('should find user by email', async () => {
-      // Test implementation
-    });
-    
-    it('should return null if user not found', async () => {
-      // Test implementation
-    });
-  });
-  
-  describe('tenant isolation', () => {
-    it('should only return users from specified outlet', async () => {
-      // Test tenant isolation
-    });
-    
-    it('should prevent cross-outlet data access', async () => {
-      // Test security
-    });
-  });
-});
+```bash
+npm test
 ```
 
-### Update Development Plan (MANDATORY)
-**After completing any task or feature implementation, ALWAYS update `development-plan.md`:**
+**Requirements:**
+- ✅ **SEMUA tests harus PASS** sebelum lanjut
+- ✅ Jika ada test yang FAIL, FIX dulu sebelum lanjut
+- ✅ Jangan mark task complete jika tests masih fail
 
-1. **Mark completed tasks** - Change `[ ]` to `[x]` for completed items
-2. **Update status** - Update phase status if all tasks in a phase are complete
-3. **Add notes** - Add implementation notes if relevant (dates, decisions, blockers)
-4. **Track progress** - Ensure checklist accurately reflects current project state
+#### 3.3. Update Development Plan (MANDATORY)
+**SETELAH tests pass, SELALU update `development-plan.md`:**
 
-**Example:**
+1. ✅ Buka file `development-plan.md`
+2. ✅ Cari task yang baru selesai
+3. ✅ Mark sebagai completed: `[ ]` → `[x]`
+4. ✅ Update phase status jika semua task di phase selesai
+5. ✅ Tambahkan implementation notes jika perlu (tanggal, keputusan, blockers)
+
+**Contoh:**
 ```markdown
-- [x] **Authentication Setup** ✅ Completed
-  - [x] Setup NextAuth.js
-  - [x] Implementasi role-based access (SUPERADMIN, OWNER, STAFF)
-  - [x] Setup session management dengan outlet context
-  - [x] Buat middleware untuk route protection
+- [x] **Multi-Tenancy Implementation** ✅ Completed (2025-01-22)
+  - [x] Implementasi tenant isolation di proxy
+  - [x] Buat utility function untuk filter outlet_id
+  - [x] Setup context provider untuk outlet context
+  - [x] Buat helper untuk validasi tenant access
+  - [x] Test isolasi data antar tenant
 ```
 
-**When to update:**
-- ✅ After completing a task (mark as done)
-- ✅ After completing a phase (update phase status)
-- ✅ When starting a new phase (update timeline)
-- ✅ When encountering blockers (add notes)
-
-**Do NOT skip this step** - Keeping development-plan.md updated ensures accurate project tracking and helps with planning.
+**⚠️ JANGAN skip step ini. Ini MANDATORY untuk tracking progress.**
 
 ---
 
-## 🎯 Feature-Specific Guidelines
+### 🎯 Completion Criteria
 
-### Order Management
-- Auto-generate `trackingCode` (random string, not sequential)
-- Implement workflow: QUEUED → WASHING → DRYING → IRONING → READY → TAKEN
-- Use AdminLTE Steps/Timeline untuk visualisasi progress
+**Task dianggap SELESAI hanya jika:**
+- ✅ Code implementation complete
+- ✅ Tests dibuat dan SEMUA PASS
+- ✅ `development-plan.md` sudah di-update
+- ✅ Tidak ada linter errors
+- ✅ Tenant isolation verified (jika applicable)
+- ✅ Security measures verified (jika applicable)
+
+**Jika salah satu belum selesai, task BELUM SELESAI.**
+
+---
+
+## 🎯 Feature Guidelines
+
+**Order Management:**
+- Auto-generate `trackingCode` (random, not sequential)
+- Workflow: QUEUED → WASHING → DRYING → IRONING → READY → TAKEN
 - Always filter by `outletId`
 
-### Payment System
-- Manual payment: Upload bukti transfer ke Cloudinary
+**Payment:**
+- Upload bukti transfer ke Cloudinary
 - Use `Transaction` model dengan `TransType` enum
-- Verify payment status before allowing order completion
-- Never expose payment gateway credentials
+- Verify payment status sebelum order completion
 
-### Public Tracking Page
+**Public Tracking:**
 - Route: `/track/[trackingCode]`
-- Minimal data display (privacy protection)
-- Rate limiting mandatory
-- No outlet information exposed
+- Minimal data, rate limiting wajib
 
-### Outlet Microsite
+**Outlet Microsite:**
 - Route: `/outlet/[slug]`
-- Public-facing, clean & minimal design
-- No authentication required
-- Display outlet info, services, contact
+- Public-facing, no auth required
 
 ---
 
-## ⚠️ Common Mistakes to Avoid
+## ⚠️ Common Mistakes (JANGAN LAKUKAN INI!)
 
-1. **❌ Missing outletId filter** - Always include in queries
-2. **❌ Returning raw database objects** - Use DTO pattern
-3. **❌ Using internal IDs for public URLs** - Use trackingCode
-4. **❌ Exposing sensitive fields** - Scrub responses
-5. **❌ Skipping input validation** - Always validate with Zod
-6. **❌ Mixing business logic in controllers** - Use service layer
-7. **❌ Direct database access from controllers** - Use repository layer
-8. **❌ Creating documentation without request** - Code first
-9. **❌ Skipping tests** - Always create tests after implementation
-10. **❌ Not testing tenant isolation** - Must verify data isolation works
-11. **❌ Not testing security** - Must verify security measures work
-12. **❌ Marking task complete without tests** - Tests must pass before completion
+1. ❌ Missing `outletId` filter
+2. ❌ Returning raw database objects
+3. ❌ Using internal IDs untuk public URLs
+4. ❌ Exposing sensitive fields
+5. ❌ Skipping input validation (Zod)
+6. ❌ Mixing business logic di controllers
+7. ❌ Direct database access dari controllers
+8. ❌ Creating documentation tanpa request
+9. ❌ **Skipping tests** - MANDATORY!
+10. ❌ **Not running tests** - MANDATORY!
+11. ❌ **Not updating `development-plan.md`** - MANDATORY!
+12. ❌ Marking task complete sebelum tests pass
+13. ❌ Marking task complete sebelum update development-plan.md
 
 ---
 
-## 📋 Summary Checklist
+## 📋 MANDATORY Checklist - Copy Ini Setiap Kali
 
-### Before Implementing Any Feature
-- [ ] Read `blueprint.md` and `development-plan.md`
-- [ ] Understand multi-tenancy requirements
+### ✅ Before Implementation
+- [ ] Read `blueprint.md` & `development-plan.md`
+- [ ] Understand requirements & architecture
 - [ ] Plan tenant isolation strategy
-- [ ] Define DTOs for API responses
-- [ ] Use proper AdminLTE components
-- [ ] Follow SOLID principles
-- [ ] Add TypeScript types
-- [ ] Implement input validation (Zod)
-- [ ] Test tenant isolation
-- [ ] Scrub sensitive fields from responses
+- [ ] Define DTOs
+- [ ] Plan input validation (Zod)
 
-### After Completing Implementation
-- [ ] **Create and run tests** - Verify feature works as expected
-  - [ ] Test tenant isolation
-  - [ ] Test security measures
-  - [ ] Test error handling
-  - [ ] Test edge cases
-  - [ ] Test integration/end-to-end
-  - [ ] Ensure all tests pass
-- [ ] Update `development-plan.md` - Mark completed tasks as `[x]`
-- [ ] Update phase status if phase is complete
-- [ ] Add implementation notes if relevant
-- [ ] Verify all checkboxes reflect actual progress
+### ✅ After Implementation - MANDATORY
+- [ ] **Create test files** untuk semua yang diimplementasi
+- [ ] **Run tests:** `npm test` - SEMUA harus PASS
+- [ ] **Fix failing tests** jika ada (jangan skip!)
+- [ ] **Update `development-plan.md`:** Mark tasks as `[x]` completed
+- [ ] **Update phase status** jika phase selesai
+- [ ] **Add implementation notes** jika perlu
+- [ ] Verify no linter errors
+- [ ] Verify tenant isolation (jika applicable)
+- [ ] Verify security measures (jika applicable)
+
+**⚠️ JANGAN mark task complete sampai SEMUA checklist di atas selesai!**
 
 ---
 
-**Remember:** Security and multi-tenancy are CRITICAL. Always prioritize tenant isolation and data protection over convenience.
+## 🚨 REMINDER: Workflow MANDATORY Setiap Implementasi
+
+**SETIAP KALI selesai implementasi, SELALU:**
+
+1. ✅ **Jalankan tests:** `npm test` - Pastikan SEMUA PASS
+2. ✅ **Update `development-plan.md`:** Mark tasks sebagai `[x]` completed
+3. ✅ **Jangan mark task complete** sebelum kedua langkah di atas selesai
+
+**Workflow ini MANDATORY dan tidak boleh di-skip!**
+
+---
+
+## 🚨 REMINDER: Workflow MANDATORY Setiap Implementasi
+
+**SETIAP KALI selesai implementasi, SELALU:**
+
+1. ✅ **Jalankan tests:** `npm test` - Pastikan SEMUA PASS
+2. ✅ **Update `development-plan.md`:** Mark tasks sebagai `[x]` completed
+3. ✅ **Jangan mark task complete** sebelum kedua langkah di atas selesai
+
+**Workflow ini MANDATORY dan tidak boleh di-skip!**
+
+---
+
+**Remember:** Security & multi-tenancy are CRITICAL. Prioritize tenant isolation & data protection.
