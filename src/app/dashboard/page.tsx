@@ -139,86 +139,34 @@ export default function DashboardPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="content-wrapper">
-        <div className="content-header">
-          <div className="container-fluid">
-            <div className="row mb-2">
-              <div className="col-sm-6">
-                <h1 className="m-0">Dashboard</h1>
-              </div>
-            </div>
-          </div>
+      <div className="text-center py-5">
+        <div className="spinner-border" role="status">
+          <span className="sr-only">Loading...</span>
         </div>
-        <section className="content">
-          <div className="container-fluid">
-            <div className="text-center py-5">
-              <div className="spinner-border" role="status">
-                <span className="sr-only">Loading...</span>
-              </div>
-            </div>
-          </div>
-        </section>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="content-wrapper">
-        <div className="content-header">
-          <div className="container-fluid">
-            <div className="row mb-2">
-              <div className="col-sm-6">
-                <h1 className="m-0">Dashboard</h1>
-              </div>
-            </div>
-          </div>
-        </div>
-        <section className="content">
-          <div className="container-fluid">
-            <div className="alert alert-danger" role="alert">
-              <h4 className="alert-heading">Error!</h4>
-              <p>{error}</p>
-              <hr />
-              <button
-                className="btn btn-primary"
-                onClick={fetchDashboardData}
-              >
-                Coba Lagi
-              </button>
-            </div>
-          </div>
-        </section>
+      <div className="alert alert-danger" role="alert">
+        <h4 className="alert-heading">Error!</h4>
+        <p>{error}</p>
+        <hr />
+        <button
+          className="btn btn-primary"
+          onClick={fetchDashboardData}
+        >
+          Coba Lagi
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="content-wrapper">
-      {/* Content Header */}
-      <div className="content-header">
-        <div className="container-fluid">
-          <div className="row mb-2">
-            <div className="col-sm-6">
-              <h1 className="m-0">Dashboard</h1>
-            </div>
-            <div className="col-sm-6">
-              <ol className="breadcrumb float-sm-right">
-                <li className="breadcrumb-item">
-                  <Link href="/dashboard">Home</Link>
-                </li>
-                <li className="breadcrumb-item active">Dashboard</li>
-              </ol>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <section className="content">
-        <div className="container-fluid">
-          {/* Info Boxes */}
-          <div className="row">
+    <>
+      {/* Info Boxes */}
+      <div className="row">
             {/* Order Hari Ini */}
             <div className="col-lg-3 col-6">
               <div className="small-box bg-info">
@@ -284,98 +232,96 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Recent Orders Table */}
-          <div className="row">
-            <div className="col-12">
-              <div className="card">
-                <div className="card-header">
-                  <h3 className="card-title">
-                    <i className="fas fa-list mr-1"></i>
-                    Order Terbaru
-                  </h3>
-                  <div className="card-tools">
-                    <Link
-                      href="/dashboard/orders"
-                      className="btn btn-sm btn-primary"
-                    >
-                      <i className="fas fa-eye"></i> Lihat Semua
-                    </Link>
-                  </div>
+        {/* Recent Orders Table */}
+        <div className="row">
+          <div className="col-12">
+            <div className="card">
+              <div className="card-header">
+                <h3 className="card-title">
+                  <i className="fas fa-list me-1"></i>
+                  Order Terbaru
+                </h3>
+                <div className="card-tools">
+                  <Link
+                    href="/dashboard/orders"
+                    className="btn btn-sm btn-primary"
+                  >
+                    <i className="fas fa-eye"></i> Lihat Semua
+                  </Link>
                 </div>
-                <div className="card-body table-responsive p-0">
-                  <table className="table table-hover text-nowrap">
-                    <thead>
+              </div>
+              <div className="card-body table-responsive p-0">
+                <table className="table table-hover text-nowrap">
+                  <thead>
+                    <tr>
+                      <th>Tracking Code</th>
+                      <th>Pelanggan</th>
+                      <th>Status</th>
+                      <th>Pembayaran</th>
+                      <th>Total</th>
+                      <th>Tanggal</th>
+                      <th>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentOrders.length === 0 ? (
                       <tr>
-                        <th>Tracking Code</th>
-                        <th>Pelanggan</th>
-                        <th>Status</th>
-                        <th>Pembayaran</th>
-                        <th>Total</th>
-                        <th>Tanggal</th>
-                        <th>Aksi</th>
+                        <td colSpan={7} className="text-center py-4">
+                          <p className="text-muted mb-0">
+                            Belum ada order. Mulai dengan membuat order baru.
+                          </p>
+                          <Link
+                            href="/dashboard/orders/new"
+                            className="btn btn-primary btn-sm mt-2"
+                          >
+                            Buat Order Baru
+                          </Link>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {recentOrders.length === 0 ? (
-                        <tr>
-                          <td colSpan={7} className="text-center py-4">
-                            <p className="text-muted mb-0">
-                              Belum ada order. Mulai dengan membuat order baru.
-                            </p>
-                            <Link
-                              href="/dashboard/orders/new"
-                              className="btn btn-primary btn-sm mt-2"
+                    ) : (
+                      recentOrders.map((order) => (
+                        <tr key={order.id}>
+                          <td>
+                            <code>{order.trackingCode}</code>
+                          </td>
+                          <td>{order.customerName}</td>
+                          <td>
+                            <span
+                              className={`badge ${getStatusBadgeClass(
+                                order.status
+                              )}`}
                             >
-                              Buat Order Baru
+                              {order.status}
+                            </span>
+                          </td>
+                          <td>
+                            <span
+                              className={`badge ${getPaymentStatusBadgeClass(
+                                order.paymentStatus
+                              )}`}
+                            >
+                              {order.paymentStatus}
+                            </span>
+                          </td>
+                          <td>{formatCurrency(order.totalAmount)}</td>
+                          <td>{formatDateTime(order.createdAt)}</td>
+                          <td>
+                            <Link
+                              href={`/dashboard/orders/${order.id}`}
+                              className="btn btn-sm btn-info"
+                            >
+                              <i className="fas fa-eye"></i> Detail
                             </Link>
                           </td>
                         </tr>
-                      ) : (
-                        recentOrders.map((order) => (
-                          <tr key={order.id}>
-                            <td>
-                              <code>{order.trackingCode}</code>
-                            </td>
-                            <td>{order.customerName}</td>
-                            <td>
-                              <span
-                                className={`badge ${getStatusBadgeClass(
-                                  order.status
-                                )}`}
-                              >
-                                {order.status}
-                              </span>
-                            </td>
-                            <td>
-                              <span
-                                className={`badge ${getPaymentStatusBadgeClass(
-                                  order.paymentStatus
-                                )}`}
-                              >
-                                {order.paymentStatus}
-                              </span>
-                            </td>
-                            <td>{formatCurrency(order.totalAmount)}</td>
-                            <td>{formatDateTime(order.createdAt)}</td>
-                            <td>
-                              <Link
-                                href={`/dashboard/orders/${order.id}`}
-                                className="btn btn-sm btn-info"
-                              >
-                                <i className="fas fa-eye"></i> Detail
-                              </Link>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
         </div>
-      </section>
-    </div>
+    </>
   );
 }

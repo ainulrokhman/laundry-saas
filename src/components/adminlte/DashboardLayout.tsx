@@ -6,11 +6,12 @@
  * - Top navbar with user info
  * - Footer
  * - Responsive design with mobile sidebar toggle
+ * 
+ * Structure follows AdminLTE v4 official layout pattern
  */
 
 'use client';
 
-import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -35,7 +36,7 @@ const menuItems: MenuItem[] = [
     label: 'Dashboard',
     icon: 'fas fa-tachometer-alt',
     href: '/dashboard',
-    roles: [Role.OWNER, Role.STAFF], // Dashboard is outlet-specific, SUPERADMIN should use admin panel
+    roles: [Role.OWNER, Role.STAFF],
   },
   {
     label: 'Orders',
@@ -106,121 +107,116 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     return pathname?.startsWith(href);
   };
 
-  // Initialize AdminLTE JS after component mounts
-  useEffect(() => {
-    // AdminLTE JS will be loaded via script tag in layout
-    // This ensures the sidebar toggle works
-    if (typeof window !== 'undefined') {
-      // Trigger AdminLTE initialization if needed
-      const sidebarToggle = document.querySelector('[data-widget="pushmenu"]');
-      if (sidebarToggle) {
-        // Sidebar toggle is handled by AdminLTE JS
-      }
-    }
-  }, []);
-
   return (
-    <div className="wrapper">
-      {/* Navbar */}
-      <nav className="main-header navbar navbar-expand navbar-white navbar-light">
-        {/* Left navbar links */}
-        <ul className="navbar-nav">
-          <li className="nav-item">
-            <a
-              className="nav-link"
-              data-widget="pushmenu"
-              href="#"
-              role="button"
-            >
-              <i className="fas fa-bars"></i>
-            </a>
-          </li>
-        </ul>
-
-        {/* Right navbar links */}
-        <ul className="navbar-nav ms-auto">
-          {/* User Dropdown Menu */}
-          <li className="nav-item dropdown">
-            <a
-              className="nav-link"
-              data-bs-toggle="dropdown"
-              href="#"
-              role="button"
-            >
-              <i className="far fa-user"></i>
-              <span className="ms-2">
-                {user?.name || user?.phone || 'User'}
-              </span>
-              <i className="fas fa-chevron-down ms-1"></i>
-            </a>
-            <div className="dropdown-menu dropdown-menu-lg dropdown-menu-end">
-              <div className="dropdown-item-text">
-                <div className="text-muted small">
-                  {user?.phone && (
-                    <div>
-                      <i className="fas fa-phone me-1"></i>
-                      {user.phone}
-                    </div>
-                  )}
-                  {user?.role && (
-                    <div className="mt-1">
-                      <span className="badge bg-info">{user.role}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="dropdown-divider"></div>
-              <Link href="/dashboard/settings" className="dropdown-item">
-                <i className="fas fa-cog me-2"></i>
-                Settings
-              </Link>
-              <div className="dropdown-divider"></div>
+    <div className="app-wrapper">
+      {/* Header */}
+      <nav className="app-header navbar navbar-expand bg-body">
+        {/* Container */}
+        <div className="container-fluid">
+          {/* Start Navbar Links */}
+          <ul className="navbar-nav">
+            <li className="nav-item">
               <a
-                href="/api/auth/signout"
-                className="dropdown-item dropdown-footer"
+                className="nav-link"
+                data-lte-toggle="sidebar"
+                href="#"
+                role="button"
               >
-                <i className="fas fa-sign-out-alt me-2"></i>
-                Sign Out
+                <i className="bi bi-list"></i>
               </a>
-            </div>
-          </li>
-        </ul>
-      </nav>
+            </li>
+          </ul>
+          {/* End Start Navbar Links */}
 
-      {/* Main Sidebar */}
-      <aside className="main-sidebar sidebar-dark-primary elevation-4">
-        {/* Brand Logo */}
-        <Link href="/dashboard" className="brand-link">
-          <span className="brand-text fw-light">
-            Ainul Laundry
-          </span>
-        </Link>
-
-        {/* Sidebar */}
-        <div className="sidebar">
-          {/* Sidebar user panel */}
-          {user && (
-            <div className="user-panel mt-3 pb-3 mb-3 d-flex">
-              <div className="info">
-                <a href="#" className="d-block">
-                  {user.name || user.phone}
-                </a>
-                <span className="text-muted small">
-                  {user.role && (
-                    <span className="badge bg-secondary">{user.role}</span>
-                  )}
+          {/* End Navbar Links */}
+          <ul className="navbar-nav ms-auto">
+            {/* User Dropdown Menu */}
+            <li className="nav-item dropdown user-menu">
+              <a
+                href="#"
+                className="nav-link dropdown-toggle"
+                data-bs-toggle="dropdown"
+              >
+                <i className="bi bi-person-circle me-1"></i>
+                <span className="d-none d-md-inline">
+                  {user?.name || user?.phone || 'User'}
                 </span>
-              </div>
-            </div>
-          )}
+              </a>
+              <ul className="dropdown-menu dropdown-menu-lg dropdown-menu-end">
+                {/* User Image */}
+                <li className="user-header text-bg-primary">
+                  <p>
+                    {user?.name || 'User'}
+                    {user?.role && (
+                      <small className="d-block">
+                        <span className="badge bg-light text-dark">{user.role}</span>
+                      </small>
+                    )}
+                  </p>
+                </li>
+                {/* End User Image */}
+                {/* Menu Body */}
+                <li className="user-body">
+                  {user?.phone && (
+                    <div className="row">
+                      <div className="col-12 text-center">
+                        <small className="text-muted">
+                          <i className="bi bi-telephone me-1"></i>
+                          {user.phone}
+                        </small>
+                      </div>
+                    </div>
+                  )}
+                </li>
+                {/* End Menu Body */}
+                {/* Menu Footer */}
+                <li className="user-footer">
+                  <Link href="/dashboard/settings" className="btn btn-default btn-flat">
+                    Profile
+                  </Link>
+                  <a
+                    href="/api/auth/signout"
+                    className="btn btn-default btn-flat float-end"
+                  >
+                    Sign out
+                  </a>
+                </li>
+                {/* End Menu Footer */}
+              </ul>
+            </li>
+            {/* End User Dropdown Menu */}
+          </ul>
+          {/* End End Navbar Links */}
+        </div>
+        {/* End Container */}
+      </nav>
+      {/* End Header */}
 
-          {/* Sidebar Menu */}
+      {/* Sidebar */}
+      <aside className="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
+        {/* Sidebar Brand */}
+        <div className="sidebar-brand">
+          {/* Brand Link */}
+          <Link href="/dashboard" className="brand-link">
+            {/* Brand Text */}
+            <span className="brand-text fw-light">Ainul Laundry</span>
+            {/* End Brand Text */}
+          </Link>
+          {/* End Brand Link */}
+        </div>
+        {/* End Sidebar Brand */}
+
+        {/* Sidebar Wrapper */}
+        <div className="sidebar-wrapper">
           <nav className="mt-2">
+            {/* Sidebar Menu */}
             <ul
-              className="nav nav-pills nav-sidebar flex-column"
-              data-widget="treeview"
-              role="menu"
+              className="nav sidebar-menu flex-column"
+              data-lte-toggle="treeview"
+              role="navigation"
+              aria-label="Main navigation"
               data-accordion="false"
+              id="navigation"
             >
               {filteredMenuItems.map((item) => {
                 const active = isActive(item.href);
@@ -237,50 +233,68 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 );
               })}
             </ul>
+            {/* End Sidebar Menu */}
           </nav>
         </div>
+        {/* End Sidebar Wrapper */}
       </aside>
+      {/* End Sidebar */}
 
-      {/* Content Wrapper */}
-      <div className="content-wrapper">
-        {/* Content Header */}
-        <div className="content-header">
+      {/* App Main */}
+      <main className="app-main">
+        {/* App Content Header */}
+        <div className="app-content-header">
+          {/* Container */}
           <div className="container-fluid">
-            <div className="row mb-2">
+            {/* Row */}
+            <div className="row">
               <div className="col-sm-6">
-                <h1 className="m-0">Dashboard</h1>
+                <h3 className="mb-0">Dashboard</h3>
               </div>
               <div className="col-sm-6">
                 <ol className="breadcrumb float-sm-end">
                   <li className="breadcrumb-item">
                     <Link href="/dashboard">Home</Link>
                   </li>
-                  <li className="breadcrumb-item active">
+                  <li className="breadcrumb-item active" aria-current="page">
                     {pathname?.replace('/dashboard', '') || 'Dashboard'}
                   </li>
                 </ol>
               </div>
             </div>
+            {/* End Row */}
           </div>
+          {/* End Container */}
         </div>
+        {/* End App Content Header */}
 
-        {/* Main content */}
-        <section className="content">
+        {/* App Content */}
+        <div className="app-content">
+          {/* Container */}
           <div className="container-fluid">{children}</div>
-        </section>
-      </div>
+          {/* End Container */}
+        </div>
+        {/* End App Content */}
+      </main>
+      {/* End App Main */}
 
       {/* Footer */}
-      <footer className="main-footer">
+      <footer className="app-footer">
+        {/* To the end */}
+        <div className="float-end d-none d-sm-inline">Version 1.0.0</div>
+        {/* End To the end */}
+        {/* Copyright */}
         <strong>
-          Copyright &copy; 2026{' '}
-          <a href="https://ainullaundry.com">Ainul Laundry</a>.
+          Copyright &copy; 2026&nbsp;
+          <a href="https://ainullaundry.com" className="text-decoration-none">
+            Ainul Laundry
+          </a>
+          .
         </strong>
-        All rights reserved.
-        <div className="float-end d-none d-sm-inline-block">
-          <b>Version</b> 1.0.0
-        </div>
+        {' '}All rights reserved.
+        {/* End Copyright */}
       </footer>
+      {/* End Footer */}
     </div>
   );
 }

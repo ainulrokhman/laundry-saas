@@ -1,11 +1,13 @@
-/* Bootstrap 5 */
-@import "bootstrap/dist/css/bootstrap.min.css";
+/* Override font paths to use public/fonts */
+@font-face {
+  font-display: block;
+  font-family: "bootstrap-icons";
+  src: url("/fonts/bootstrap-icons.woff2") format("woff2"),
+       url("/fonts/bootstrap-icons.woff") format("woff");
+}
 
-/* FontAwesome */
-@import "@fortawesome/fontawesome-free/css/all.min.css";
-
-/* AdminLTE v4 */
-@import "admin-lte/dist/css/adminlte.min.css";
+/* Note: CSS libraries (Bootstrap, FontAwesome, Bootstrap Icons, AdminLTE) 
+   are imported via JavaScript in layout.tsx to avoid PostCSS parsing issues */
 
 /* Tailwind CSS - Only for custom components, not AdminLTE */
 @tailwind base;
