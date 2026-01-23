@@ -48,20 +48,20 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - [x] Seed database dengan data awal (SuperAdmin user dengan PIN default)
 
 ### 0.3 Environment Configuration
-- [ ] Setup `.env.local` dari `.env.example`
-- [ ] Konfigurasi `DATABASE_URL`
-- [ ] Konfigurasi `NEXTAUTH_URL` dan `NEXTAUTH_SECRET`
-- [ ] Konfigurasi `FONNTE_API_KEY` untuk WhatsApp service
-- [ ] Konfigurasi `FONNTE_API_URL` (opsional, default dari Fonnte)
-- [ ] Konfigurasi Cloudinary/Supabase Storage (opsional)
-- [ ] Setup environment variables untuk Vercel
+- [x] Setup `.env.local` dari `.env.example`
+- [x] Konfigurasi `DATABASE_URL`
+- [x] Konfigurasi `NEXTAUTH_URL` dan `NEXTAUTH_SECRET`
+- [x] Konfigurasi `FONNTE_API_KEY` untuk WhatsApp service
+- [x] Konfigurasi `FONNTE_API_URL` (opsional, default dari Fonnte)
+- [x] Konfigurasi Cloudinary/Supabase Storage (opsional)
+- [x] Setup environment variables untuk Vercel (dokumentasi: `docs/VERCEL-ENV-SETUP.md`)
 
 ### 0.4 Testing Setup
-- [ ] Konfigurasi Vitest (`vitest.config.ts`)
-- [ ] Konfigurasi Playwright (`playwright.config.ts`)
-- [ ] Setup test utilities dan helpers
-- [ ] Setup test database (separate schema untuk testing)
-- [ ] Tambahkan test scripts di `package.json`
+- [x] Konfigurasi Vitest (`vitest.config.ts`)
+- [x] Konfigurasi Playwright (`playwright.config.ts`)
+- [x] Setup test utilities dan helpers (`__tests__/utils/`)
+- [x] Setup test database (separate schema untuk testing, dokumentasi: `docs/TEST-SETUP.md`)
+- [x] Tambahkan test scripts di `package.json`
 - [x] Buat verification tests untuk cursor rules compliance (`__tests__/verify-cursor-rules.test.ts`)
 
 ### 0.5 Project Structure (SOLID Principles)
