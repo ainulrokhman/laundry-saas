@@ -179,11 +179,11 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - [x] Implementasi rate limiting untuk change PIN
 
 #### 1.1.8 Security Features
-- [ ] Implementasi rate limiting untuk semua auth endpoints
-- [ ] Implementasi account lockout setelah multiple failed attempts
-- [ ] Logging untuk security events (login attempts, OTP requests, dll)
-- [ ] Implementasi CSRF protection
-- [ ] Setup secure session cookies
+- [x] Implementasi rate limiting untuk semua auth endpoints
+- [x] Implementasi account lockout setelah multiple failed attempts
+- [x] Logging untuk security events (login attempts, OTP requests, dll)
+- [x] Implementasi CSRF protection (NextAuth v5 built-in)
+- [x] Setup secure session cookies
 
 ### 1.2 AdminLTE Layout Integration
 - [ ] Install dan import AdminLTE CSS/JS
@@ -578,14 +578,15 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - ✅ Phase 1.1.5: PIN-based Login dengan modern UI dan SweetAlert
 - ✅ Phase 1.1.6: Session Management utilities
 - ✅ Phase 1.1.7: PIN Management
+- ✅ Phase 1.1.8: Security Features (rate limiting, account lockout, logging, CSRF, secure cookies)
 
 **In Progress:**
-- ⏳ Phase 1.1.8: Security Features (rate limiting untuk login, account lockout, dll)
+- ⏳ Phase 1.2: AdminLTE Layout Integration
 
 **Next Steps:**
-1. Implement security features (rate limiting untuk login, account lockout)
-3. AdminLTE Layout Integration
-4. Multi-Tenancy Foundation
+1. AdminLTE Layout Integration
+2. Multi-Tenancy Foundation
+3. Complete Database Models
 
 ---
 

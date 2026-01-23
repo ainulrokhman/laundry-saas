@@ -12,6 +12,7 @@ import { OtpType } from '@/generated/prisma';
 import { normalizePhoneNumber, formatPhoneNumber, isValidPhoneNumber } from '@/lib/utils';
 import { ApiResponse } from '@/types';
 import { prisma } from '@/lib/prisma';
+import { securityLogService } from '@/services/security/SecurityLogService';
 
 const requestSchema = z.object({
   phone: z.string().min(10, 'Phone number is required'),
@@ -61,6 +62,9 @@ export async function POST(request: NextRequest) {
     // Generate and send OTP (service will normalize phone for storage)
     await otpService.generateOtp(phone, type);
 
+    // Log successful OTP request
+    await securityLogService.logOtpRequest(normalizedPhone, true);
+
     // Get rate limit info for response
     const rateLimitInfo = otpService.getRateLimitInfo(normalizedPhone);
 
@@ -98,6 +102,14 @@ export async function POST(request: NextRequest) {
         const normalizedPhone = normalizePhoneNumber(formattedPhone);
         const rateLimitInfo = otpService.getRateLimitInfo(normalizedPhone);
 
+        // Log rate limit exceeded
+        await securityLogService.logEvent({
+          phone: normalizedPhone,
+          eventType: 'RATE_LIMIT_EXCEEDED' as any,
+          success: false,
+          errorMessage: error.message,
+        });
+
         return NextResponse.json<ApiResponse<{ remaining: number; resetAt: string }>>(
           {
             success: false,
@@ -110,6 +122,16 @@ export async function POST(request: NextRequest) {
           { status: 429 } // Too Many Requests
         );
       }
+    }
+
+    // Log failed OTP request
+    if (formattedPhone) {
+      const normalizedPhone = normalizePhoneNumber(formattedPhone);
+      await securityLogService.logOtpRequest(
+        normalizedPhone,
+        false,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
     }
 
     // Handle other errors

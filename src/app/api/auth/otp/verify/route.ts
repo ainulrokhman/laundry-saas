@@ -11,6 +11,7 @@ import { otpService } from '@/services/auth/OtpService';
 import { OtpType } from '@/generated/prisma';
 import { normalizePhoneNumber, formatPhoneNumber, isValidPhoneNumber } from '@/lib/utils';
 import { ApiResponse } from '@/types';
+import { securityLogService } from '@/services/security/SecurityLogService';
 
 const verifySchema = z.object({
   phone: z.string().min(10, 'Phone number is required'),
@@ -52,6 +53,14 @@ export async function POST(request: NextRequest) {
     const isValid = await otpService.verifyOtp(phone, code, type);
 
     if (!isValid) {
+      // Log failed OTP verification
+      await securityLogService.logEvent({
+        phone: normalizedPhone,
+        eventType: 'OTP_VERIFY' as any,
+        success: false,
+        errorMessage: 'Invalid or expired OTP code',
+      });
+
       // Provide more helpful error message
       return NextResponse.json<ApiResponse>(
         {
@@ -61,6 +70,13 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Log successful OTP verification
+    await securityLogService.logEvent({
+      phone: normalizedPhone,
+      eventType: 'OTP_VERIFY' as any,
+      success: true,
+    });
 
     return NextResponse.json<ApiResponse>(
       {

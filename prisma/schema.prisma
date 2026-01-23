@@ -59,19 +59,21 @@ enum OtpType {
 // ============================================
 
 model User {
-  id          String   @id @default(uuid())
-  phone       String   @unique // Nomor WhatsApp (format: 6281234567890)
-  name        String
-  pin         String   // Hashed PIN (4-6 digit, menggunakan bcrypt)
-  role        Role     @default(OWNER)
-  outletId    String?
-  outlet      Outlet?  @relation(fields: [outletId], references: [id])
-  isActive    Boolean  @default(true)
-  isPinSet    Boolean  @default(false) // Flag untuk cek apakah PIN sudah di-set (setelah register)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  lastLoginAt DateTime?
-  pinChangedAt DateTime? // Timestamp terakhir PIN diubah
+  id                  String   @id @default(uuid())
+  phone               String   @unique // Nomor WhatsApp (format: 6281234567890)
+  name                String
+  pin                 String   // Hashed PIN (4-6 digit, menggunakan bcrypt)
+  role                Role     @default(OWNER)
+  outletId            String?
+  outlet              Outlet?  @relation(fields: [outletId], references: [id])
+  isActive            Boolean  @default(true)
+  isPinSet            Boolean  @default(false) // Flag untuk cek apakah PIN sudah di-set (setelah register)
+  failedLoginAttempts Int      @default(0) // Jumlah percobaan login yang gagal
+  lockedUntil         DateTime? // Timestamp sampai kapan akun terkunci (null jika tidak terkunci)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  lastLoginAt         DateTime?
+  pinChangedAt        DateTime? // Timestamp terakhir PIN diubah
 
   @@index([outletId])
   @@index([phone])

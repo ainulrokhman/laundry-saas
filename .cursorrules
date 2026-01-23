@@ -243,40 +243,124 @@ export const GET = withAuth(async (request: Request, session: ExtendedSession) =
 
 ## 🧪 Testing Requirements
 
+### Test Database Setup (CRITICAL)
+- **ALWAYS use separate test database** (`TEST_DATABASE_URL`) for database tests
+- **NEVER** use production/development database for tests
+- Test database must have same schema as production (run migrations)
+- Cleanup is **automatically skipped** if `TEST_DATABASE_URL` is not set (safety feature)
+- Setup: Create test database in Neon.tech and set `TEST_DATABASE_URL` in `.env.local`
+
+### Test Isolation & Execution
+- **Database tests run sequentially** to prevent data conflicts (`fileParallelism: false`, `concurrent: false`)
+- Each test suite must clean up its own data in `beforeEach` or `afterAll`
+- Use `cleanupTestDatabase()` utility for proper cleanup (respects foreign keys)
+- Prisma singleton is **automatically mocked** in tests to use test database
+- Never share test data between test files - each file should be independent
+
 ### Unit Tests (Vitest)
 - Test all repositories with mocked Prisma
 - Test all services with mocked repositories
 - Test utility functions
 - Test DTO transformations
+- **No database required** - use mocks for all database operations
 
 ### Component Tests
 - Test AdminLTE components render correctly
 - Test form validations
 - Test role-based UI rendering
+- Use `@testing-library/react` for component testing
+- **No database required** - mock all data dependencies
 
-### Integration Tests
+### Integration Tests (Database Tests)
+- **REQUIRE test database** - use `createTestPrismaClient()` from `__tests__/utils/test-db`
 - Test API routes with test database
 - Test authentication flows
 - Test multi-tenancy isolation
+- **Pattern for database tests:**
+  ```typescript
+  import { createTestPrismaClient, cleanupTestDatabase } from '../utils/test-db';
+  
+  describe('Feature Tests', () => {
+    const prisma = createTestPrismaClient();
+    
+    beforeEach(async () => {
+      await cleanupTestDatabase(prisma);
+    });
+    
+    afterAll(async () => {
+      await cleanupTestDatabase(prisma);
+      await prisma.$disconnect();
+    });
+    
+    it('should work correctly', async () => {
+      // Test implementation
+    });
+  });
+  ```
+- **Always cleanup** before each test to ensure isolation
+- Use `createUserData()`, `createOrderData()` factories for test data
+- Each test should create its own data - never rely on data from other tests
 
 ### E2E Tests (Playwright)
 - Test complete user flows
 - Test public tracking functionality
 - Test admin operations
 - Test cross-browser compatibility
+- Use separate test database or test environment
+
+### Test Best Practices
+1. **Isolation**: Each test must be independent and not rely on other tests
+2. **Cleanup**: Always clean up test data after tests (use `cleanupTestDatabase()`)
+3. **Mocking**: Mock external services (APIs, databases) when appropriate
+4. **Coverage**: Aim for high test coverage, especially for critical paths
+5. **Naming**: Use descriptive test names that explain what is being tested
+6. **AAA Pattern**: Arrange, Act, Assert - structure your tests clearly
+7. **Database Safety**: Never run tests against production database
+8. **Sequential Execution**: Database tests must run sequentially to avoid conflicts
+
+### Test File Organization
+```
+__tests__/
+├── setup.ts                    # Vitest setup (mocks prisma singleton)
+├── utils/
+│   ├── test-db.ts              # Database utilities (createTestPrismaClient, cleanupTestDatabase)
+│   ├── test-helpers.ts         # Common test helpers
+│   └── factories.ts            # Test data factories (createUserData, etc.)
+└── [feature]/
+    └── [feature].test.ts       # Feature-specific tests
+```
+
+### Common Testing Mistakes to Avoid
+1. **❌ Using production database for tests** - Always use `TEST_DATABASE_URL`
+2. **❌ Not cleaning up test data** - Always use `cleanupTestDatabase()` in `beforeEach`
+3. **❌ Sharing test data between tests** - Each test should create its own data
+4. **❌ Running database tests in parallel** - They must run sequentially
+5. **❌ Not mocking prisma singleton** - Setup.ts handles this automatically
+6. **❌ Relying on test execution order** - Tests must be independent
+7. **❌ Not disconnecting prisma** - Always call `prisma.$disconnect()` in `afterAll`
 
 ## 🚫 Common Mistakes to Avoid
 
+### Security & Data
 1. **❌ Missing outletId filter**: Always include in queries
 2. **❌ Raw database objects in API**: Always use DTO
 3. **❌ Client-side outletId validation**: Always verify in server
-4. **❌ Mixing Tailwind with AdminLTE**: Use Bootstrap classes for AdminLTE
-5. **❌ Missing Zod validation**: Validate all inputs
-6. **❌ Exposing sensitive fields**: Use DTO scrubbing
-7. **❌ Using internal IDs in public URLs**: Use trackingCode
+4. **❌ Exposing sensitive fields**: Use DTO scrubbing
+5. **❌ Using internal IDs in public URLs**: Use trackingCode
+
+### Code Quality
+6. **❌ Mixing Tailwind with AdminLTE**: Use Bootstrap classes for AdminLTE
+7. **❌ Missing Zod validation**: Validate all inputs
 8. **❌ Direct Prisma in services**: Use repositories
 9. **❌ Using NextAuth v4 patterns**: Use `auth()` not `getServerSession()`
 10. **❌ Importing NextAuthOptions**: Use NextAuth v5 API patterns
+
+### Testing
+11. **❌ Using production database for tests**: Always use `TEST_DATABASE_URL`
+12. **❌ Not cleaning up test data**: Always use `cleanupTestDatabase()` in `beforeEach`
+13. **❌ Sharing test data between tests**: Each test should create its own data
+14. **❌ Running database tests in parallel**: They must run sequentially
+15. **❌ Relying on test execution order**: Tests must be independent
 
 ## ✅ Code Quality Checklist
 
@@ -291,6 +375,10 @@ Before committing code, ensure:
 - [ ] Tests written for new features
 - [ ] No sensitive data in responses
 - [ ] Route proxy verifies session/outletId
+- [ ] Database tests use `TEST_DATABASE_URL` (not production database)
+- [ ] Test cleanup implemented (`cleanupTestDatabase()` in `beforeEach`)
+- [ ] Tests are independent (no shared state between tests)
+- [ ] All tests pass before committing
 
 ## 📚 Key Files to Reference
 
@@ -306,7 +394,11 @@ Before committing code, ensure:
 4. Create API route with Zod validation and route proxy protection
 5. Create DTO for response
 6. Add AdminLTE UI components
-7. Write tests (unit, integration, E2E as needed)
+7. Write tests following testing requirements:
+   - Unit tests with mocks (no database)
+   - Integration tests with test database (use `createTestPrismaClient()`)
+   - Always cleanup in `beforeEach` with `cleanupTestDatabase()`
+   - Ensure tests are independent and can run in any order
 8. Update development-plan.md progress
 
 ## 🔒 Route Protection Pattern
@@ -382,3 +474,13 @@ When generating code:
 - Always follow SOLID principles
 - Always consider multi-tenancy security
 - Always write tests for critical paths
+
+When generating tests:
+- **Database tests**: Always use `createTestPrismaClient()` and `cleanupTestDatabase()`
+- **Test isolation**: Each test must be independent - create own data, cleanup in `beforeEach`
+- **Test database**: Never use production database - always use `TEST_DATABASE_URL`
+- **Sequential execution**: Database tests must run sequentially (configured in vitest.config.ts)
+- **Mock prisma**: Prisma singleton is auto-mocked in setup.ts - don't manually mock
+- **Test factories**: Use `createUserData()`, `createOrderData()` from factories.ts
+- **Cleanup pattern**: Always cleanup in `beforeEach`, disconnect in `afterAll`
+- **No shared state**: Never rely on data from other tests or test execution order
