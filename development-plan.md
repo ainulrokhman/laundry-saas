@@ -21,17 +21,17 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 ## 📦 Phase 0: Foundation & Setup
 
 ### 0.1 Dependencies Installation
-- [ ] Install AdminLTE v4 (`admin-lte@4.0.0-rc4`)
-- [ ] Install Bootstrap 5
-- [ ] Install Prisma (`@prisma/client`, `prisma`)
-- [ ] Install NextAuth.js v5 (`next-auth`)
-- [ ] Install Zod untuk validasi (`zod`)
-- [ ] Install bcrypt untuk hashing PIN (`bcryptjs` dan `@types/bcryptjs`)
-- [ ] Install Fonnte SDK atau HTTP client untuk WhatsApp API (`axios` atau `node-fetch`)
-- [ ] Install Vitest dan dependencies (`vitest`, `@testing-library/react`, `@testing-library/jest-dom`)
-- [ ] Install Playwright (`@playwright/test`)
-- [ ] Install FontAwesome icons
-- [ ] Install utility libraries (`date-fns`, `uuid`)
+- [x] Install AdminLTE v4 (`admin-lte@4.0.0-rc4`)
+- [x] Install Bootstrap 5
+- [x] Install Prisma (`@prisma/client`, `prisma`)
+- [x] Install NextAuth.js v5 (`next-auth`)
+- [x] Install Zod untuk validasi (`zod`)
+- [x] Install bcrypt untuk hashing PIN (`bcryptjs` dan `@types/bcryptjs`)
+- [x] Install Fonnte SDK atau HTTP client untuk WhatsApp API (`axios` atau `node-fetch`)
+- [x] Install Vitest dan dependencies (`vitest`, `@testing-library/react`, `@testing-library/jest-dom`)
+- [x] Install Playwright (`@playwright/test`)
+- [x] Install FontAwesome icons
+- [x] Install utility libraries (`date-fns`, `uuid`)
 
 ### 0.2 Database Setup
 - [ ] Setup Neon.tech PostgreSQL database (Singapore region)
