@@ -105,66 +105,71 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 ### 1.1 Authentication System
 
 #### 1.1.1 Database Models untuk Authentication
-- [ ] Update User model dengan field PIN (hashed), isPinSet, pinChangedAt
-- [ ] Update OtpCode model (OTP hanya untuk REGISTER, bukan LOGIN)
-- [ ] Update OtpType enum (hanya REGISTER)
-- [ ] Run Prisma migrations
+- [x] Update User model dengan field PIN (hashed), isPinSet, pinChangedAt
+- [x] Update OtpCode model (OTP hanya untuk REGISTER, bukan LOGIN)
+- [x] Update OtpType enum (hanya REGISTER)
+- [x] Run Prisma migrations
 
 #### 1.1.2 WhatsApp Service Integration
-- [ ] Buat interface WhatsAppService (`src/services/whatsapp/interfaces/WhatsAppService.ts`)
-  - [ ] Method: `sendOtp(phone: string, code: string): Promise<boolean>`
-  - [ ] Method: `sendMessage(phone: string, message: string): Promise<boolean>`
-- [ ] Implementasi FonnteWhatsAppService (`src/services/whatsapp/providers/FonnteWhatsAppService.ts`)
-  - [ ] Integrasi dengan Fonnte API
-  - [ ] Handle API response dan error
-  - [ ] Template message untuk OTP
-- [ ] Buat WhatsAppServiceFactory (`src/services/whatsapp/WhatsAppServiceFactory.ts`)
-- [ ] Setup environment variables untuk Fonnte API key
+- [x] Buat interface WhatsAppService (`src/services/whatsapp/interfaces/WhatsAppService.ts`)
+  - [x] Method: `sendOtp(phone: string, code: string): Promise<boolean>`
+  - [x] Method: `sendMessage(phone: string, message: string): Promise<boolean>`
+- [x] Implementasi FonnteWhatsAppService (`src/services/whatsapp/providers/FonnteWhatsAppService.ts`)
+  - [x] Integrasi dengan Fonnte API
+  - [x] Handle API response dan error
+  - [x] Template message untuk OTP
+- [x] Buat WhatsAppServiceFactory (`src/services/whatsapp/WhatsAppServiceFactory.ts`)
+- [x] Setup environment variables untuk Fonnte API key
 
 #### 1.1.3 OTP Service
-- [ ] Buat OtpService (`src/services/auth/OtpService.ts`)
-  - [ ] Method: `generateOtp(phone: string, type: OtpType): Promise<string>`
-  - [ ] Method: `verifyOtp(phone: string, code: string, type: OtpType): Promise<boolean>`
-  - [ ] Method: `cleanupExpiredOtps()` (background job)
-- [ ] Implementasi rate limiting untuk OTP request (max 3 request per 10 menit per phone)
-- [ ] Buat API route untuk request OTP (`/api/auth/otp/request`)
-- [ ] Buat API route untuk verify OTP (`/api/auth/otp/verify`)
+- [x] Buat OtpService (`src/services/auth/OtpService.ts`)
+  - [x] Method: `generateOtp(phone: string, type: OtpType): Promise<string>`
+  - [x] Method: `verifyOtp(phone: string, code: string, type: OtpType): Promise<boolean>`
+  - [x] Method: `cleanupExpiredOtps()` (background job)
+- [x] Implementasi rate limiting untuk OTP request (max 3 request per 10 menit per phone)
+- [x] Buat API route untuk request OTP (`/api/auth/otp/request`)
+- [x] Buat API route untuk verify OTP (`/api/auth/otp/verify`)
 
 #### 1.1.4 Registration Flow (OWNER only)
-- [ ] Buat registration page (`app/register/page.tsx`) dengan AdminLTE styling
-- [ ] Step 1: Input nomor WhatsApp
-- [ ] Step 2: Request OTP via WhatsApp (Fonnte API)
-- [ ] Step 3: Verify OTP
-- [ ] Step 4: Input data outlet (nama, alamat) dan set PIN (4-6 digit)
-- [ ] Buat API route untuk registration (`/api/auth/register`)
-  - [ ] Validasi: hanya OWNER yang boleh register
-  - [ ] Create User dengan role OWNER
-  - [ ] Create Outlet baru
-  - [ ] Hash PIN dengan bcrypt
-  - [ ] Auto login setelah registrasi
-- [ ] Implementasi validation dengan Zod
-- [ ] Handle error cases (duplicate phone, invalid OTP, dll)
+- [x] Buat registration page (`app/register/page.tsx`) dengan modern design dan SweetAlert
+- [x] Step 1: Input nomor WhatsApp
+- [x] Step 2: Request OTP via WhatsApp (Fonnte API)
+- [x] Step 3: Verify OTP
+- [x] Step 4: Input data outlet (nama, alamat) dan set PIN (4-6 digit)
+- [x] Buat API route untuk registration (`/api/auth/register`)
+  - [x] Validasi: hanya OWNER yang boleh register
+  - [x] Create User dengan role OWNER
+  - [x] Create Outlet baru
+  - [x] Hash PIN dengan bcrypt
+  - [x] Redirect ke login setelah registrasi
+- [x] Implementasi validation dengan Zod
+- [x] Handle error cases (duplicate phone, invalid OTP, dll)
+- [x] Phone number normalization (tanpa + prefix untuk storage)
 
 #### 1.1.5 PIN-based Login
-- [ ] Setup NextAuth.js v5 dengan credentials provider
-- [ ] Buat login page (`app/login/page.tsx`) dengan AdminLTE styling
-  - [ ] Input: nomor WhatsApp dan PIN
-  - [ ] Validasi format phone number
-  - [ ] Validasi PIN (4-6 digit)
-- [ ] Implementasi PIN verification (bcrypt comparison)
-- [ ] Buat API route untuk authentication (`/api/auth/[...nextauth]`)
-  - [ ] Credentials provider untuk PIN-based login
-  - [ ] Session include: userId, outletId, role, phone
-  - [ ] Update lastLoginAt setelah login berhasil
+- [x] Setup NextAuth.js v5 dengan credentials provider
+- [x] Buat login page (`app/login/page.tsx`) dengan modern design dan SweetAlert
+  - [x] Input: nomor WhatsApp dan PIN
+  - [x] Validasi format phone number
+  - [x] Validasi PIN (4-6 digit)
+- [x] Implementasi PIN verification (bcrypt comparison)
+- [x] Buat API route untuk authentication (`/api/auth/[...nextauth]`)
+  - [x] Credentials provider untuk PIN-based login
+  - [x] Session include: userId, outletId, role, phone
+  - [x] Update lastLoginAt setelah login berhasil
 - [ ] Implementasi rate limiting untuk login attempts (max 5 attempts per 15 menit per phone)
-- [ ] Handle error cases (invalid credentials, inactive user, dll)
+- [x] Handle error cases (invalid credentials, inactive user, dll)
+- [x] Phone number normalization untuk konsistensi
 
 #### 1.1.6 Session Management
-- [ ] Setup session management dengan outletId
-- [ ] Implementasi role-based access (SUPERADMIN, OWNER, STAFF)
-- [ ] Buat session type definition untuk TypeScript
-- [ ] Implementasi middleware untuk route protection
-- [ ] Buat utility functions untuk session helpers
+- [x] Setup session management dengan outletId
+- [x] Implementasi role-based access (SUPERADMIN, OWNER, STAFF)
+- [x] Buat session type definition untuk TypeScript
+- [x] Buat utility functions untuk session helpers (`src/lib/session.ts`)
+  - [x] `getSession()`, `getCurrentUser()`, `requireAuth()`, `requireRole()`
+  - [x] `isSuperAdmin()`, `isOwner()`, `isStaff()`, `isOwnerOrSuperAdmin()`
+  - [x] `getOutletId()`, `requireOutletId()`
+- [ ] Implementasi middleware untuk route protection (menggunakan route proxy pattern)
 
 #### 1.1.7 PIN Management
 - [ ] Buat halaman change PIN (`app/dashboard/settings/change-pin/page.tsx`)
@@ -553,23 +558,35 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 
 ## 📊 Progress Tracking
 
-### Current Status: Phase 0 - Foundation & Setup
+### Current Status: Phase 1 - Authentication System (In Progress)
 
 **Completed:**
-- ✅ Next.js 16.x LTS setup
-- ✅ React 18.3.1 (konservatif)
-- ✅ TypeScript configuration
-- ✅ ESLint configuration
+- ✅ Phase 0: Foundation & Setup
+  - ✅ Next.js 16.x LTS setup
+  - ✅ React 18.3.1
+  - ✅ TypeScript configuration
+  - ✅ ESLint configuration
+  - ✅ Dependencies installation
+  - ✅ Database setup dengan Prisma
+  - ✅ NextAuth.js v5 configuration
+  - ✅ Testing framework setup
+
+- ✅ Phase 1.1.1: Database Models untuk Authentication
+- ✅ Phase 1.1.2: WhatsApp Service Integration (Fonnte)
+- ✅ Phase 1.1.3: OTP Service dengan rate limiting
+- ✅ Phase 1.1.4: Registration Flow (OWNER only) dengan modern UI
+- ✅ Phase 1.1.5: PIN-based Login dengan modern UI dan SweetAlert
+- ✅ Phase 1.1.6: Session Management utilities
 
 **In Progress:**
-- ⏳ Dependencies installation
-- ⏳ Database setup
+- ⏳ Phase 1.1.7: PIN Management
+- ⏳ Phase 1.1.8: Security Features (rate limiting untuk login, account lockout, dll)
 
 **Next Steps:**
-1. Install AdminLTE v4 dan dependencies
-2. Setup Prisma dan database schema
-3. Setup NextAuth.js v5
-4. Setup testing framework
+1. Complete PIN Management (change PIN functionality)
+2. Implement security features (rate limiting untuk login, account lockout)
+3. AdminLTE Layout Integration
+4. Multi-Tenancy Foundation
 
 ---
 
@@ -585,6 +602,13 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - Gunakan DTO pattern untuk semua API responses
 - Multi-tenancy security adalah prioritas utama
 
+### Recent Improvements (2026-01-23)
+- ✅ Modern UI design untuk login dan registration pages dengan gradient background
+- ✅ SweetAlert2 integration untuk better user experience
+- ✅ Phone number normalization (tanpa + prefix untuk database storage)
+- ✅ Improved error handling dan logging untuk OTP verification
+- ✅ Multi-step registration flow dengan progress indicator
+
 ---
 
 ## 🔄 Review & Updates
@@ -592,4 +616,8 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 Development plan ini akan diupdate secara berkala sesuai dengan progress dan perubahan requirement.
 
 **Last Updated**: 2026-01-23  
-**Version**: 1.0
+**Version**: 1.1
+
+### Changelog
+- **v1.1 (2026-01-23)**: Completed Phase 1.1.1 - 1.1.6 (Authentication System foundation)
+- **v1.0 (2026-01-23)**: Initial development plan

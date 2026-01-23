@@ -10,6 +10,7 @@ import Credentials from 'next-auth/providers/credentials';
 import { prisma } from './prisma';
 import bcrypt from 'bcryptjs';
 import { Role } from '../generated/prisma';
+import { normalizePhoneNumber } from './utils';
 
 /**
  * Extended session type with outletId
@@ -40,9 +41,12 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           return null;
         }
 
+        // Normalize phone number for database lookup (without +)
+        const normalizedPhone = normalizePhoneNumber(credentials.phone as string);
+
         // Find user by phone
         const user = await prisma.user.findUnique({
-          where: { phone: credentials.phone as string },
+          where: { phone: normalizedPhone },
           include: { outlet: true },
         });
 

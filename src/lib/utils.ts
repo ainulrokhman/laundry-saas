@@ -13,24 +13,35 @@ export function cn(...classes: (string | undefined | null | false)[]): string {
 }
 
 /**
- * Format phone number to standard format
- * Example: 081234567890 -> +6281234567890
+ * Normalize phone number for storage (without + prefix)
+ * Example: 081234567890 -> 6281234567890
+ * Use this for database storage
  */
-export function formatPhoneNumber(phone: string): string {
+export function normalizePhoneNumber(phone: string): string {
   // Remove all non-digit characters
   const digits = phone.replace(/\D/g, '');
   
   // If starts with 0, replace with 62
   if (digits.startsWith('0')) {
-    return `+62${digits.slice(1)}`;
+    return `62${digits.slice(1)}`;
   }
   
-  // If doesn't start with +, add it
+  // If doesn't start with 62, add it
   if (!digits.startsWith('62')) {
-    return `+62${digits}`;
+    return `62${digits}`;
   }
   
-  return `+${digits}`;
+  return digits;
+}
+
+/**
+ * Format phone number to display format (with + prefix)
+ * Example: 081234567890 -> +6281234567890
+ * Use this for display or WhatsApp API
+ */
+export function formatPhoneNumber(phone: string): string {
+  const normalized = normalizePhoneNumber(phone);
+  return `+${normalized}`;
 }
 
 /**
@@ -105,4 +116,18 @@ export function formatDateTime(date: Date | string): string {
     hour: '2-digit',
     minute: '2-digit',
   }).format(d);
+}
+
+/**
+ * Generate slug from text (for outlet names, etc.)
+ * Converts to lowercase, replaces spaces with hyphens, removes special chars
+ */
+export function generateSlug(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
 }
