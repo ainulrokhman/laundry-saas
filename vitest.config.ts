@@ -14,7 +14,8 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   test: {
-    // Test environment - use 'node' for non-React tests, 'happy-dom' for component tests
+    // Test environment - use 'node' for non-React tests, 'jsdom' for component tests
+    // Component tests will override this in their test files
     environment: 'node', // Default to node for utility/security tests
     
     // Setup files
