@@ -69,7 +69,7 @@ Laundry SaaS Platform - Multi-tenant laundry management system optimized for Ver
 ### Multi-Tenancy (CRITICAL)
 - **ALWAYS** filter by `outletId` in every database query
 - Pattern: `prisma.model.findMany({ where: { outletId: session.outletId, ... } })`
-- Middleware must verify `session.outletId` exists
+- Route proxy must verify `session.outletId` exists before executing handlers
 - Never trust client-provided `outletId` - always use from session
 - Example:
   ```typescript
@@ -154,12 +154,13 @@ src/
 ├── lib/
 │   ├── prisma.ts         # Prisma client singleton
 │   ├── auth.ts           # NextAuth configuration
-│   └── utils.ts           # Utility functions
+│   ├── utils.ts           # Utility functions
+│   └── proxy/            # Route protection proxy
+│       └── route-proxy.ts # Proxy pattern for auth/authorization
 ├── repositories/         # Data access layer
 ├── services/             # Business logic layer
 ├── types/                # TypeScript types
-├── dto/                  # Data Transfer Objects
-└── middleware.ts         # Next.js middleware
+└── dto/                  # Data Transfer Objects
 ```
 
 ## 📝 Code Patterns
@@ -204,29 +205,37 @@ export class OrderDTO {
 }
 ```
 
-### API Route Pattern
+### API Route Pattern (Using Proxy)
 ```typescript
 // src/app/api/dashboard/orders/route.ts
 import { z } from 'zod';
-import { getServerSession } from 'next-auth';
+import { withAuth } from '@/lib/proxy/route-proxy';
+import { ExtendedSession } from '@/lib/auth';
 
 const schema = z.object({
   orderId: z.string().uuid(),
 });
 
-export async function GET(request: Request) {
-  const session = await getServerSession();
-  if (!session?.outletId) return new Response('Unauthorized', { status: 401 });
-  
+export const GET = withAuth(async (request: Request, session: ExtendedSession) => {
+  // session.outletId is guaranteed to exist by proxy
   const { orderId } = schema.parse(await request.json());
   
-  // Always filter by outletId
+  // Always filter by outletId (from session, never from request)
   const order = await prisma.order.findFirst({
     where: { id: orderId, outletId: session.outletId }
   });
   
   return Response.json(OrderDTO.toResponse(order));
-}
+});
+
+// For admin-only routes:
+// export const GET = withAdminAuth(async (request, session) => { ... });
+
+// For owner-only routes:
+// export const GET = withOwnerAuth(async (request, session) => { ... });
+
+// For public routes (optional session):
+// export const GET = withPublicAuth(async (request, session) => { ... });
 ```
 
 ## 🧪 Testing Requirements
@@ -276,7 +285,7 @@ Before committing code, ensure:
 - [ ] ESLint passes
 - [ ] Tests written for new features
 - [ ] No sensitive data in responses
-- [ ] Middleware verifies session/outletId
+- [ ] Route proxy verifies session/outletId
 
 ## 📚 Key Files to Reference
 
@@ -289,11 +298,23 @@ Before committing code, ensure:
 1. Check if it requires new Prisma model (update schema first)
 2. Create repository for data access
 3. Create service for business logic
-4. Create API route with Zod validation
+4. Create API route with Zod validation and route proxy protection
 5. Create DTO for response
 6. Add AdminLTE UI components
 7. Write tests (unit, integration, E2E as needed)
 8. Update development-plan.md progress
+
+## 🔒 Route Protection Pattern
+
+**Use Route Proxy instead of Next.js Middleware:**
+
+- Use `withAuth()` for authenticated routes requiring outletId
+- Use `withAdminAuth()` for SUPERADMIN-only routes
+- Use `withOwnerAuth()` for OWNER-only routes  
+- Use `withPublicAuth()` for public routes (optional session)
+- Proxy automatically verifies session and outletId
+- Proxy handles authorization checks before handler execution
+- Never manually check session in route handlers - use proxy
 
 ## 💡 AI Assistant Guidelines
 

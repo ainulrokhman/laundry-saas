@@ -65,27 +65,36 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - [x] Buat verification tests untuk cursor rules compliance (`__tests__/verify-cursor-rules.test.ts`)
 
 ### 0.5 Project Structure (SOLID Principles)
-- [ ] Buat struktur folder:
+- [x] Buat struktur folder:
   ```
   src/
   ├── app/                    # Next.js App Router
+  │   ├── api/               # API routes
+  │   │   ├── auth/          # NextAuth routes
+  │   │   ├── dashboard/     # Internal dashboard API
+  │   │   └── public/        # Public API (tracking)
+  │   ├── dashboard/         # Dashboard pages
+  │   ├── admin/             # SuperAdmin pages
+  │   ├── outlet/            # Public outlet pages
+  │   └── track/             # Public tracking
   ├── components/             # Reusable UI components
   │   ├── adminlte/          # AdminLTE components
   │   └── ui/                # Custom UI components
   ├── lib/                   # Utilities & configs
   │   ├── prisma.ts         # Prisma client singleton
   │   ├── auth.ts           # NextAuth config
-  │   └── utils.ts           # Helper functions
+  │   ├── utils.ts           # Helper functions
+  │   └── proxy/            # Route protection proxy
+  │       └── route-proxy.ts # Proxy pattern for auth/authorization
   ├── repositories/         # Data access layer
   ├── services/             # Business logic layer
-  ├── api/                  # API route handlers
   ├── types/                # TypeScript types
-  ├── dto/                  # Data Transfer Objects
-  └── middleware.ts         # Next.js middleware
+  └── dto/                  # Data Transfer Objects
   ```
 
 ### 0.6 Cursor Rules Setup
 - [x] Buat `.cursorrules` file dengan guidelines lengkap
+- [x] Update `.cursorrules` untuk menggunakan proxy pattern (bukan middleware)
 - [ ] Review dan pastikan semua developer memahami cursor rules
 - [ ] Setup pre-commit hooks untuk code quality (opsional)
 
