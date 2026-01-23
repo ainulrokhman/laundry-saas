@@ -11,6 +11,7 @@ import { otpService } from '@/services/auth/OtpService';
 import { OtpType } from '@/generated/prisma';
 import { normalizePhoneNumber, formatPhoneNumber, isValidPhoneNumber } from '@/lib/utils';
 import { ApiResponse } from '@/types';
+import { prisma } from '@/lib/prisma';
 
 const requestSchema = z.object({
   phone: z.string().min(10, 'Phone number is required'),
@@ -31,28 +32,47 @@ export async function POST(request: NextRequest) {
       return NextResponse.json<ApiResponse>(
         {
           success: false,
-          error: 'Invalid phone number format',
+          error: 'Format nomor telepon tidak valid',
         },
         { status: 400 }
       );
     }
 
+    // Normalize phone for database lookup
+    const normalizedPhone = normalizePhoneNumber(phone);
+
+    // For REGISTER type, check if phone number already exists
+    if (type === OtpType.REGISTER) {
+      const existingUser = await prisma.user.findUnique({
+        where: { phone: normalizedPhone },
+      });
+
+      if (existingUser) {
+        return NextResponse.json<ApiResponse>(
+          {
+            success: false,
+            error: 'Nomor telepon sudah terdaftar. Silakan gunakan nomor lain atau login dengan nomor ini.',
+          },
+          { status: 409 } // Conflict
+        );
+      }
+    }
+
     // Generate and send OTP (service will normalize phone for storage)
     await otpService.generateOtp(phone, type);
 
-    // Get rate limit info for response (normalize phone for lookup)
-    const normalizedPhone = normalizePhoneNumber(phone);
+    // Get rate limit info for response
     const rateLimitInfo = otpService.getRateLimitInfo(normalizedPhone);
 
     return NextResponse.json<ApiResponse<{ remaining: number; resetAt: string }>>(
-      {
-        success: true,
-        message: 'OTP code has been sent to your WhatsApp',
-        data: {
-          remaining: rateLimitInfo.remaining,
-          resetAt: rateLimitInfo.resetAt.toISOString(),
+        {
+          success: true,
+          message: 'Kode OTP telah dikirim ke WhatsApp Anda',
+          data: {
+            remaining: rateLimitInfo.remaining,
+            resetAt: rateLimitInfo.resetAt.toISOString(),
+          },
         },
-      },
       { status: 200 }
     );
   } catch (error) {
@@ -60,7 +80,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json<ApiResponse>(
         {
           success: false,
-          error: 'Invalid request data',
+          error: 'Data tidak valid',
           message: error.errors.map((e) => e.message).join(', '),
         },
         { status: 400 }
@@ -97,7 +117,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json<ApiResponse>(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to send OTP',
+        error: error instanceof Error ? error.message : 'Gagal mengirim OTP',
       },
       { status: 500 }
     );

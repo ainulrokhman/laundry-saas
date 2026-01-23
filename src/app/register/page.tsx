@@ -46,7 +46,7 @@ export default function RegisterPage() {
   const showSuccess = (message: string) => {
     Swal.fire({
       icon: 'success',
-      title: 'Success!',
+      title: 'Berhasil!',
       text: message,
       confirmButtonColor: '#3085d6',
       confirmButtonText: 'OK',
@@ -56,7 +56,7 @@ export default function RegisterPage() {
   // Step 1: Request OTP
   const handleRequestOtp = async () => {
     if (!phone || phone.length < 10) {
-      showError('Please enter a valid phone number');
+      showError('Masukkan nomor telepon yang valid');
       return;
     }
 
@@ -73,16 +73,16 @@ export default function RegisterPage() {
 
       if (data.success) {
         setRateLimitInfo(data.data || null);
-        showSuccess('OTP code has been sent to your WhatsApp');
+        showSuccess('Kode OTP telah dikirim ke WhatsApp Anda');
         setStep(2);
       } else {
-        showError(data.error || 'Failed to send OTP');
+        showError(data.error || 'Gagal mengirim OTP');
         if (data.data) {
           setRateLimitInfo(data.data);
         }
       }
     } catch (err) {
-      showError('Network error. Please try again.');
+      showError('Error jaringan. Silakan coba lagi.');
     } finally {
       setLoading(false);
     }
@@ -91,7 +91,7 @@ export default function RegisterPage() {
   // Step 2: Verify OTP
   const handleVerifyOtp = async () => {
     if (!otpCode || otpCode.length !== 6) {
-      showError('Please enter a valid 6-digit OTP code');
+      showError('Masukkan kode OTP 6 digit yang valid');
       return;
     }
 
@@ -107,13 +107,13 @@ export default function RegisterPage() {
       const data: ApiResponse = await response.json();
 
       if (data.success) {
-        showSuccess('OTP verified successfully');
+        showSuccess('OTP berhasil diverifikasi');
         setStep(3);
       } else {
-        showError(data.error || 'Invalid OTP code');
+        showError(data.error || 'Kode OTP tidak valid');
       }
     } catch (err) {
-      showError('Network error. Please try again.');
+      showError('Error jaringan. Silakan coba lagi.');
     } finally {
       setLoading(false);
     }
@@ -123,23 +123,23 @@ export default function RegisterPage() {
   const handleRegister = async () => {
     // Validation
     if (!name || name.length < 2) {
-      showError('Name must be at least 2 characters');
+      showError('Nama harus minimal 2 karakter');
       return;
     }
     if (!outletName || outletName.length < 2) {
-      showError('Outlet name must be at least 2 characters');
+      showError('Nama outlet harus minimal 2 karakter');
       return;
     }
     if (!outletAddress || outletAddress.length < 5) {
-      showError('Outlet address must be at least 5 characters');
+      showError('Alamat outlet harus minimal 5 karakter');
       return;
     }
     if (!pin || !/^\d{4,6}$/.test(pin)) {
-      showError('PIN must be 4-6 digits');
+      showError('PIN harus 4-6 digit');
       return;
     }
     if (pin !== confirmPin) {
-      showError('PIN and confirmation PIN do not match');
+      showError('PIN dan konfirmasi PIN tidak cocok');
       return;
     }
 
@@ -164,18 +164,18 @@ export default function RegisterPage() {
       if (data.success) {
         Swal.fire({
           icon: 'success',
-          title: 'Registration Successful!',
-          text: 'Your account has been created. Redirecting to login...',
+          title: 'Registrasi Berhasil!',
+          text: 'Akun Anda telah dibuat. Mengalihkan ke halaman login...',
           showConfirmButton: false,
           timer: 2000,
         }).then(() => {
           router.push('/login');
         });
       } else {
-        showError(data.error || 'Registration failed');
+        showError(data.error || 'Registrasi gagal');
       }
     } catch (err) {
-      showError('Network error. Please try again.');
+      showError('Error jaringan. Silakan coba lagi.');
     } finally {
       setLoading(false);
     }
@@ -184,13 +184,13 @@ export default function RegisterPage() {
   const getStepTitle = () => {
     switch (step) {
       case 1:
-        return 'Enter Phone Number';
+        return 'Masukkan Nomor Telepon';
       case 2:
-        return 'Verify OTP';
+        return 'Verifikasi OTP';
       case 3:
-        return 'Complete Registration';
+        return 'Lengkapi Registrasi';
       default:
-        return 'Registration';
+        return 'Registrasi';
     }
   };
 
@@ -205,7 +205,7 @@ export default function RegisterPage() {
                 <div className="text-center mb-4">
                   <h2 className="fw-bold text-primary mb-1">
                     <i className="fas fa-user-plus me-2"></i>
-                    Create Account
+                    Buat Akun
                   </h2>
                   <p className="text-muted small">{getStepTitle()}</p>
                 </div>
@@ -222,7 +222,7 @@ export default function RegisterPage() {
                           {step > s ? <i className="fas fa-check"></i> : s}
                         </div>
                         <div className="step-label small mt-1">
-                          {s === 1 ? 'Phone' : s === 2 ? 'OTP' : 'Details'}
+                          {s === 1 ? 'Telepon' : s === 2 ? 'OTP' : 'Detail'}
                         </div>
                       </div>
                     ))}
@@ -240,7 +240,7 @@ export default function RegisterPage() {
                 {rateLimitInfo && rateLimitInfo.remaining < 3 && (
                   <div className="alert alert-info py-2 mb-3">
                     <i className="fas fa-info-circle me-2"></i>
-                    <small>Remaining OTP requests: {rateLimitInfo.remaining}</small>
+                    <small>Sisa permintaan OTP: {rateLimitInfo.remaining}</small>
                   </div>
                 )}
 
@@ -249,7 +249,7 @@ export default function RegisterPage() {
                   <div>
                     <div className="mb-3">
                       <label htmlFor="phone" className="form-label small text-muted">
-                        WhatsApp Number
+                        Nomor WhatsApp
                       </label>
                       <div className="input-group">
                         <span className="input-group-text bg-light border-end-0">
@@ -276,12 +276,12 @@ export default function RegisterPage() {
                       {loading ? (
                         <>
                           <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                          Sending...
+                          Mengirim...
                         </>
                       ) : (
                         <>
                           <i className="fas fa-paper-plane me-2"></i>
-                          Send OTP via WhatsApp
+                          Kirim OTP via WhatsApp
                         </>
                       )}
                     </button>
@@ -293,7 +293,7 @@ export default function RegisterPage() {
                   <div>
                     <div className="mb-3">
                       <label htmlFor="otp" className="form-label small text-muted">
-                        Enter OTP Code
+                        Masukkan Kode OTP
                       </label>
                       <div className="input-group">
                         <span className="input-group-text bg-light border-end-0">
@@ -311,7 +311,7 @@ export default function RegisterPage() {
                           required
                         />
                       </div>
-                      <small className="text-muted">Check your WhatsApp for the 6-digit code</small>
+                      <small className="text-muted">Periksa WhatsApp Anda untuk kode 6 digit</small>
                     </div>
                     <div className="d-flex gap-2">
                       <button
@@ -324,7 +324,7 @@ export default function RegisterPage() {
                         disabled={loading}
                       >
                         <i className="fas fa-arrow-left me-2"></i>
-                        Back
+                        Kembali
                       </button>
                       <button
                         type="button"
@@ -335,11 +335,11 @@ export default function RegisterPage() {
                         {loading ? (
                           <>
                             <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                            Verifying...
+                            Memverifikasi...
                           </>
                         ) : (
                           <>
-                            Verify <i className="fas fa-arrow-right ms-2"></i>
+                            Verifikasi <i className="fas fa-arrow-right ms-2"></i>
                           </>
                         )}
                       </button>
@@ -353,7 +353,7 @@ export default function RegisterPage() {
                         }}
                         className="text-primary small text-decoration-none"
                       >
-                        Resend OTP
+                        Kirim Ulang OTP
                       </a>
                     </div>
                   </div>
@@ -363,11 +363,11 @@ export default function RegisterPage() {
                 {step === 3 && (
                   <div>
                     <h6 className="mb-3 text-muted">
-                      <i className="fas fa-user me-2"></i>Personal Information
+                      <i className="fas fa-user me-2"></i>Informasi Pribadi
                     </h6>
                     <div className="mb-3">
                       <label htmlFor="name" className="form-label small text-muted">
-                        Your Name
+                        Nama Anda
                       </label>
                       <div className="input-group">
                         <span className="input-group-text bg-light border-end-0">
@@ -377,7 +377,7 @@ export default function RegisterPage() {
                           type="text"
                           id="name"
                           className="form-control border-start-0 ps-0"
-                          placeholder="John Doe"
+                          placeholder="Nama Lengkap"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
                           disabled={loading}
@@ -387,11 +387,11 @@ export default function RegisterPage() {
                     </div>
 
                     <h6 className="mb-3 mt-4 text-muted">
-                      <i className="fas fa-store me-2"></i>Outlet Information
+                      <i className="fas fa-store me-2"></i>Informasi Outlet
                     </h6>
                     <div className="mb-3">
                       <label htmlFor="outletName" className="form-label small text-muted">
-                        Outlet Name
+                        Nama Outlet
                       </label>
                       <div className="input-group">
                         <span className="input-group-text bg-light border-end-0">
@@ -401,7 +401,7 @@ export default function RegisterPage() {
                           type="text"
                           id="outletName"
                           className="form-control border-start-0 ps-0"
-                          placeholder="My Laundry Shop"
+                          placeholder="Nama Toko Laundry"
                           value={outletName}
                           onChange={(e) => setOutletName(e.target.value)}
                           disabled={loading}
@@ -411,12 +411,12 @@ export default function RegisterPage() {
                     </div>
                     <div className="mb-3">
                       <label htmlFor="outletAddress" className="form-label small text-muted">
-                        Outlet Address
+                        Alamat Outlet
                       </label>
                       <textarea
                         id="outletAddress"
                         className="form-control"
-                        placeholder="Enter complete address"
+                        placeholder="Masukkan alamat lengkap"
                         value={outletAddress}
                         onChange={(e) => setOutletAddress(e.target.value)}
                         disabled={loading}
@@ -426,11 +426,11 @@ export default function RegisterPage() {
                     </div>
 
                     <h6 className="mb-3 mt-4 text-muted">
-                      <i className="fas fa-lock me-2"></i>Set PIN
+                      <i className="fas fa-lock me-2"></i>Atur PIN
                     </h6>
                     <div className="mb-3">
                       <label htmlFor="pin" className="form-label small text-muted">
-                        PIN (4-6 digits)
+                        PIN (4-6 digit)
                       </label>
                       <div className="input-group">
                         <span className="input-group-text bg-light border-end-0">
@@ -440,7 +440,7 @@ export default function RegisterPage() {
                           type="password"
                           id="pin"
                           className="form-control border-start-0 ps-0"
-                          placeholder="Enter PIN"
+                          placeholder="Masukkan PIN"
                           value={pin}
                           onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                           disabled={loading}
@@ -451,7 +451,7 @@ export default function RegisterPage() {
                     </div>
                     <div className="mb-4">
                       <label htmlFor="confirmPin" className="form-label small text-muted">
-                        Confirm PIN
+                        Konfirmasi PIN
                       </label>
                       <div className="input-group">
                         <span className="input-group-text bg-light border-end-0">
@@ -461,7 +461,7 @@ export default function RegisterPage() {
                           type="password"
                           id="confirmPin"
                           className="form-control border-start-0 ps-0"
-                          placeholder="Confirm PIN"
+                          placeholder="Konfirmasi PIN"
                           value={confirmPin}
                           onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                           disabled={loading}
@@ -479,7 +479,7 @@ export default function RegisterPage() {
                         disabled={loading}
                       >
                         <i className="fas fa-arrow-left me-2"></i>
-                        Back
+                        Kembali
                       </button>
                       <button
                         type="button"
@@ -490,12 +490,12 @@ export default function RegisterPage() {
                         {loading ? (
                           <>
                             <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                            Registering...
+                            Mendaftar...
                           </>
                         ) : (
                           <>
                             <i className="fas fa-check me-2"></i>
-                            Register
+                            Daftar
                           </>
                         )}
                       </button>
@@ -506,9 +506,9 @@ export default function RegisterPage() {
                 {/* Login Link */}
                 <div className="text-center mt-4">
                   <p className="mb-0 small text-muted">
-                    Already have an account?{' '}
+                    Sudah punya akun?{' '}
                     <a href="/login" className="text-primary text-decoration-none fw-semibold">
-                      Login here
+                      Masuk di sini
                     </a>
                   </p>
                 </div>

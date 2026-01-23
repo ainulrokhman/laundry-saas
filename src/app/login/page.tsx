@@ -37,12 +37,12 @@ export default function LoginPage() {
 
     // Validation
     if (!phone || phone.length < 10) {
-      showError('Please enter a valid phone number');
+      showError('Masukkan nomor telepon yang valid');
       return;
     }
 
     if (!pin || !/^\d{4,6}$/.test(pin)) {
-      showError('PIN must be 4-6 digits');
+      showError('PIN harus 4-6 digit');
       return;
     }
 
@@ -56,12 +56,12 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        showError('Invalid phone number or PIN. Please try again.');
+        showError('Nomor telepon atau PIN salah. Silakan coba lagi.');
       } else if (result?.ok) {
         Swal.fire({
           icon: 'success',
-          title: 'Success!',
-          text: 'Login successful. Redirecting...',
+          title: 'Berhasil!',
+          text: 'Login berhasil. Mengalihkan...',
           showConfirmButton: false,
           timer: 1500,
         }).then(() => {
@@ -70,7 +70,7 @@ export default function LoginPage() {
         });
       }
     } catch (err) {
-      showError('Login failed. Please try again.');
+      showError('Login gagal. Silakan coba lagi.');
     } finally {
       setLoading(false);
     }
@@ -89,14 +89,14 @@ export default function LoginPage() {
                     <i className="fas fa-tshirt me-2"></i>
                     Ainul Laundry
                   </h2>
-                  <p className="text-muted small">Sign in to your account</p>
+                  <p className="text-muted small">Masuk ke akun Anda</p>
                 </div>
 
                 <form onSubmit={handleLogin}>
                   {/* Phone Number */}
                   <div className="mb-3">
                     <label htmlFor="phone" className="form-label small text-muted">
-                      Phone Number
+                      Nomor Telepon
                     </label>
                     <div className="input-group">
                       <span className="input-group-text bg-light border-end-0">
@@ -128,7 +128,7 @@ export default function LoginPage() {
                         type="password"
                         id="pin"
                         className="form-control border-start-0 ps-0"
-                        placeholder="Enter your PIN"
+                        placeholder="Masukkan PIN Anda"
                         value={pin}
                         onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                         disabled={loading}
@@ -136,7 +136,7 @@ export default function LoginPage() {
                         required
                       />
                     </div>
-                    <small className="text-muted">4-6 digits</small>
+                    <small className="text-muted">4-6 digit</small>
                   </div>
 
                   {/* Submit Button */}
@@ -148,12 +148,12 @@ export default function LoginPage() {
                     {loading ? (
                       <>
                         <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                        Signing In...
+                        Masuk...
                       </>
                     ) : (
                       <>
                         <i className="fas fa-sign-in-alt me-2"></i>
-                        Sign In
+                        Masuk
                       </>
                     )}
                   </button>
@@ -162,9 +162,9 @@ export default function LoginPage() {
                 {/* Register Link */}
                 <div className="text-center mt-4">
                   <p className="mb-0 small text-muted">
-                    Don't have an account?{' '}
+                    Belum punya akun?{' '}
                     <a href="/register" className="text-primary text-decoration-none fw-semibold">
-                      Register here
+                      Daftar di sini
                     </a>
                   </p>
                 </div>

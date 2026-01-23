@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json<ApiResponse>(
         {
           success: false,
-          error: 'Invalid phone number format',
+          error: 'Format nomor telepon tidak valid',
         },
         { status: 400 }
       );
@@ -111,16 +111,17 @@ export async function POST(request: NextRequest) {
       data: { isUsed: true },
     });
 
-    // Check if phone number already exists
+    // Check if phone number already exists (use normalized phone)
+    // This is a double-check, but the OTP request should have already checked this
     const existingUser = await prisma.user.findUnique({
-      where: { phone: formattedPhone },
+      where: { phone: normalizedPhone },
     });
 
     if (existingUser) {
       return NextResponse.json<ApiResponse>(
         {
           success: false,
-          error: 'Phone number already registered',
+          error: 'Nomor telepon sudah terdaftar. Silakan gunakan nomor lain atau login dengan nomor ini.',
         },
         { status: 409 } // Conflict
       );
@@ -164,23 +165,23 @@ export async function POST(request: NextRequest) {
     // Note: Auto login will be handled client-side after successful registration
     // The client will redirect to login page or dashboard
 
-    return NextResponse.json<ApiResponse<{ userId: string; outletId: string }>>(
-      {
-        success: true,
-        message: 'Registration successful',
-        data: {
-          userId: result.user.id,
-          outletId: result.outlet.id,
+      return NextResponse.json<ApiResponse<{ userId: string; outletId: string }>>(
+        {
+          success: true,
+          message: 'Registrasi berhasil',
+          data: {
+            userId: result.user.id,
+            outletId: result.outlet.id,
+          },
         },
-      },
-      { status: 201 }
-    );
+        { status: 201 }
+      );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json<ApiResponse>(
         {
           success: false,
-          error: 'Invalid request data',
+          error: 'Data tidak valid',
           message: error.errors.map((e) => e.message).join(', '),
         },
         { status: 400 }
@@ -191,7 +192,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json<ApiResponse>(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Registration failed',
+        error: error instanceof Error ? error.message : 'Registrasi gagal',
       },
       { status: 500 }
     );
