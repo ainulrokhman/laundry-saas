@@ -24,6 +24,9 @@ Laundry SaaS Platform - Multi-tenant laundry management system optimized for Ver
 
 ### Authentication
 - **NextAuth.js v5**: Auth.js - Use App Router compatible patterns
+- **Configuration**: Use `NextAuth()` function, export `{ auth, handlers, signIn, signOut }`
+- **Session Access**: Use `auth()` function (not `getServerSession`)
+- **API Route**: Export handlers from `@/lib/auth` in `/api/auth/[...nextauth]/route.ts`
 - **Roles**: SUPERADMIN, OWNER, STAFF
 - **Session**: Must include outletId for multi-tenancy
 
@@ -272,6 +275,8 @@ export const GET = withAuth(async (request: Request, session: ExtendedSession) =
 6. **❌ Exposing sensitive fields**: Use DTO scrubbing
 7. **❌ Using internal IDs in public URLs**: Use trackingCode
 8. **❌ Direct Prisma in services**: Use repositories
+9. **❌ Using NextAuth v4 patterns**: Use `auth()` not `getServerSession()`
+10. **❌ Importing NextAuthOptions**: Use NextAuth v5 API patterns
 
 ## ✅ Code Quality Checklist
 
@@ -315,6 +320,56 @@ Before committing code, ensure:
 - Proxy automatically verifies session and outletId
 - Proxy handles authorization checks before handler execution
 - Never manually check session in route handlers - use proxy
+
+## 🔐 NextAuth.js v5 Patterns
+
+### Configuration Pattern
+```typescript
+// src/lib/auth.ts
+import NextAuth from 'next-auth';
+import Credentials from 'next-auth/providers/credentials';
+
+export const { auth, handlers, signIn, signOut } = NextAuth({
+  providers: [Credentials({ ... })],
+  callbacks: { ... },
+  session: { strategy: 'jwt' },
+});
+```
+
+### API Route Handler
+```typescript
+// src/app/api/auth/[...nextauth]/route.ts
+import { handlers } from '@/lib/auth';
+export const { GET, POST } = handlers;
+```
+
+### Getting Session (Server Components/Server Actions)
+```typescript
+// ✅ CORRECT - NextAuth v5
+import { auth } from '@/lib/auth';
+const session = await auth();
+
+// ❌ WRONG - NextAuth v4 (deprecated)
+import { getServerSession } from 'next-auth';
+const session = await getServerSession(authOptions);
+```
+
+### Client Components
+```typescript
+'use client';
+import { useSession, SessionProvider } from 'next-auth/react';
+
+export function ClientComponent() {
+  const { data: session } = useSession();
+  // Use session here
+}
+```
+
+### Important Notes
+- Always use `auth()` from `@/lib/auth` for server-side session access
+- Never import `getServerSession` or `NextAuthOptions` (v4 patterns)
+- Use `Credentials` provider (not `CredentialsProvider`)
+- Export `{ auth, handlers, signIn, signOut }` from NextAuth config
 
 ## 💡 AI Assistant Guidelines
 

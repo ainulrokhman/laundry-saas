@@ -5,8 +5,8 @@
  * Session includes outletId for multi-tenancy support.
  */
 
-import { NextAuthOptions } from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
+import NextAuth from 'next-auth';
+import Credentials from 'next-auth/providers/credentials';
 import { prisma } from './prisma';
 import bcrypt from 'bcryptjs';
 import { Role } from '../generated/prisma';
@@ -27,9 +27,9 @@ export interface ExtendedSession {
  * Uses credentials provider for PIN-based login.
  * Session includes outletId for multi-tenancy isolation.
  */
-export const authOptions: NextAuthOptions = {
+export const { auth, handlers, signIn, signOut } = NextAuth({
   providers: [
-    CredentialsProvider({
+    Credentials({
       name: 'Credentials',
       credentials: {
         phone: { label: 'Phone', type: 'text' },
@@ -42,7 +42,7 @@ export const authOptions: NextAuthOptions = {
 
         // Find user by phone
         const user = await prisma.user.findUnique({
-          where: { phone: credentials.phone },
+          where: { phone: credentials.phone as string },
           include: { outlet: true },
         });
 
@@ -51,7 +51,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Verify PIN
-        const isValidPin = await bcrypt.compare(credentials.pin, user.pin);
+        const isValidPin = await bcrypt.compare(credentials.pin as string, user.pin);
 
         if (!isValidPin) {
           return null;
@@ -103,5 +103,5 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: 'jwt',
   },
-  secret: process.env.NEXTAUTH_SECRET,
-};
+});
+

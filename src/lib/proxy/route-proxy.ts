@@ -17,8 +17,7 @@
  * ```
  */
 
-import { getServerSession } from 'next-auth';
-import { authOptions, ExtendedSession } from '../auth';
+import { auth, ExtendedSession } from '../auth';
 import { Role } from '../../generated/prisma';
 
 /**
@@ -65,8 +64,8 @@ export function withAuth<T = any>(
 
   return async (request: Request): Promise<Response> => {
     try {
-      // Get session
-      const session = await getServerSession(authOptions);
+      // Get session using NextAuth v5 auth() function
+      const session = await auth();
 
       if (!session?.user) {
         return new Response(
@@ -149,7 +148,7 @@ export function withPublicAuth<T = any>(
 ): (request: Request) => Promise<Response> {
   return async (request: Request): Promise<Response> => {
     try {
-      const session = await getServerSession(authOptions);
+      const session = await auth();
       const extendedSession = session?.user 
         ? (session.user as unknown as ExtendedSession)
         : null;
