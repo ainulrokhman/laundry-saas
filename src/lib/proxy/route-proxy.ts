@@ -74,12 +74,42 @@ export function withAuth<T = any>(
         );
       }
 
-      const extendedSession = session.user as unknown as ExtendedSession;
+      // Safely extract session data
+      const user = session.user as any;
+      const outletId = user.outletId ?? user.outlet_id ?? null;
+      
+      const extendedSession: ExtendedSession = {
+        userId: user.userId || user.id,
+        outletId: outletId,
+        role: user.role,
+        phone: user.phone,
+      };
 
       // Check outlet requirement
       if (requireOutlet && !extendedSession.outletId) {
+        // Provide more specific error message based on role
+        let errorMessage = 'Outlet context required';
+        let userMessage = 'This operation requires an outlet context.';
+        
+        if (extendedSession.role === 'SUPERADMIN') {
+          errorMessage = 'SuperAdmin cannot access outlet-specific resources';
+          userMessage = 'SuperAdmin accounts cannot access outlet dashboard. Please use the admin panel to manage outlets.';
+        } else {
+          userMessage = 'This operation requires an outlet context. Please ensure you are logged in as an outlet owner or staff member.';
+        }
+        
+        console.error('Outlet context required but not found in session:', {
+          userId: extendedSession.userId,
+          role: extendedSession.role,
+          hasOutletId: !!outletId,
+          userKeys: Object.keys(user),
+        });
+        
         return new Response(
-          JSON.stringify({ error: 'Outlet context required' }),
+          JSON.stringify({ 
+            error: errorMessage,
+            message: userMessage
+          }),
           { status: 403, headers: { 'Content-Type': 'application/json' } }
         );
       }

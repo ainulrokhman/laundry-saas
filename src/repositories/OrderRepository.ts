@@ -1,0 +1,217 @@
+/**
+ * Order Repository
+ * 
+ * Data access layer for Order model.
+ * All queries include outletId filter for multi-tenancy isolation.
+ */
+
+import { prisma } from '@/lib/prisma';
+import { Order, OrderStatus, PaymentStatus, Prisma } from '@/generated/prisma';
+import { BaseRepository } from './BaseRepository';
+
+export class OrderRepository extends BaseRepository {
+  /**
+   * Find order by ID (with outletId filter)
+   */
+  async findById(outletId: string, id: string): Promise<Order | null> {
+    this.ensureOutletId(outletId, 'Order');
+    return prisma.order.findFirst({
+      where: this.combineFilters(outletId, { id }),
+    });
+  }
+
+  /**
+   * Find order by tracking code (with outletId filter)
+   */
+  async findByTrackingCode(
+    outletId: string,
+    trackingCode: string
+  ): Promise<Order | null> {
+    this.ensureOutletId(outletId, 'Order');
+    return prisma.order.findFirst({
+      where: this.combineFilters(outletId, { trackingCode }),
+    });
+  }
+
+  /**
+   * Find all orders for an outlet
+   */
+  async findByOutletId(
+    outletId: string,
+    options?: {
+      status?: OrderStatus;
+      paymentStatus?: PaymentStatus;
+      limit?: number;
+      orderBy?: Prisma.OrderOrderByWithRelationInput;
+    }
+  ): Promise<Order[]> {
+    this.ensureOutletId(outletId, 'Order');
+    const where: Prisma.OrderWhereInput = this.getOutletFilter(outletId);
+    
+    if (options?.status) {
+      where.status = options.status;
+    }
+    if (options?.paymentStatus) {
+      where.paymentStatus = options.paymentStatus;
+    }
+
+    return prisma.order.findMany({
+      where,
+      orderBy: options?.orderBy || { createdAt: 'desc' },
+      take: options?.limit,
+    });
+  }
+
+  /**
+   * Count orders for an outlet
+   */
+  async countByOutletId(
+    outletId: string,
+    filters?: {
+      status?: OrderStatus;
+      paymentStatus?: PaymentStatus;
+      dateFrom?: Date;
+      dateTo?: Date;
+    }
+  ): Promise<number> {
+    this.ensureOutletId(outletId, 'Order');
+    const where: Prisma.OrderWhereInput = this.getOutletFilter(outletId);
+    
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+    if (filters?.paymentStatus) {
+      where.paymentStatus = filters.paymentStatus;
+    }
+    if (filters?.dateFrom || filters?.dateTo) {
+      where.createdAt = {};
+      if (filters.dateFrom) {
+        where.createdAt.gte = filters.dateFrom;
+      }
+      if (filters.dateTo) {
+        where.createdAt.lte = filters.dateTo;
+      }
+    }
+
+    return prisma.order.count({ where });
+  }
+
+  /**
+   * Get total revenue for an outlet
+   */
+  async getTotalRevenue(
+    outletId: string,
+    filters?: {
+      dateFrom?: Date;
+      dateTo?: Date;
+      paymentStatus?: PaymentStatus;
+    }
+  ): Promise<number> {
+    this.ensureOutletId(outletId, 'Order');
+    const where: Prisma.OrderWhereInput = this.getOutletFilter(outletId);
+    
+    if (filters?.paymentStatus) {
+      where.paymentStatus = filters.paymentStatus;
+    }
+    if (filters?.dateFrom || filters?.dateTo) {
+      where.createdAt = {};
+      if (filters.dateFrom) {
+        where.createdAt.gte = filters.dateFrom;
+      }
+      if (filters.dateTo) {
+        where.createdAt.lte = filters.dateTo;
+      }
+    }
+
+    const result = await prisma.order.aggregate({
+      where,
+      _sum: {
+        totalAmount: true,
+      },
+    });
+
+    return result._sum.totalAmount || 0;
+  }
+
+  /**
+   * Get pending orders (not TAKEN)
+   */
+  async findPendingOrders(outletId: string): Promise<Order[]> {
+    this.ensureOutletId(outletId, 'Order');
+    return prisma.order.findMany({
+      where: this.combineFilters(outletId, {
+        status: {
+          not: OrderStatus.TAKEN,
+        },
+      }),
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * Count pending orders
+   */
+  async countPendingOrders(outletId: string): Promise<number> {
+    this.ensureOutletId(outletId, 'Order');
+    return prisma.order.count({
+      where: this.combineFilters(outletId, {
+        status: {
+          not: OrderStatus.TAKEN,
+        },
+      }),
+    });
+  }
+
+  /**
+   * Get recent orders
+   */
+  async findRecentOrders(
+    outletId: string,
+    limit: number = 10
+  ): Promise<Order[]> {
+    this.ensureOutletId(outletId, 'Order');
+    return prisma.order.findMany({
+      where: this.getOutletFilter(outletId),
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+  }
+
+  /**
+   * Create new order
+   */
+  async create(
+    outletId: string,
+    data: Omit<Prisma.OrderCreateInput, 'outlet'>
+  ): Promise<Order> {
+    this.ensureOutletId(outletId, 'Order');
+    return prisma.order.create({
+      data: {
+        ...data,
+        outlet: {
+          connect: { id: outletId },
+        },
+      },
+    });
+  }
+
+  /**
+   * Update order
+   */
+  async update(
+    outletId: string,
+    id: string,
+    data: Prisma.OrderUpdateInput
+  ): Promise<Order> {
+    this.ensureOutletId(outletId, 'Order');
+    // Verify outletId matches before update
+    const order = await this.findById(outletId, id);
+    if (!order) {
+      throw new Error('Order not found or access denied');
+    }
+    return prisma.order.update({
+      where: { id },
+      data,
+    });
+  }
+}

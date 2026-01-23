@@ -35,7 +35,7 @@ const menuItems: MenuItem[] = [
     label: 'Dashboard',
     icon: 'fas fa-tachometer-alt',
     href: '/dashboard',
-    roles: [Role.SUPERADMIN, Role.OWNER, Role.STAFF],
+    roles: [Role.OWNER, Role.STAFF], // Dashboard is outlet-specific, SUPERADMIN should use admin panel
   },
   {
     label: 'Orders',

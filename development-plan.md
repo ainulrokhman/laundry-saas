@@ -207,26 +207,26 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - [x] Implementasi ServiceService dengan role-based access control
 
 ### 1.4 Database Models (Complete Schema)
-- [ ] Implementasi User model lengkap
-- [ ] Implementasi Outlet model lengkap
-- [ ] Implementasi BankAccount model (multiple rekening per outlet)
-- [ ] Implementasi PaymentGatewayConfig model (konfigurasi gateway per outlet)
-- [ ] Implementasi Service model (untuk layanan laundry)
-- [ ] Implementasi Order model lengkap dengan relasi (include paymentMethod)
-- [ ] Implementasi Transaction model lengkap (include paymentMethod, bankAccountId, paymentGatewayConfigId, gatewayTransactionId, gatewayResponse, webhookData)
-- [ ] Setup semua relasi antar model
-- [ ] Run Prisma migrations
+- [x] Implementasi User model lengkap
+- [x] Implementasi Outlet model lengkap
+- [x] Implementasi BankAccount model (multiple rekening per outlet)
+- [x] Implementasi PaymentGatewayConfig model (konfigurasi gateway per outlet)
+- [x] Implementasi Service model (untuk layanan laundry)
+- [x] Implementasi Order model lengkap dengan relasi (include paymentMethod)
+- [x] Implementasi Transaction model lengkap (include paymentMethod, bankAccountId, paymentGatewayConfigId, gatewayTransactionId, gatewayResponse, webhookData)
+- [x] Setup semua relasi antar model
+- [x] Run Prisma migrations
 
 ### 1.5 Dashboard Homepage
-- [ ] Buat dashboard page (`app/dashboard/page.tsx`)
-- [ ] Implementasi Cards & Widgets (AdminLTE Info Box)
-  - [ ] Order hari ini
-  - [ ] Omzet hari ini
-  - [ ] Cucian tertunda
-  - [ ] Total pelanggan
-- [ ] Buat chart/graph untuk statistik (opsional)
-- [ ] Implementasi recent orders table
-- [ ] Setup role-based dashboard content
+- [x] Buat dashboard page (`app/dashboard/page.tsx`)
+- [x] Implementasi Cards & Widgets (AdminLTE Info Box)
+  - [x] Order hari ini
+  - [x] Omzet hari ini
+  - [x] Cucian tertunda
+  - [x] Total pelanggan
+- [x] Buat chart/graph untuk statistik (opsional)
+- [x] Implementasi recent orders table
+- [x] Setup role-based dashboard content
 
 ### 1.6 Outlet Management (SuperAdmin)
 - [ ] Buat halaman list outlets (`app/admin/outlets/page.tsx`)
@@ -588,6 +588,7 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - ✅ Phase 1.2: AdminLTE Layout Integration (Completed)
 - ✅ Phase 1.3: Multi-Tenancy Foundation (Completed)
 - ✅ Phase 1.4: Database Models (Completed)
+- ✅ Phase 1.5: Dashboard Homepage (Completed)
 
 **Next Steps:**
 1. AdminLTE Layout Integration
@@ -608,12 +609,18 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - Gunakan DTO pattern untuk semua API responses
 - Multi-tenancy security adalah prioritas utama
 
-### Recent Improvements (2026-01-23)
+### Recent Improvements (2026-01-24)
 - ✅ Modern UI design untuk login dan registration pages dengan gradient background
 - ✅ SweetAlert2 integration untuk better user experience
 - ✅ Phone number normalization (tanpa + prefix untuk database storage)
 - ✅ Improved error handling dan logging untuk OTP verification
 - ✅ Multi-step registration flow dengan progress indicator
+- ✅ Complete database schema implementation (Phase 1.4)
+- ✅ Dashboard homepage dengan AdminLTE Info Box widgets (Phase 1.5)
+- ✅ OrderRepository dan TransactionRepository dengan outlet filtering
+- ✅ DashboardService untuk business logic dashboard statistics
+- ✅ API endpoints untuk dashboard stats dan recent orders
+- ✅ Comprehensive testing untuk dashboard features
 
 ---
 
@@ -621,9 +628,10 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 
 Development plan ini akan diupdate secara berkala sesuai dengan progress dan perubahan requirement.
 
-**Last Updated**: 2026-01-23  
-**Version**: 1.1
+**Last Updated**: 2026-01-24  
+**Version**: 1.2
 
 ### Changelog
+- **v1.2 (2026-01-24)**: Completed Phase 1.4 (Database Models) dan Phase 1.5 (Dashboard Homepage)
 - **v1.1 (2026-01-23)**: Completed Phase 1.1.1 - 1.1.6 (Authentication System foundation)
 - **v1.0 (2026-01-23)**: Initial development plan
