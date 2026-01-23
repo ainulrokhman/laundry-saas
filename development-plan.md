@@ -1,337 +1,416 @@
-# 📋 Rencana Pengembangan Laundry SaaS Platform
+# 📋 Development Plan: Laundry SaaS Platform
 
-**Dokumen ini berisi roadmap pengembangan berdasarkan blueprint arsitektur**
+Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry SaaS sesuai dengan blueprint arsitektur.
 
----
-
-## 🎯 Tujuan Utama
-Membangun platform SaaS manajemen laundry multi-tenant yang scalable, secure, dan user-friendly dengan fokus pada pasar Indonesia.
+> **Note**: Pastikan membaca `.cursorrules` untuk guidelines coding, security, dan best practices sebelum memulai development.
 
 ---
 
-## 📅 Timeline Pengembangan
+## 🎯 Overview
 
-### **FASE 0: Setup & Foundation** (Minggu 1-2)
-**Status:** Prerequisites & Infrastructure Setup
-
-#### Tugas:
-- [x] **Setup Project Structure**
-  - [x] Inisialisasi Next.js 14+ dengan App Router
-  - [x] Setup TypeScript configuration
-  - [x] Setup ESLint & Prettier
-  - [x] Setup folder structure mengikuti SOLID principles (repositories, services, controllers, components)
-
-- [x] **Database & ORM Setup**
-  - [x] Setup PostgreSQL di Neon.tech (Singapore region)
-  - [x] Setup Prisma atau Drizzle ORM
-  - [x] Buat schema database berdasarkan blueprint
-  - [x] Setup migration system
-  - [x] Buat seed data untuk testing
-
-- [x] **Authentication Setup** ✅ Completed
-  - [x] Setup NextAuth.js
-  - [x] Implementasi role-based access (SUPERADMIN, OWNER, STAFF)
-  - [x] Setup session management dengan outlet context
-  - [x] Buat proxy untuk route protection (migrated from middleware per Next.js 16)
-
-- [x] **UI Framework Integration**
-  - [x] Install AdminLTE 3/4 (Bootstrap 5)
-  - [x] Setup layout dasar (sidebar, navbar, footer)
-  - [x] Setup FontAwesome icons
-  - [x] Buat komponen reusable dasar
-
-- [x] **Storage Setup**
-  - [x] Setup Cloudinary atau Supabase Storage
-  - [x] Buat utility untuk upload gambar
-  - [x] Setup environment variables
-
-**Deliverables:**
-- Project structure yang rapi
-- Database schema terdeploy
-- Authentication system berfungsi
-- AdminLTE layout dasar terintegrasi
+**Project**: Laundry SaaS Platform (Ainul Laundry)  
+**Framework**: Next.js 16.x LTS (App Router)  
+**UI**: AdminLTE v4 (Bootstrap 5)  
+**Database**: PostgreSQL (Neon.tech)  
+**ORM**: Prisma  
+**Auth**: NextAuth.js v5  
+**Testing**: Vitest + Playwright  
 
 ---
 
-### **FASE 1: AdminLTE Dashboard & Multi-Tenancy** (Minggu 3-4)
-**Status:** Core Infrastructure & Multi-Tenant Isolation
+## 📦 Phase 0: Foundation & Setup
 
-#### Tugas:
-- [x] **Dashboard Layout AdminLTE**
-  - [x] Implementasi sidebar navigation dengan role-based menu
-  - [x] Setup navbar dengan user profile dropdown
-  - [x] Buat footer AdminLTE
-  - [x] Implementasi responsive design
-  - [x] Setup dark/light mode (optional)
+### 0.1 Dependencies Installation
+- [ ] Install AdminLTE v4 (`admin-lte@4.0.0-rc4`)
+- [ ] Install Bootstrap 5
+- [ ] Install Prisma (`@prisma/client`, `prisma`)
+- [ ] Install NextAuth.js v5 (`next-auth`)
+- [ ] Install Zod untuk validasi (`zod`)
+- [ ] Install Vitest dan dependencies (`vitest`, `@testing-library/react`, `@testing-library/jest-dom`)
+- [ ] Install Playwright (`@playwright/test`)
+- [ ] Install FontAwesome icons
+- [ ] Install utility libraries (`date-fns`, `uuid`)
 
-- [x] **Multi-Tenancy Implementation**
-  - [x] Implementasi tenant isolation di middleware
-  - [x] Buat utility function untuk filter outlet_id di setiap query
-  - [x] Setup context provider untuk outlet context
-  - [x] Buat helper untuk validasi tenant access
-  - [x] Test isolasi data antar tenant
+### 0.2 Database Setup
+- [ ] Setup Neon.tech PostgreSQL database (Singapore region)
+- [ ] Konfigurasi Prisma schema sesuai blueprint
+  - [ ] Enum: Role, OrderStatus, PaymentStatus, TransType
+  - [ ] Model: User, Outlet, Service, Order, Transaction
+  - [ ] Relasi antar model
+- [ ] Generate Prisma Client
+- [ ] Setup Prisma migrations
+- [ ] Seed database dengan data awal (SuperAdmin user)
 
-- [ ] **Outlet Management**
-  - [x] Halaman list outlet (SuperAdmin only)
-  - [ ] Form create/edit outlet
-  - [ ] Halaman outlet microsite publik di `/outlet/[slug]`
-  - [ ] Setup outlet settings page
-  - [ ] Implementasi bank info management
+### 0.3 Environment Configuration
+- [ ] Setup `.env.local` dari `.env.example`
+- [ ] Konfigurasi `DATABASE_URL`
+- [ ] Konfigurasi `NEXTAUTH_URL` dan `NEXTAUTH_SECRET`
+- [ ] Konfigurasi Cloudinary/Supabase Storage (opsional)
+- [ ] Setup environment variables untuk Vercel
 
-- [ ] **User Management**
-  - [ ] Halaman list users per outlet
-  - [ ] Form create/edit user dengan role assignment
-  - [ ] Implementasi user profile page
-  - [ ] Setup password reset functionality
+### 0.4 Testing Setup
+- [ ] Konfigurasi Vitest (`vitest.config.ts`)
+- [ ] Konfigurasi Playwright (`playwright.config.ts`)
+- [ ] Setup test utilities dan helpers
+- [ ] Setup test database (separate schema untuk testing)
+- [ ] Tambahkan test scripts di `package.json`
+- [x] Buat verification tests untuk cursor rules compliance (`__tests__/verify-cursor-rules.test.ts`)
 
-- [ ] **Security Implementation**
-  - [ ] Implementasi DTO pattern untuk API responses
-  - [ ] Setup Zod validation untuk semua API endpoints
-  - [ ] Implementasi rate limiting (Vercel Edge)
-  - [ ] Test security vulnerabilities (tenant isolation, data exposure)
+### 0.5 Project Structure (SOLID Principles)
+- [ ] Buat struktur folder:
+  ```
+  src/
+  ├── app/                    # Next.js App Router
+  ├── components/             # Reusable UI components
+  │   ├── adminlte/          # AdminLTE components
+  │   └── ui/                # Custom UI components
+  ├── lib/                   # Utilities & configs
+  │   ├── prisma.ts         # Prisma client singleton
+  │   ├── auth.ts           # NextAuth config
+  │   └── utils.ts           # Helper functions
+  ├── repositories/         # Data access layer
+  ├── services/             # Business logic layer
+  ├── api/                  # API route handlers
+  ├── types/                # TypeScript types
+  ├── dto/                  # Data Transfer Objects
+  └── middleware.ts         # Next.js middleware
+  ```
 
-**Deliverables:**
-- Dashboard AdminLTE fully functional
-- Multi-tenant isolation terjamin
-- Outlet management system
-- User management system
-- Security best practices implemented
-
----
-
-### **FASE 2: POS System & Order Management** (Minggu 5-7)
-**Status:** Core Business Logic
-
-#### Tugas:
-- [ ] **Service Management**
-  - [ ] Halaman list services per outlet (Bootstrap Datatables)
-  - [ ] Form create/edit service (Kiloan, Satuan, Paket)
-  - [ ] Implementasi pricing management
-  - [ ] Setup service categories
-
-- [ ] **Order Management (POS)**
-  - [ ] Halaman create order dengan UI AdminLTE
-  - [ ] Implementasi order workflow (QUEUED → WASHING → DRYING → IRONING → READY → TAKEN)
-  - [ ] Visualisasi progress order menggunakan AdminLTE Steps/Timeline
-  - [ ] Halaman list orders dengan filter & search (Datatables)
-  - [ ] Implementasi order status update
-  - [ ] Auto-generate tracking code untuk setiap order
-
-- [ ] **Invoice & Nota Digital**
-  - [ ] Design invoice template dengan AdminLTE styling
-  - [ ] Halaman invoice detail dengan print functionality
-  - [ ] Implementasi share invoice via WhatsApp
-  - [ ] Generate PDF invoice (optional)
-
-- [ ] **Dashboard Widgets**
-  - [ ] Widget: Order hari ini (Info Box AdminLTE)
-  - [ ] Widget: Omzet hari ini
-  - [ ] Widget: Cucian tertunda
-  - [ ] Widget: Statistik order per status
-  - [ ] Implementasi real-time updates (optional)
-
-**Deliverables:**
-- POS system fully functional
-- Order management dengan workflow tracking
-- Invoice system dengan print & share
-- Dashboard dengan widgets informatif
+### 0.6 Cursor Rules Setup
+- [x] Buat `.cursorrules` file dengan guidelines lengkap
+- [ ] Review dan pastikan semua developer memahami cursor rules
+- [ ] Setup pre-commit hooks untuk code quality (opsional)
 
 ---
 
-### **FASE 3: Payment System & Public Features** (Minggu 8-9)
-**Status:** Payment Integration & Public Interface
+## 🏗️ Phase 1: AdminLTE Dashboard Setup & Multi-Tenancy
 
-#### Tugas:
-- [ ] **Payment System (Manual)**
-  - [ ] Halaman tracking publik di `/track/[trackingCode]`
-  - [ ] Form upload bukti transfer (Cloudinary)
-  - [ ] Implementasi payment status management
-  - [ ] Notification system untuk payment confirmation
-  - [ ] Setup payment verification workflow
+### 1.1 Authentication System
+- [ ] Setup NextAuth.js v5 dengan credentials provider
+- [ ] Implementasi role-based access (SUPERADMIN, OWNER, STAFF)
+- [ ] Buat User model di Prisma schema
+- [ ] Setup session management dengan outletId
+- [ ] Buat login page dengan AdminLTE styling
+- [ ] Implementasi middleware untuk route protection
+- [ ] Buat API route untuk authentication (`/api/auth/[...nextauth]`)
 
-- [ ] **Public Tracking Page**
-  - [ ] Design minimalis untuk halaman tracking
-  - [ ] Implementasi privacy protection (nama disensor)
-  - [ ] Display order status dengan badges
-  - [ ] Estimasi waktu selesai
-  - [ ] Rate limiting untuk public endpoints
+### 1.2 AdminLTE Layout Integration
+- [ ] Install dan import AdminLTE CSS/JS
+- [ ] Buat layout component untuk dashboard (`components/adminlte/DashboardLayout.tsx`)
+- [ ] Implementasi Sidebar Navigation dengan role-based menu
+- [ ] Implementasi Navbar dengan user info
+- [ ] Implementasi Footer
+- [ ] Setup responsive design (mobile sidebar toggle)
+- [ ] Integrasi FontAwesome icons
 
-- [ ] **Subscription Management (B2B)**
-  - [ ] Panel SuperAdmin untuk manage subscriptions
-  - [ ] Widget Info Box untuk verifikasi pembayaran owner
-  - [ ] Implementasi subscription status check
-  - [ ] Auto-disable fitur premium jika subscription expired
-  - [ ] Transaction history untuk subscriptions
+### 1.3 Multi-Tenancy Foundation
+- [ ] Buat middleware untuk tenant isolation
+- [ ] Implementasi outlet context/provider
+- [ ] Buat utility function untuk outlet filtering
+- [ ] Setup repository pattern untuk data access
+- [ ] Implementasi base repository dengan outlet filtering
+- [ ] Buat service layer untuk business logic
 
-- [ ] **Payment Gateway Integration (Future)**
-  - [ ] Setup interface PaymentProcessor (SOLID)
-  - [ ] Implementasi Midtrans integration (optional)
-  - [ ] Implementasi Xendit integration (optional)
-  - [ ] Payment webhook handling
+### 1.4 Database Models (Complete Schema)
+- [ ] Implementasi User model lengkap
+- [ ] Implementasi Outlet model lengkap
+- [ ] Implementasi Service model (untuk layanan laundry)
+- [ ] Implementasi Order model lengkap dengan relasi
+- [ ] Implementasi Transaction model lengkap
+- [ ] Setup semua relasi antar model
+- [ ] Run Prisma migrations
 
-**Deliverables:**
-- Payment system manual berfungsi
-- Public tracking page dengan privacy protection
-- Subscription management system
-- Payment gateway interface (ready for integration)
+### 1.5 Dashboard Homepage
+- [ ] Buat dashboard page (`app/dashboard/page.tsx`)
+- [ ] Implementasi Cards & Widgets (AdminLTE Info Box)
+  - [ ] Order hari ini
+  - [ ] Omzet hari ini
+  - [ ] Cucian tertunda
+  - [ ] Total pelanggan
+- [ ] Buat chart/graph untuk statistik (opsional)
+- [ ] Implementasi recent orders table
+- [ ] Setup role-based dashboard content
 
----
+### 1.6 Outlet Management (SuperAdmin)
+- [ ] Buat halaman list outlets (`app/admin/outlets/page.tsx`)
+- [ ] Implementasi CRUD untuk outlets
+- [ ] Buat form create/edit outlet dengan AdminLTE styling
+- [ ] Implementasi outlet slug generation
+- [ ] Buat halaman detail outlet
+- [ ] Implementasi outlet status management
 
-### **FASE 4: Advanced Features & Reporting** (Minggu 10-12)
-**Status:** Analytics & Premium Features
+### 1.7 Outlet Microsite (Public)
+- [ ] Buat dynamic route `/outlet/[slug]`
+- [ ] Buat halaman publik outlet dengan desain minimalis
+- [ ] Display outlet information (nama, alamat, kontak)
+- [ ] Display services yang tersedia
+- [ ] Buat form quick order (opsional untuk Fase 1)
+- [ ] Implementasi SEO-friendly metadata
 
-#### Tugas:
-- [ ] **Financial Reporting**
-  - [ ] Halaman laporan keuangan dengan grafik AdminLTE
-  - [ ] Filter laporan berdasarkan periode (harian, mingguan, bulanan)
-  - [ ] Export laporan ke Excel/PDF
-  - [ ] Dashboard analytics dengan charts (Chart.js atau AdminLTE charts)
-  - [ ] Revenue tracking per service type
+### 1.8 User Management
+- [ ] Buat halaman user management (`app/admin/users/page.tsx`)
+- [ ] Implementasi CRUD untuk users
+- [ ] Buat form assign user ke outlet
+- [ ] Implementasi role assignment
+- [ ] Buat halaman profile user
+- [ ] Implementasi change password
 
-- [ ] **Customer Management**
-  - [ ] Halaman list customers
-  - [ ] Customer profile dengan order history
-  - [ ] Customer loyalty tracking (optional)
-  - [ ] Customer search & filter
-
-- [ ] **Notification System**
-  - [ ] Email notifications untuk order status updates
-  - [ ] WhatsApp notifications (Twilio/WhatsApp Business API)
-  - [ ] In-app notifications
-  - [ ] Notification preferences per outlet
-
-- [ ] **Advanced Features**
-  - [ ] Bulk operations untuk orders
-  - [ ] Order templates untuk repeat customers
-  - [ ] Inventory management (optional)
-  - [ ] Staff performance tracking
-  - [ ] Export data functionality
-
-**Deliverables:**
-- Financial reporting system
-- Customer management
-- Notification system
-- Advanced operational features
-
----
-
-### **FASE 5: Optimization & Launch Preparation** (Minggu 13-14)
-**Status:** Performance, Testing & Deployment
-
-#### Tugas:
-- [ ] **Performance Optimization**
-  - [ ] Optimize database queries (indexing)
-  - [ ] Implementasi caching strategy (Redis/Vercel KV)
-  - [ ] Image optimization (Cloudinary)
-  - [ ] Code splitting & lazy loading
-  - [ ] Bundle size optimization
-
-- [ ] **Testing**
-  - [ ] Unit tests untuk services & repositories
-  - [ ] Integration tests untuk API endpoints
-  - [ ] E2E tests untuk critical flows
-  - [ ] Security testing (penetration testing)
-  - [ ] Load testing
-
-- [ ] **Documentation**
-  - [ ] API documentation
-  - [ ] User manual untuk Owner & Staff
-  - [ ] Developer documentation
-  - [ ] Deployment guide
-
-- [ ] **Deployment & Monitoring**
-  - [ ] Setup production environment di Vercel
-  - [ ] Setup monitoring (Sentry, Vercel Analytics)
-  - [ ] Setup error tracking
-  - [ ] Setup backup strategy
-  - [ ] Domain & SSL configuration
-
-- [ ] **Beta Testing**
-  - [ ] Invite beta testers
-  - [ ] Collect feedback
-  - [ ] Bug fixes
-  - [ ] Performance tuning
-
-**Deliverables:**
-- Optimized application
-- Comprehensive test coverage
-- Complete documentation
-- Production-ready deployment
-- Beta testing completed
+### 1.9 Security Implementation (Phase 1)
+- [ ] Implementasi tenant isolation di semua queries
+- [ ] Buat DTO untuk response scrubbing
+- [ ] Implementasi middleware untuk outlet verification
+- [ ] Setup rate limiting untuk auth endpoints
+- [ ] Implementasi Zod validation untuk forms
 
 ---
 
-## 🔄 Post-Launch Roadmap
+## 🛒 Phase 2: POS dengan UI AdminLTE
 
-### **FASE 6: Growth & Enhancement** (Bulan 2-3)
-- [ ] Mobile app (React Native atau PWA enhancement)
-- [ ] Advanced analytics & insights
-- [ ] Multi-language support (Bahasa Indonesia + English)
-- [ ] Integration dengan marketplace (Gojek, Grab, dll)
-- [ ] API untuk third-party integrations
+### 2.1 Service Management
+- [ ] Buat halaman service management (`app/dashboard/services/page.tsx`)
+- [ ] Implementasi CRUD untuk services per outlet
+- [ ] Buat form service dengan AdminLTE styling
+- [ ] Implementasi service categories (Kiloan, Satuan, Paket)
+- [ ] Implementasi pricing management
+- [ ] Buat datatable dengan Bootstrap DataTables
 
-### **FASE 7: Scale & Enterprise** (Bulan 4-6)
-- [ ] White-label solution
-- [ ] Franchise management features
-- [ ] Advanced reporting & BI
-- [ ] Multi-currency support
-- [ ] Enterprise support & SLA
+### 2.2 Order Management (POS)
+- [ ] Buat halaman POS (`app/dashboard/orders/new/page.tsx`)
+- [ ] Implementasi order creation form
+- [ ] Buat service selection interface
+- [ ] Implementasi quantity & price calculation
+- [ ] Buat order summary component
+- [ ] Implementasi order status workflow
+- [ ] Buat order list page dengan datatable
+- [ ] Implementasi filter dan search orders
+
+### 2.3 Order Workflow Visualization
+- [ ] Buat halaman order detail (`app/dashboard/orders/[id]/page.tsx`)
+- [ ] Implementasi AdminLTE Steps/Timeline untuk workflow
+- [ ] Visualisasi status: QUEUED → WASHING → DRYING → IRONING → READY → TAKEN
+- [ ] Implementasi status update buttons
+- [ ] Buat history log untuk status changes
+- [ ] Implementasi real-time status updates (opsional)
+
+### 2.4 Order Tracking (Public)
+- [ ] Buat halaman public tracking (`app/track/[code]/page.tsx`)
+- [ ] Implementasi tracking code lookup
+- [ ] Display minimal order information (privacy-focused)
+- [ ] Implementasi status visualization untuk public
+- [ ] Buat form untuk input tracking code
+- [ ] Implementasi rate limiting untuk tracking page
+
+### 2.5 Digital Invoice/Nota
+- [ ] Buat halaman invoice (`app/dashboard/orders/[id]/invoice/page.tsx`)
+- [ ] Implementasi invoice template dengan AdminLTE styling
+- [ ] Display order details, customer info, services
+- [ ] Implementasi print functionality
+- [ ] Buat share to WhatsApp functionality
+- [ ] Implementasi PDF download (opsional)
+
+### 2.6 Customer Management
+- [ ] Buat model Customer di Prisma
+- [ ] Buat halaman customer list (`app/dashboard/customers/page.tsx`)
+- [ ] Implementasi CRUD untuk customers
+- [ ] Buat customer detail page dengan order history
+- [ ] Implementasi customer search
+- [ ] Buat quick customer selection di POS
+
+### 2.7 Order Reports
+- [ ] Buat halaman reports (`app/dashboard/reports/page.tsx`)
+- [ ] Implementasi daily/weekly/monthly reports
+- [ ] Buat chart untuk order statistics
+- [ ] Implementasi export to Excel/PDF (opsional)
+- [ ] Buat filter by date range
 
 ---
 
-## 📊 Success Metrics
+## 💳 Phase 3: Sistem Pembayaran Manual & Admin Panel
 
-### Technical Metrics:
-- Page load time < 2 seconds
-- API response time < 500ms
-- 99.9% uptime
-- Zero data leakage incidents
-- Test coverage > 80%
+### 3.1 Payment Proof Upload (B2C)
+- [ ] Buat halaman payment upload (`app/track/[code]/payment/page.tsx`)
+- [ ] Implementasi file upload untuk bukti transfer
+- [ ] Integrasi dengan Cloudinary/Supabase Storage
+- [ ] Buat form upload dengan AdminLTE styling
+- [ ] Implementasi image preview
+- [ ] Buat payment status display
+- [ ] Implementasi validation untuk upload
 
-### Business Metrics:
-- Number of active outlets
-- Monthly recurring revenue (MRR)
-- User retention rate
-- Order processing time
-- Customer satisfaction score
+### 3.2 Payment Verification (B2B - SuperAdmin)
+- [ ] Buat halaman payment verification (`app/admin/payments/page.tsx`)
+- [ ] Implementasi list pending payments
+- [ ] Buat AdminLTE Info Box untuk payment status
+- [ ] Implementasi approve/reject payment
+- [ ] Buat payment detail modal
+- [ ] Implementasi payment history
+- [ ] Buat notification system untuk payment status
+
+### 3.3 Subscription Management
+- [ ] Buat halaman subscription management (`app/admin/subscriptions/page.tsx`)
+- [ ] Implementasi subscription status per outlet
+- [ ] Buat subscription renewal interface
+- [ ] Implementasi subscription expiry tracking
+- [ ] Buat subscription payment verification
+- [ ] Implementasi auto-disable features untuk expired subscription
+
+### 3.4 Transaction Management
+- [ ] Buat halaman transaction list (`app/dashboard/transactions/page.tsx`)
+- [ ] Implementasi filter by type (SUBSCRIPTION, LAUNDRY_ORDER)
+- [ ] Buat transaction detail page
+- [ ] Implementasi transaction status management
+- [ ] Buat transaction reports
+- [ ] Implementasi export functionality
+
+### 3.5 Payment Gateway Integration (Future-ready)
+- [ ] Buat PaymentProcessor interface
+- [ ] Implementasi base payment processor class
+- [ ] Setup structure untuk Midtrans integration (placeholder)
+- [ ] Setup structure untuk Xendit integration (placeholder)
+- [ ] Buat payment processor factory
 
 ---
 
-## 🛠️ Technology Stack Summary
+## 🔐 Phase 4: Security & Optimization
 
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| Framework | Next.js 14+ (App Router) | Serverless deployment di Vercel |
-| UI Framework | AdminLTE 3/4 (Bootstrap 5) | Dashboard UI |
-| Database | PostgreSQL (Neon.tech) | Primary database |
-| ORM | Prisma / Drizzle | Database management |
-| Auth | NextAuth.js | Authentication & authorization |
-| Storage | Cloudinary / Supabase | Image & file storage |
-| Region | Singapore (ap-southeast-1) | Low latency untuk Indonesia |
+### 4.1 Advanced Security
+- [ ] Implementasi comprehensive tenant isolation
+- [ ] Setup rate limiting untuk semua public endpoints
+- [ ] Implementasi CSRF protection
+- [ ] Setup security headers di Next.js
+- [ ] Implementasi input sanitization
+- [ ] Buat security audit checklist
+
+### 4.2 Data Protection
+- [ ] Implementasi DTO untuk semua API responses
+- [ ] Buat response scrubbing utilities
+- [ ] Implementasi data masking untuk sensitive fields
+- [ ] Setup audit logging untuk critical operations
+- [ ] Implementasi data retention policies
+
+### 4.3 Performance Optimization
+- [ ] Implementasi database indexing
+- [ ] Setup query optimization
+- [ ] Implementasi caching strategy
+- [ ] Optimize images dengan Next.js Image
+- [ ] Setup CDN untuk static assets
+- [ ] Implementasi lazy loading untuk components
+
+### 4.4 Error Handling
+- [ ] Buat global error boundary
+- [ ] Implementasi error logging
+- [ ] Buat user-friendly error messages
+- [ ] Setup error monitoring (opsional: Sentry)
 
 ---
 
-## ⚠️ Risk & Mitigation
+## 🧪 Phase 5: Testing & Quality Assurance
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Data leakage antar tenant | Critical | Strict tenant isolation, comprehensive testing |
-| Performance issues | High | Caching, optimization, load testing |
-| Payment gateway downtime | Medium | Manual fallback, multiple providers |
-| Scalability concerns | Medium | Serverless architecture, database optimization |
-| Security vulnerabilities | Critical | Regular security audits, best practices |
+### 5.1 Unit Testing (Vitest)
+- [ ] Test untuk repositories
+- [ ] Test untuk services
+- [ ] Test untuk utilities
+- [ ] Test untuk DTOs
+- [ ] Setup test coverage reporting
+
+### 5.2 Component Testing
+- [ ] Test untuk AdminLTE components
+- [ ] Test untuk custom UI components
+- [ ] Test untuk forms
+- [ ] Test untuk data tables
+
+### 5.3 Integration Testing
+- [ ] Test untuk API routes
+- [ ] Test untuk authentication flow
+- [ ] Test untuk multi-tenancy isolation
+- [ ] Test untuk database operations
+
+### 5.4 E2E Testing (Playwright)
+- [ ] Test untuk user authentication
+- [ ] Test untuk order creation flow
+- [ ] Test untuk payment upload flow
+- [ ] Test untuk public tracking
+- [ ] Test untuk admin operations
+- [ ] Test untuk cross-browser compatibility
+
+### 5.5 Security Testing
+- [ ] Test untuk tenant isolation
+- [ ] Test untuk authorization
+- [ ] Test untuk input validation
+- [ ] Test untuk rate limiting
+- [ ] Penetration testing (opsional)
+
+---
+
+## 🚀 Phase 6: Deployment & Production
+
+### 6.1 Vercel Deployment
+- [ ] Setup Vercel project
+- [ ] Konfigurasi environment variables
+- [ ] Setup database connection
+- [ ] Deploy staging environment
+- [ ] Setup custom domain
+- [ ] Configure SSL certificates
+
+### 6.2 Database Migration
+- [ ] Run production migrations
+- [ ] Setup database backups
+- [ ] Configure connection pooling
+- [ ] Setup database monitoring
+
+### 6.3 Monitoring & Analytics
+- [ ] Setup error monitoring
+- [ ] Setup performance monitoring
+- [ ] Setup user analytics (opsional)
+- [ ] Setup uptime monitoring
+
+### 6.4 Documentation
+- [ ] Buat API documentation
+- [ ] Buat user manual
+- [ ] Buat admin guide
+- [ ] Update README.md
+- [ ] Buat deployment guide
+
+---
+
+## 📊 Progress Tracking
+
+### Current Status: Phase 0 - Foundation & Setup
+
+**Completed:**
+- ✅ Next.js 16.x LTS setup
+- ✅ React 18.3.1 (konservatif)
+- ✅ TypeScript configuration
+- ✅ ESLint configuration
+
+**In Progress:**
+- ⏳ Dependencies installation
+- ⏳ Database setup
+
+**Next Steps:**
+1. Install AdminLTE v4 dan dependencies
+2. Setup Prisma dan database schema
+3. Setup NextAuth.js v5
+4. Setup testing framework
 
 ---
 
 ## 📝 Notes
 
-- **Prioritas:** Fokus pada Fase 0-3 untuk MVP (Minimum Viable Product)
-- **Iterasi:** Setiap fase harus di-review dan di-test sebelum lanjut ke fase berikutnya
-- **Feedback Loop:** Kumpulkan feedback dari beta testers di setiap fase
-- **Documentation:** Update dokumentasi secara berkala seiring perkembangan
+- **WAJIB**: Baca dan ikuti `.cursorrules` sebelum coding
+- Setiap task harus mengikuti prinsip SOLID
+- Semua UI components harus menggunakan AdminLTE v4 styling
+- Setiap API endpoint harus memiliki validasi Zod
+- Setiap query database harus include outlet filtering (CRITICAL)
+- Semua sensitive data harus di-scrub sebelum dikirim ke client
+- Testing harus ditulis untuk setiap feature baru
+- Gunakan DTO pattern untuk semua API responses
+- Multi-tenancy security adalah prioritas utama
 
 ---
 
-**Last Updated:** [Tanggal]
-**Version:** 1.0
-**Status:** Draft - Ready for Review
+## 🔄 Review & Updates
+
+Development plan ini akan diupdate secara berkala sesuai dengan progress dan perubahan requirement.
+
+**Last Updated**: 2026-01-23  
+**Version**: 1.0

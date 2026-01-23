@@ -1,3 +1,0 @@
-# Controllers Layer
-# API request handlers following Single Responsibility Principle
-# Each controller handles HTTP requests for a specific resource

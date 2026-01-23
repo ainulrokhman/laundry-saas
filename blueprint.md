@@ -1,6 +1,6 @@
 📘 Blueprint Arsitektur: Laundry SaaS Platform (Project: Ainul Laundry)
 
-Dokumen ini adalah panduan teknis utama untuk membangun sistem manajemen laundry multi-tenant yang dioptimalkan untuk Vercel, menggunakan prinsip SOLID, dan berbasis UI AdminLTE (Bootstrap).
+Dokumen ini adalah panduan teknis utama untuk membangun sistem manajemen laundry multi-tenant yang dioptimalkan untuk Vercel, menggunakan prinsip SOLID, dan berbasis UI AdminLTE v4 (Bootstrap 5). Semua teknologi menggunakan versi LTS atau versi stabil/konservatif untuk stabilitas jangka panjang.
 
 🏗️ 1. Arsitektur Sistem & Infrastruktur
 
@@ -14,39 +14,53 @@ Keterangan
 
 Framework
 
-Next.js 14+ (App Router)
+Next.js 16.x LTS (App Router)
 
-Deployment di Vercel untuk performa serverless.
+
+Deployment di Vercel untuk performa serverless. Menggunakan versi LTS untuk stabilitas jangka panjang.
+
+React
+
+React 18.3.1 (Konservatif)
+
+
+Menggunakan React 18.3.1 untuk pendekatan konservatif dan stabilitas maksimal. Kompatibel dengan Next.js 16 (minimum 18.2.0).
 
 UI Framework
 
-AdminLTE (Bootstrap 5)
+AdminLTE v4 (Bootstrap 5)
 
-Menggunakan dashboard template AdminLTE untuk UI Admin & Owner.
+Menggunakan dashboard template AdminLTE v4.0.0-rc4 dengan Bootstrap 5 untuk UI Admin & Owner.
 
 Database
 
-PostgreSQL (Neon.tech)
+PostgreSQL (Neon.tech) - LTS
 
-Lokasi: Singapore (ap-southeast-1).
+Lokasi: Singapore (ap-southeast-1). Menggunakan versi PostgreSQL LTS.
 
 ORM
 
-Prisma / Drizzle
+Prisma (LTS) / Drizzle
 
-Manajemen skema, tipe data, dan migrasi.
+Manajemen skema, tipe data, dan migrasi. Gunakan versi LTS untuk stabilitas.
 
 Storage
 
-Cloudinary / Supabase
+Cloudinary / Supabase Storage
 
-Untuk bukti transfer, logo outlet, dan aset gambar.
+Untuk bukti transfer, logo outlet, dan aset gambar. Gunakan versi LTS/stable dari layanan yang dipilih.
 
 Auth
 
-NextAuth.js
+NextAuth.js v5 (Auth.js)
 
-Role-based Access Control: SUPERADMIN, OWNER, STAFF.
+Role-based Access Control: SUPERADMIN, OWNER, STAFF. Menggunakan versi terbaru yang kompatibel dengan Next.js 16.
+
+Testing
+
+Vitest + Playwright
+
+Vitest untuk unit testing dan component testing. Playwright untuk E2E testing dan testing async Server Components.
 
 Region
 
@@ -186,7 +200,7 @@ Gunakan instruksi ini saat meminta AI menuliskan kode:
 
 Security: "Pastikan setiap response API telah difilter agar tidak mengekspos field sensitif dari database."
 
-UI Design: "Gunakan struktur HTML dan kelas CSS dari AdminLTE 3/4 (Bootstrap) untuk setiap elemen dashboard."
+UI Design: "Gunakan struktur HTML dan kelas CSS dari AdminLTE v4 (Bootstrap 5) untuk setiap elemen dashboard."
 
 Multi-tenant Context: "Selalu sertakan filter outlet_id dalam setiap operasi database."
 
