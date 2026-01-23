@@ -172,11 +172,11 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - [ ] Implementasi middleware untuk route protection (menggunakan route proxy pattern)
 
 #### 1.1.7 PIN Management
-- [ ] Buat halaman change PIN (`app/dashboard/settings/change-pin/page.tsx`)
-- [ ] Implementasi change PIN dengan validasi PIN lama
-- [ ] Update pinChangedAt setelah PIN diubah
-- [ ] Buat API route untuk change PIN (`/api/dashboard/settings/change-pin`)
-- [ ] Implementasi rate limiting untuk change PIN
+- [x] Buat halaman change PIN (`app/dashboard/settings/change-pin/page.tsx`)
+- [x] Implementasi change PIN dengan validasi PIN lama
+- [x] Update pinChangedAt setelah PIN diubah
+- [x] Buat API route untuk change PIN (`/api/dashboard/settings/change-pin`)
+- [x] Implementasi rate limiting untuk change PIN
 
 #### 1.1.8 Security Features
 - [ ] Implementasi rate limiting untuk semua auth endpoints
@@ -577,14 +577,13 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - ✅ Phase 1.1.4: Registration Flow (OWNER only) dengan modern UI
 - ✅ Phase 1.1.5: PIN-based Login dengan modern UI dan SweetAlert
 - ✅ Phase 1.1.6: Session Management utilities
+- ✅ Phase 1.1.7: PIN Management
 
 **In Progress:**
-- ⏳ Phase 1.1.7: PIN Management
 - ⏳ Phase 1.1.8: Security Features (rate limiting untuk login, account lockout, dll)
 
 **Next Steps:**
-1. Complete PIN Management (change PIN functionality)
-2. Implement security features (rate limiting untuk login, account lockout)
+1. Implement security features (rate limiting untuk login, account lockout)
 3. AdminLTE Layout Integration
 4. Multi-Tenancy Foundation
 
