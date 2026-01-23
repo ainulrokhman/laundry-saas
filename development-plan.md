@@ -34,18 +34,18 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - [x] Install utility libraries (`date-fns`, `uuid`)
 
 ### 0.2 Database Setup
-- [ ] Setup Neon.tech PostgreSQL database (Singapore region)
-- [ ] Konfigurasi Prisma schema sesuai blueprint
-  - [ ] Enum: Role, OrderStatus, PaymentStatus, PaymentMethod (CASH, TRANSFER, MIDTRANS, XENDIT), TransType, OtpType (REGISTER)
-  - [ ] Model: User (dengan PIN, isPinSet, pinChangedAt), OtpCode, Outlet, BankAccount, PaymentGatewayConfig, Service, Order, Transaction
-  - [ ] Relasi antar model:
+- [x] Setup Neon.tech PostgreSQL database (Singapore region)
+- [x] Konfigurasi Prisma schema sesuai blueprint
+  - [x] Enum: Role, OrderStatus, PaymentStatus, PaymentMethod (CASH, TRANSFER, MIDTRANS, XENDIT), TransType, OtpType (REGISTER)
+  - [x] Model: User (dengan PIN, isPinSet, pinChangedAt), OtpCode, Outlet, BankAccount, PaymentGatewayConfig, Service, Order, Transaction
+  - [x] Relasi antar model:
     - User → Outlet (many-to-one, optional)
     - Outlet → BankAccount (one-to-many)
     - Outlet → PaymentGatewayConfig (one-to-many)
     - Transaction → PaymentGatewayConfig (many-to-one, optional)
-- [ ] Generate Prisma Client
-- [ ] Setup Prisma migrations
-- [ ] Seed database dengan data awal (SuperAdmin user dengan PIN default)
+- [x] Generate Prisma Client
+- [x] Setup Prisma migrations
+- [x] Seed database dengan data awal (SuperAdmin user dengan PIN default)
 
 ### 0.3 Environment Configuration
 - [ ] Setup `.env.local` dari `.env.example`

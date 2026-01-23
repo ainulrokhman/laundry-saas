@@ -1,15 +1,208 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Enums
+// ============================================
+
+enum Role {
+  SUPERADMIN
+  OWNER
+  STAFF
+}
+
+enum OrderStatus {
+  QUEUED
+  WASHING
+  DRYING
+  IRONING
+  READY
+  TAKEN
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING
+  SETTLEMENT
+  FAILURE
+}
+
+enum PaymentMethod {
+  CASH           // Pembayaran tunai langsung
+  TRANSFER       // Transfer bank manual (upload bukti)
+  MIDTRANS       // Payment Gateway: Midtrans
+  XENDIT         // Payment Gateway: Xendit
+  // Gateway lain dapat ditambahkan di masa depan tanpa mengubah struktur
+}
+
+enum TransType {
+  SUBSCRIPTION
+  LAUNDRY_ORDER
+}
+
+enum OtpType {
+  REGISTER // OTP hanya untuk registrasi, login menggunakan PIN
+}
+
+// ============================================
+// Models
+// ============================================
+
+model User {
+  id          String   @id @default(uuid())
+  phone       String   @unique // Nomor WhatsApp (format: 6281234567890)
+  name        String
+  pin         String   // Hashed PIN (4-6 digit, menggunakan bcrypt)
+  role        Role     @default(OWNER)
+  outletId    String?
+  outlet      Outlet?  @relation(fields: [outletId], references: [id])
+  isActive    Boolean  @default(true)
+  isPinSet    Boolean  @default(false) // Flag untuk cek apakah PIN sudah di-set (setelah register)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  lastLoginAt DateTime?
+  pinChangedAt DateTime? // Timestamp terakhir PIN diubah
+
+  @@index([outletId])
+  @@index([phone])
+}
+
+model OtpCode {
+  id        String   @id @default(uuid())
+  phone     String   // Nomor WhatsApp
+  code      String   // Kode OTP (6 digit)
+  type      OtpType  // REGISTER (hanya untuk registrasi pemilik toko)
+  expiresAt DateTime // Expiry time (5 menit)
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  @@index([phone, code, isUsed])
+  @@index([expiresAt])
+}
+
+model Outlet {
+  id            String                @id @default(uuid())
+  name          String
+  slug          String                @unique // URL: domain.com/outlet/[slug]
+  address       String
+  isPro         Boolean               @default(false)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  users         User[]
+  services      Service[]
+  orders        Order[]
+  bankAccounts  BankAccount[]         // Multiple rekening bank untuk transfer pelanggan
+  paymentGatewayConfigs PaymentGatewayConfig[] // Konfigurasi payment gateway per outlet
+}
+
+model BankAccount {
+  id          String        @id @default(uuid())
+  outletId    String
+  outlet      Outlet        @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  bankName    String        // Nama bank (e.g., "BCA", "Mandiri", "BNI")
+  accountName String        // Nama pemilik rekening
+  accountNumber String      // Nomor rekening
+  isActive    Boolean       @default(true) // Untuk enable/disable rekening tertentu
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  transactions Transaction[] // Transaksi yang menggunakan rekening ini
+
+  @@index([outletId])
+}
+
+model Service {
+  id          String   @id @default(uuid())
+  outletId    String
+  outlet      Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  name        String   // Nama layanan (e.g., "Cuci Kiloan", "Setrika Satuan")
+  type        String   // Jenis layanan: "KILOAN", "SATUAN", "PAKET"
+  price       Float    // Harga per unit
+  unit        String?  // Unit (e.g., "kg", "pcs", "paket")
+  description String?  // Deskripsi layanan
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([outletId])
+}
+
+model Order {
+  id           String        @id @default(uuid())
+  trackingCode String        @unique // Kode pendek acak untuk publik
+  status       OrderStatus   @default(QUEUED)
+  paymentStatus PaymentStatus @default(UNPAID)
+  paymentMethod PaymentMethod? // Metode pembayaran: CASH, TRANSFER, MIDTRANS, atau XENDIT (null jika belum dibayar)
+  totalAmount  Float
+  outletId     String
+  outlet       Outlet        @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  customerName String?       // Nama pelanggan (opsional untuk privacy)
+  customerPhone String?      // Nomor telepon pelanggan (opsional)
+  notes        String?       // Catatan tambahan
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  completedAt  DateTime?    // Timestamp ketika order selesai (status = TAKEN)
+  transactions Transaction[]
+
+  @@index([outletId])
+  @@index([trackingCode])
+  @@index([status])
+  @@index([paymentStatus])
+}
+
+model PaymentGatewayConfig {
+  id            String        @id @default(uuid())
+  outletId      String
+  outlet        Outlet        @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  gatewayType   PaymentMethod // MIDTRANS atau XENDIT
+  isActive      Boolean       @default(false) // Enable/disable gateway tertentu
+  apiKey        String        // Encrypted API key untuk gateway
+  secretKey     String?       // Encrypted secret key (jika diperlukan)
+  merchantId    String?       // Merchant ID (jika diperlukan)
+  webhookSecret String?       // Secret untuk verifikasi webhook
+  config        Json?         // Konfigurasi tambahan dalam format JSON (flexible)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  transactions  Transaction[]
+  
+  @@unique([outletId, gatewayType]) // Satu outlet hanya bisa punya satu config per gateway type
+  @@index([outletId])
+}
+
+model Transaction {
+  id           String        @id @default(uuid())
+  type         TransType     // Pembeda antara langganan SaaS atau pesanan cucian
+  amount       Float
+  paymentMethod PaymentMethod? // Metode pembayaran: CASH, TRANSFER, MIDTRANS, XENDIT
+  proofUrl     String?       // URL gambar bukti transfer (Cloudinary) - hanya untuk TRANSFER
+  status       PaymentStatus @default(PENDING)
+  externalId   String?       // ID referensi dari Payment Gateway (transaction_id dari Midtrans/Xendit)
+  gatewayTransactionId String? // ID transaksi unik dari gateway (untuk tracking)
+  gatewayResponse Json?      // Response lengkap dari gateway (untuk debugging/audit)
+  webhookData  Json?         // Data webhook dari gateway (untuk verifikasi)
+  orderId      String?
+  order        Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  outletId     String?
+  bankAccountId String?      // ID rekening yang digunakan (jika paymentMethod = TRANSFER)
+  bankAccount  BankAccount?  @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  paymentGatewayConfigId String? // ID konfigurasi gateway yang digunakan
+  paymentGatewayConfig PaymentGatewayConfig? @relation(fields: [paymentGatewayConfigId], references: [id], onDelete: SetNull)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  settledAt    DateTime?     // Timestamp ketika pembayaran diselesaikan
+
+  @@index([orderId])
+  @@index([outletId])
+  @@index([status])
+  @@index([paymentMethod])
+  @@index([gatewayTransactionId])
 }
