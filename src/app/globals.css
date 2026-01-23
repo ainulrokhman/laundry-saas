@@ -1,3 +1,13 @@
+/* Bootstrap 5 */
+@import "bootstrap/dist/css/bootstrap.min.css";
+
+/* FontAwesome */
+@import "@fortawesome/fontawesome-free/css/all.min.css";
+
+/* AdminLTE v4 */
+@import "admin-lte/dist/css/adminlte.min.css";
+
+/* Tailwind CSS - Only for custom components, not AdminLTE */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

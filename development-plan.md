@@ -26,6 +26,8 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - [ ] Install Prisma (`@prisma/client`, `prisma`)
 - [ ] Install NextAuth.js v5 (`next-auth`)
 - [ ] Install Zod untuk validasi (`zod`)
+- [ ] Install bcrypt untuk hashing PIN (`bcryptjs` dan `@types/bcryptjs`)
+- [ ] Install Fonnte SDK atau HTTP client untuk WhatsApp API (`axios` atau `node-fetch`)
 - [ ] Install Vitest dan dependencies (`vitest`, `@testing-library/react`, `@testing-library/jest-dom`)
 - [ ] Install Playwright (`@playwright/test`)
 - [ ] Install FontAwesome icons
@@ -34,17 +36,23 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 ### 0.2 Database Setup
 - [ ] Setup Neon.tech PostgreSQL database (Singapore region)
 - [ ] Konfigurasi Prisma schema sesuai blueprint
-  - [ ] Enum: Role, OrderStatus, PaymentStatus, TransType
-  - [ ] Model: User, Outlet, Service, Order, Transaction
-  - [ ] Relasi antar model
+  - [ ] Enum: Role, OrderStatus, PaymentStatus, PaymentMethod (CASH, TRANSFER, MIDTRANS, XENDIT), TransType, OtpType (REGISTER)
+  - [ ] Model: User (dengan PIN, isPinSet, pinChangedAt), OtpCode, Outlet, BankAccount, PaymentGatewayConfig, Service, Order, Transaction
+  - [ ] Relasi antar model:
+    - User → Outlet (many-to-one, optional)
+    - Outlet → BankAccount (one-to-many)
+    - Outlet → PaymentGatewayConfig (one-to-many)
+    - Transaction → PaymentGatewayConfig (many-to-one, optional)
 - [ ] Generate Prisma Client
 - [ ] Setup Prisma migrations
-- [ ] Seed database dengan data awal (SuperAdmin user)
+- [ ] Seed database dengan data awal (SuperAdmin user dengan PIN default)
 
 ### 0.3 Environment Configuration
 - [ ] Setup `.env.local` dari `.env.example`
 - [ ] Konfigurasi `DATABASE_URL`
 - [ ] Konfigurasi `NEXTAUTH_URL` dan `NEXTAUTH_SECRET`
+- [ ] Konfigurasi `FONNTE_API_KEY` untuk WhatsApp service
+- [ ] Konfigurasi `FONNTE_API_URL` (opsional, default dari Fonnte)
 - [ ] Konfigurasi Cloudinary/Supabase Storage (opsional)
 - [ ] Setup environment variables untuk Vercel
 
@@ -86,13 +94,82 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 ## 🏗️ Phase 1: AdminLTE Dashboard Setup & Multi-Tenancy
 
 ### 1.1 Authentication System
+
+#### 1.1.1 Database Models untuk Authentication
+- [ ] Update User model dengan field PIN (hashed), isPinSet, pinChangedAt
+- [ ] Update OtpCode model (OTP hanya untuk REGISTER, bukan LOGIN)
+- [ ] Update OtpType enum (hanya REGISTER)
+- [ ] Run Prisma migrations
+
+#### 1.1.2 WhatsApp Service Integration
+- [ ] Buat interface WhatsAppService (`src/services/whatsapp/interfaces/WhatsAppService.ts`)
+  - [ ] Method: `sendOtp(phone: string, code: string): Promise<boolean>`
+  - [ ] Method: `sendMessage(phone: string, message: string): Promise<boolean>`
+- [ ] Implementasi FonnteWhatsAppService (`src/services/whatsapp/providers/FonnteWhatsAppService.ts`)
+  - [ ] Integrasi dengan Fonnte API
+  - [ ] Handle API response dan error
+  - [ ] Template message untuk OTP
+- [ ] Buat WhatsAppServiceFactory (`src/services/whatsapp/WhatsAppServiceFactory.ts`)
+- [ ] Setup environment variables untuk Fonnte API key
+
+#### 1.1.3 OTP Service
+- [ ] Buat OtpService (`src/services/auth/OtpService.ts`)
+  - [ ] Method: `generateOtp(phone: string, type: OtpType): Promise<string>`
+  - [ ] Method: `verifyOtp(phone: string, code: string, type: OtpType): Promise<boolean>`
+  - [ ] Method: `cleanupExpiredOtps()` (background job)
+- [ ] Implementasi rate limiting untuk OTP request (max 3 request per 10 menit per phone)
+- [ ] Buat API route untuk request OTP (`/api/auth/otp/request`)
+- [ ] Buat API route untuk verify OTP (`/api/auth/otp/verify`)
+
+#### 1.1.4 Registration Flow (OWNER only)
+- [ ] Buat registration page (`app/register/page.tsx`) dengan AdminLTE styling
+- [ ] Step 1: Input nomor WhatsApp
+- [ ] Step 2: Request OTP via WhatsApp (Fonnte API)
+- [ ] Step 3: Verify OTP
+- [ ] Step 4: Input data outlet (nama, alamat) dan set PIN (4-6 digit)
+- [ ] Buat API route untuk registration (`/api/auth/register`)
+  - [ ] Validasi: hanya OWNER yang boleh register
+  - [ ] Create User dengan role OWNER
+  - [ ] Create Outlet baru
+  - [ ] Hash PIN dengan bcrypt
+  - [ ] Auto login setelah registrasi
+- [ ] Implementasi validation dengan Zod
+- [ ] Handle error cases (duplicate phone, invalid OTP, dll)
+
+#### 1.1.5 PIN-based Login
 - [ ] Setup NextAuth.js v5 dengan credentials provider
-- [ ] Implementasi role-based access (SUPERADMIN, OWNER, STAFF)
-- [ ] Buat User model di Prisma schema
-- [ ] Setup session management dengan outletId
-- [ ] Buat login page dengan AdminLTE styling
-- [ ] Implementasi middleware untuk route protection
+- [ ] Buat login page (`app/login/page.tsx`) dengan AdminLTE styling
+  - [ ] Input: nomor WhatsApp dan PIN
+  - [ ] Validasi format phone number
+  - [ ] Validasi PIN (4-6 digit)
+- [ ] Implementasi PIN verification (bcrypt comparison)
 - [ ] Buat API route untuk authentication (`/api/auth/[...nextauth]`)
+  - [ ] Credentials provider untuk PIN-based login
+  - [ ] Session include: userId, outletId, role, phone
+  - [ ] Update lastLoginAt setelah login berhasil
+- [ ] Implementasi rate limiting untuk login attempts (max 5 attempts per 15 menit per phone)
+- [ ] Handle error cases (invalid credentials, inactive user, dll)
+
+#### 1.1.6 Session Management
+- [ ] Setup session management dengan outletId
+- [ ] Implementasi role-based access (SUPERADMIN, OWNER, STAFF)
+- [ ] Buat session type definition untuk TypeScript
+- [ ] Implementasi middleware untuk route protection
+- [ ] Buat utility functions untuk session helpers
+
+#### 1.1.7 PIN Management
+- [ ] Buat halaman change PIN (`app/dashboard/settings/change-pin/page.tsx`)
+- [ ] Implementasi change PIN dengan validasi PIN lama
+- [ ] Update pinChangedAt setelah PIN diubah
+- [ ] Buat API route untuk change PIN (`/api/dashboard/settings/change-pin`)
+- [ ] Implementasi rate limiting untuk change PIN
+
+#### 1.1.8 Security Features
+- [ ] Implementasi rate limiting untuk semua auth endpoints
+- [ ] Implementasi account lockout setelah multiple failed attempts
+- [ ] Logging untuk security events (login attempts, OTP requests, dll)
+- [ ] Implementasi CSRF protection
+- [ ] Setup secure session cookies
 
 ### 1.2 AdminLTE Layout Integration
 - [ ] Install dan import AdminLTE CSS/JS
@@ -114,9 +191,11 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 ### 1.4 Database Models (Complete Schema)
 - [ ] Implementasi User model lengkap
 - [ ] Implementasi Outlet model lengkap
+- [ ] Implementasi BankAccount model (multiple rekening per outlet)
+- [ ] Implementasi PaymentGatewayConfig model (konfigurasi gateway per outlet)
 - [ ] Implementasi Service model (untuk layanan laundry)
-- [ ] Implementasi Order model lengkap dengan relasi
-- [ ] Implementasi Transaction model lengkap
+- [ ] Implementasi Order model lengkap dengan relasi (include paymentMethod)
+- [ ] Implementasi Transaction model lengkap (include paymentMethod, bankAccountId, paymentGatewayConfigId, gatewayTransactionId, gatewayResponse, webhookData)
 - [ ] Setup semua relasi antar model
 - [ ] Run Prisma migrations
 
@@ -139,11 +218,30 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - [ ] Buat halaman detail outlet
 - [ ] Implementasi outlet status management
 
+### 1.6.1 Bank Account Management (Owner)
+- [ ] Buat halaman bank account management (`app/dashboard/settings/bank-accounts/page.tsx`)
+- [ ] Implementasi CRUD untuk bank accounts per outlet
+- [ ] Buat form add/edit bank account dengan AdminLTE styling
+- [ ] Implementasi bank account activation/deactivation
+- [ ] Buat bank account selection untuk display di public outlet page
+- [ ] Implementasi validation untuk bank account data
+
+### 1.6.2 Payment Gateway Configuration (Owner)
+- [ ] Buat halaman payment gateway settings (`app/dashboard/settings/payment-gateways/page.tsx`)
+- [ ] Display list available payment gateways (Midtrans, Xendit)
+- [ ] Implementasi enable/disable gateway per outlet
+- [ ] Buat form konfigurasi untuk setiap gateway type
+- [ ] Implementasi secure storage untuk API keys (encryption)
+- [ ] Buat test connection untuk gateway configuration
+- [ ] Display gateway status (active/inactive, last verified)
+- [ ] Implementasi validation untuk gateway credentials
+
 ### 1.7 Outlet Microsite (Public)
 - [ ] Buat dynamic route `/outlet/[slug]`
 - [ ] Buat halaman publik outlet dengan desain minimalis
 - [ ] Display outlet information (nama, alamat, kontak)
 - [ ] Display services yang tersedia
+- [ ] Display bank accounts untuk transfer (hanya yang aktif)
 - [ ] Buat form quick order (opsional untuk Fase 1)
 - [ ] Implementasi SEO-friendly metadata
 
@@ -180,9 +278,18 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - [ ] Buat service selection interface
 - [ ] Implementasi quantity & price calculation
 - [ ] Buat order summary component
+- [ ] Implementasi payment method selection:
+  - [ ] CASH (langsung set paymentStatus = SETTLEMENT)
+  - [ ] TRANSFER (set paymentStatus = PENDING, require proof upload)
+  - [ ] MIDTRANS (redirect ke Midtrans payment page, set paymentStatus = PENDING)
+  - [ ] XENDIT (redirect ke Xendit payment page, set paymentStatus = PENDING)
+- [ ] Implementasi cash payment handling (langsung set paymentStatus = SETTLEMENT)
+- [ ] Implementasi transfer payment handling (set paymentStatus = PENDING, require proof upload)
+- [ ] Implementasi payment gateway flow (create payment, redirect, handle callback)
 - [ ] Implementasi order status workflow
 - [ ] Buat order list page dengan datatable
 - [ ] Implementasi filter dan search orders
+- [ ] Display payment method dan gateway info di order list
 
 ### 2.3 Order Workflow Visualization
 - [ ] Buat halaman order detail (`app/dashboard/orders/[id]/page.tsx`)
@@ -229,12 +336,14 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 
 ### 3.1 Payment Proof Upload (B2C)
 - [ ] Buat halaman payment upload (`app/track/[code]/payment/page.tsx`)
-- [ ] Implementasi file upload untuk bukti transfer
+- [ ] Implementasi file upload untuk bukti transfer (hanya untuk paymentMethod = TRANSFER)
 - [ ] Integrasi dengan Cloudinary/Supabase Storage
 - [ ] Buat form upload dengan AdminLTE styling
+- [ ] Display bank account options untuk transfer
 - [ ] Implementasi image preview
 - [ ] Buat payment status display
 - [ ] Implementasi validation untuk upload
+- [ ] Handle cash payment (tidak perlu upload bukti, langsung verified di POS)
 
 ### 3.2 Payment Verification (B2B - SuperAdmin)
 - [ ] Buat halaman payment verification (`app/admin/payments/page.tsx`)
@@ -256,17 +365,78 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 ### 3.4 Transaction Management
 - [ ] Buat halaman transaction list (`app/dashboard/transactions/page.tsx`)
 - [ ] Implementasi filter by type (SUBSCRIPTION, LAUNDRY_ORDER)
+- [ ] Implementasi filter by payment method (CASH, TRANSFER, MIDTRANS, XENDIT)
 - [ ] Buat transaction detail page
 - [ ] Implementasi transaction status management
-- [ ] Buat transaction reports
+- [ ] Display bank account info untuk transfer transactions
+- [ ] Display payment gateway info untuk gateway transactions (gateway type, transaction ID, response data)
+- [ ] Buat transaction reports dengan breakdown per payment method
 - [ ] Implementasi export functionality
+- [ ] Display webhook data untuk debugging (admin only)
 
 ### 3.5 Payment Gateway Integration (Future-ready)
-- [ ] Buat PaymentProcessor interface
-- [ ] Implementasi base payment processor class
-- [ ] Setup structure untuk Midtrans integration (placeholder)
-- [ ] Setup structure untuk Xendit integration (placeholder)
-- [ ] Buat payment processor factory
+
+#### 3.5.1 Payment Gateway Architecture
+- [ ] Buat PaymentProcessor interface (`src/services/payment/interfaces/PaymentProcessor.ts`)
+  - [ ] Method: `createPayment(amount, orderId, metadata)`
+  - [ ] Method: `verifyPayment(transactionId)`
+  - [ ] Method: `handleWebhook(payload, signature)`
+  - [ ] Method: `getPaymentStatus(transactionId)`
+- [ ] Implementasi base payment processor abstract class
+- [ ] Buat payment processor factory (`src/services/payment/PaymentProcessorFactory.ts`)
+- [ ] Buat payment service untuk orchestration (`src/services/payment/PaymentService.ts`)
+
+#### 3.5.2 Payment Gateway Configuration Management
+- [ ] Buat halaman payment gateway settings (`app/dashboard/settings/payment-gateways/page.tsx`)
+- [ ] Implementasi CRUD untuk payment gateway config per outlet
+- [ ] Buat form untuk konfigurasi Midtrans (API key, merchant ID, dll)
+- [ ] Buat form untuk konfigurasi Xendit (API key, secret, dll)
+- [ ] Implementasi encryption untuk API keys dan secrets (gunakan environment encryption)
+- [ ] Implementasi enable/disable gateway per outlet
+- [ ] Buat validation untuk gateway configuration
+
+#### 3.5.3 Midtrans Integration
+- [ ] Install Midtrans SDK (`midtrans-client`)
+- [ ] Buat MidtransPaymentProcessor class yang implement PaymentProcessor
+- [ ] Implementasi createPayment untuk Midtrans (Snap/API)
+- [ ] Implementasi webhook handler untuk Midtrans
+- [ ] Implementasi payment verification
+- [ ] Buat API route untuk Midtrans webhook (`/api/webhooks/midtrans`)
+- [ ] Implementasi error handling dan retry logic
+- [ ] Buat test untuk Midtrans integration
+
+#### 3.5.4 Xendit Integration
+- [ ] Install Xendit SDK (`xendit-node`)
+- [ ] Buat XenditPaymentProcessor class yang implement PaymentProcessor
+- [ ] Implementasi createPayment untuk Xendit (Virtual Account/EWallet)
+- [ ] Implementasi webhook handler untuk Xendit
+- [ ] Implementasi payment verification
+- [ ] Buat API route untuk Xendit webhook (`/api/webhooks/xendit`)
+- [ ] Implementasi error handling dan retry logic
+- [ ] Buat test untuk Xendit integration
+
+#### 3.5.5 Payment Gateway UI Integration
+- [ ] Update order creation form untuk include payment gateway options
+- [ ] Buat payment selection component (CASH, TRANSFER, MIDTRANS, XENDIT)
+- [ ] Implementasi payment gateway redirect flow (untuk Midtrans Snap)
+- [ ] Buat payment status page setelah redirect dari gateway
+- [ ] Implementasi real-time payment status update (polling atau websocket)
+- [ ] Buat payment gateway selection di public tracking page (jika diperlukan)
+
+#### 3.5.6 Webhook Security & Verification
+- [ ] Implementasi webhook signature verification untuk Midtrans
+- [ ] Implementasi webhook signature verification untuk Xendit
+- [ ] Buat webhook handler service dengan rate limiting
+- [ ] Implementasi idempotency untuk webhook processing
+- [ ] Buat webhook logging dan audit trail
+- [ ] Implementasi webhook retry mechanism
+
+#### 3.5.7 Payment Gateway Testing
+- [ ] Buat unit test untuk PaymentProcessor interface
+- [ ] Buat integration test untuk Midtrans (menggunakan sandbox)
+- [ ] Buat integration test untuk Xendit (menggunakan sandbox)
+- [ ] Buat E2E test untuk payment flow dengan gateway
+- [ ] Test webhook handling dengan mock payloads
 
 ---
 
