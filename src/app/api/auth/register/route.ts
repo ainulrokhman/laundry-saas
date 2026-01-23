@@ -28,7 +28,7 @@ const registerSchema = z.object({
  * Generate unique slug from outlet name
  */
 async function generateUniqueSlug(name: string): Promise<string> {
-  let slug = generateSlug(name);
+  let slug: string = generateSlug(name);
 
   // If empty, use default
   if (!slug) {
@@ -36,8 +36,8 @@ async function generateUniqueSlug(name: string): Promise<string> {
   }
 
   // Check if slug exists, append number if needed
-  let finalSlug = slug;
-  let counter = 1;
+  let finalSlug: string = slug;
+  let counter: number = 1;
   while (await prisma.outlet.findUnique({ where: { slug: finalSlug } })) {
     finalSlug = `${slug}-${counter}`;
     counter++;
@@ -48,27 +48,25 @@ async function generateUniqueSlug(name: string): Promise<string> {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body: unknown = await request.json();
     const { phone, otpCode, name, outletName, outletAddress, pin } = registerSchema.parse(body);
 
     // Format and validate phone number
-    const formattedPhone = formatPhoneNumber(phone);
-    const normalizedPhone = normalizePhoneNumber(phone);
+    const formattedPhone: string = formatPhoneNumber(phone);
+    const normalizedPhone: string = normalizePhoneNumber(phone);
     
     if (!isValidPhoneNumber(formattedPhone)) {
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: 'Format nomor telepon tidak valid',
-        },
-        { status: 400 }
-      );
+      const response: ApiResponse = {
+        success: false,
+        error: 'Format nomor telepon tidak valid',
+      };
+      return NextResponse.json(response, { status: 400 });
     }
 
     // Check if OTP is valid for registration
     // Allow OTP to be used for registration even if it was already verified in step 2
     // as long as it's not expired and matches the code
-    const now = new Date();
+    const now: Date = new Date();
     const otpRecord = await prisma.otpCode.findFirst({
       where: {
         phone: normalizedPhone, // Use normalized phone (without +)
@@ -128,10 +126,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash PIN
-    const hashedPin = await bcrypt.hash(pin, 10);
+    const hashedPin: string = await bcrypt.hash(pin, 10);
 
     // Generate unique slug
-    const slug = await generateUniqueSlug(outletName);
+    const slug: string = await generateUniqueSlug(outletName);
 
     // Create outlet and user in transaction
     const result = await prisma.$transaction(async (tx) => {
@@ -164,37 +162,30 @@ export async function POST(request: NextRequest) {
 
     // Note: Auto login will be handled client-side after successful registration
     // The client will redirect to login page or dashboard
-
-      return NextResponse.json<ApiResponse<{ userId: string; outletId: string }>>(
-        {
-          success: true,
-          message: 'Registrasi berhasil',
-          data: {
-            userId: result.user.id,
-            outletId: result.outlet.id,
-          },
-        },
-        { status: 201 }
-      );
-  } catch (error) {
+    const response: ApiResponse<{ userId: string; outletId: string }> = {
+      success: true,
+      message: 'Registrasi berhasil',
+      data: {
+        userId: result.user.id,
+        outletId: result.outlet.id,
+      },
+    };
+    return NextResponse.json(response, { status: 201 });
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: 'Data tidak valid',
-          message: error.errors.map((e) => e.message).join(', '),
-        },
-        { status: 400 }
-      );
+      const response: ApiResponse = {
+        success: false,
+        error: 'Data tidak valid',
+        message: error.issues.map((issue) => issue.message).join(', '),
+      };
+      return NextResponse.json(response, { status: 400 });
     }
 
     console.error('Registration error:', error);
-    return NextResponse.json<ApiResponse>(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Registrasi gagal',
-      },
-      { status: 500 }
-    );
+    const response: ApiResponse = {
+      success: false,
+      error: error instanceof Error ? error.message : 'Registrasi gagal',
+    };
+    return NextResponse.json(response, { status: 500 });
   }
 }

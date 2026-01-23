@@ -20,7 +20,7 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  let body: any;
+  let body: unknown;
   let formattedPhone: string | null = null;
 
   try {
@@ -30,17 +30,15 @@ export async function POST(request: NextRequest) {
     // Format and validate phone number
     formattedPhone = formatPhoneNumber(phone);
     if (!isValidPhoneNumber(formattedPhone)) {
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: 'Format nomor telepon tidak valid',
-        },
-        { status: 400 }
-      );
+      const response: ApiResponse = {
+        success: false,
+        error: 'Format nomor telepon tidak valid',
+      };
+      return NextResponse.json(response, { status: 400 });
     }
 
     // Normalize phone for database lookup
-    const normalizedPhone = normalizePhoneNumber(phone);
+    const normalizedPhone: string = normalizePhoneNumber(phone);
 
     // For REGISTER type, check if phone number already exists
     if (type === OtpType.REGISTER) {
@@ -49,13 +47,11 @@ export async function POST(request: NextRequest) {
       });
 
       if (existingUser) {
-        return NextResponse.json<ApiResponse>(
-          {
-            success: false,
-            error: 'Nomor telepon sudah terdaftar. Silakan gunakan nomor lain atau login dengan nomor ini.',
-          },
-          { status: 409 } // Conflict
-        );
+        const response: ApiResponse = {
+          success: false,
+          error: 'Nomor telepon sudah terdaftar. Silakan gunakan nomor lain atau login dengan nomor ini.',
+        };
+        return NextResponse.json(response, { status: 409 }); // Conflict
       }
     }
 
@@ -68,38 +64,34 @@ export async function POST(request: NextRequest) {
     // Get rate limit info for response
     const rateLimitInfo = otpService.getRateLimitInfo(normalizedPhone);
 
-    return NextResponse.json<ApiResponse<{ remaining: number; resetAt: string }>>(
-        {
-          success: true,
-          message: 'Kode OTP telah dikirim ke WhatsApp Anda',
-          data: {
-            remaining: rateLimitInfo.remaining,
-            resetAt: rateLimitInfo.resetAt.toISOString(),
-          },
-        },
-      { status: 200 }
-    );
-  } catch (error) {
+    const response: ApiResponse<{ remaining: number; resetAt: string }> = {
+      success: true,
+      message: 'Kode OTP telah dikirim ke WhatsApp Anda',
+      data: {
+        remaining: rateLimitInfo.remaining,
+        resetAt: rateLimitInfo.resetAt.toISOString(),
+      },
+    };
+    return NextResponse.json(response, { status: 200 });
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: 'Data tidak valid',
-          message: error.errors.map((e) => e.message).join(', '),
-        },
-        { status: 400 }
-      );
+      const response: ApiResponse = {
+        success: false,
+        error: 'Data tidak valid',
+        message: error.issues.map((issue) => issue.message).join(', '),
+      };
+      return NextResponse.json(response, { status: 400 });
     }
 
     // Handle rate limit error
     if (error instanceof Error && error.message.includes('Rate limit exceeded')) {
       // Use formattedPhone if available, otherwise try to get from body
-      if (!formattedPhone && body?.phone) {
-        formattedPhone = formatPhoneNumber(body.phone);
+      if (!formattedPhone && body && typeof body === 'object' && 'phone' in body) {
+        formattedPhone = formatPhoneNumber(String(body.phone));
       }
 
       if (formattedPhone) {
-        const normalizedPhone = normalizePhoneNumber(formattedPhone);
+        const normalizedPhone: string = normalizePhoneNumber(formattedPhone);
         const rateLimitInfo = otpService.getRateLimitInfo(normalizedPhone);
 
         // Log rate limit exceeded
@@ -110,23 +102,21 @@ export async function POST(request: NextRequest) {
           errorMessage: error.message,
         });
 
-        return NextResponse.json<ApiResponse<{ remaining: number; resetAt: string }>>(
-          {
-            success: false,
-            error: error.message,
-            data: {
-              remaining: rateLimitInfo.remaining,
-              resetAt: rateLimitInfo.resetAt.toISOString(),
-            },
+        const response: ApiResponse<{ remaining: number; resetAt: string }> = {
+          success: false,
+          error: error.message,
+          data: {
+            remaining: rateLimitInfo.remaining,
+            resetAt: rateLimitInfo.resetAt.toISOString(),
           },
-          { status: 429 } // Too Many Requests
-        );
+        };
+        return NextResponse.json(response, { status: 429 }); // Too Many Requests
       }
     }
 
     // Log failed OTP request
     if (formattedPhone) {
-      const normalizedPhone = normalizePhoneNumber(formattedPhone);
+      const normalizedPhone: string = normalizePhoneNumber(formattedPhone);
       await securityLogService.logOtpRequest(
         normalizedPhone,
         false,
@@ -136,12 +126,10 @@ export async function POST(request: NextRequest) {
 
     // Handle other errors
     console.error('OTP request error:', error);
-    return NextResponse.json<ApiResponse>(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Gagal mengirim OTP',
-      },
-      { status: 500 }
-    );
+    const response: ApiResponse = {
+      success: false,
+      error: error instanceof Error ? error.message : 'Gagal mengirim OTP',
+    };
+    return NextResponse.json(response, { status: 500 });
   }
 }

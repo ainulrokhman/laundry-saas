@@ -36,11 +36,6 @@ export default defineConfig({
     // Test isolation: Run database tests sequentially to avoid conflicts
     // Tests that use database should run one at a time to prevent data conflicts
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: false,
-      },
-    },
     // Disable file parallelism for database tests to prevent conflicts
     // Each test file will run completely before the next one starts
     fileParallelism: false,

@@ -10,6 +10,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
 import { ApiResponse } from '@/types';
+// Import SweetAlert2 CSS
+import 'sweetalert2/dist/sweetalert2.min.css';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -28,10 +30,7 @@ export default function RegisterPage() {
   const [confirmPin, setConfirmPin] = useState('');
   const [rateLimitInfo, setRateLimitInfo] = useState<{ remaining: number; resetAt: string } | null>(null);
 
-  useEffect(() => {
-    // Import SweetAlert2 CSS
-    import('sweetalert2/dist/sweetalert2.min.css');
-  }, []);
+  // SweetAlert2 CSS is imported statically at the top of the file
 
   const showError = (message: string) => {
     Swal.fire({

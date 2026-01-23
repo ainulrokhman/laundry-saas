@@ -10,6 +10,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Swal from 'sweetalert2';
+// Import SweetAlert2 CSS
+import 'sweetalert2/dist/sweetalert2.min.css';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,10 +19,7 @@ export default function LoginPage() {
   const [phone, setPhone] = useState('');
   const [pin, setPin] = useState('');
 
-  useEffect(() => {
-    // Import SweetAlert2 CSS
-    import('sweetalert2/dist/sweetalert2.min.css');
-  }, []);
+  // SweetAlert2 CSS is imported statically at the top of the file
 
   const showError = (message: string) => {
     Swal.fire({

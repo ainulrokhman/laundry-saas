@@ -21,36 +21,32 @@ const verifySchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body: unknown = await request.json();
     const { phone, code, type } = verifySchema.parse(body);
 
     // Format and validate phone number
-    const formattedPhone = formatPhoneNumber(phone);
-    const normalizedPhone = normalizePhoneNumber(phone);
+    const formattedPhone: string = formatPhoneNumber(phone);
+    const normalizedPhone: string = normalizePhoneNumber(phone);
     
     if (!isValidPhoneNumber(formattedPhone)) {
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: 'Invalid phone number format',
-        },
-        { status: 400 }
-      );
+      const response: ApiResponse = {
+        success: false,
+        error: 'Invalid phone number format',
+      };
+      return NextResponse.json(response, { status: 400 });
     }
 
     // Validate OTP code format (6 digits)
     if (!/^\d{6}$/.test(code)) {
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: 'OTP code must be 6 digits',
-        },
-        { status: 400 }
-      );
+      const response: ApiResponse = {
+        success: false,
+        error: 'OTP code must be 6 digits',
+      };
+      return NextResponse.json(response, { status: 400 });
     }
 
     // Verify OTP (service will normalize phone internally)
-    const isValid = await otpService.verifyOtp(phone, code, type);
+    const isValid: boolean = await otpService.verifyOtp(phone, code, type);
 
     if (!isValid) {
       // Log failed OTP verification
@@ -62,13 +58,11 @@ export async function POST(request: NextRequest) {
       });
 
       // Provide more helpful error message
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: 'Invalid or expired OTP code. Please check the code and try again, or request a new OTP.',
-        },
-        { status: 400 }
-      );
+      const response: ApiResponse = {
+        success: false,
+        error: 'Invalid or expired OTP code. Please check the code and try again, or request a new OTP.',
+      };
+      return NextResponse.json(response, { status: 400 });
     }
 
     // Log successful OTP verification
@@ -78,32 +72,26 @@ export async function POST(request: NextRequest) {
       success: true,
     });
 
-    return NextResponse.json<ApiResponse>(
-      {
-        success: true,
-        message: 'OTP verified successfully',
-      },
-      { status: 200 }
-    );
-  } catch (error) {
+    const response: ApiResponse = {
+      success: true,
+      message: 'OTP verified successfully',
+    };
+    return NextResponse.json(response, { status: 200 });
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: 'Invalid request data',
-          message: error.errors.map((e) => e.message).join(', '),
-        },
-        { status: 400 }
-      );
+      const response: ApiResponse = {
+        success: false,
+        error: 'Invalid request data',
+        message: error.issues.map((issue) => issue.message).join(', '),
+      };
+      return NextResponse.json(response, { status: 400 });
     }
 
     console.error('OTP verify error:', error);
-    return NextResponse.json<ApiResponse>(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to verify OTP',
-      },
-      { status: 500 }
-    );
+    const response: ApiResponse = {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to verify OTP',
+    };
+    return NextResponse.json(response, { status: 500 });
   }
 }

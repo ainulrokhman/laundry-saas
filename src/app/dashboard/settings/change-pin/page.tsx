@@ -11,6 +11,8 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Swal from 'sweetalert2';
 import { ApiResponse } from '@/types';
+// Import SweetAlert2 CSS
+import 'sweetalert2/dist/sweetalert2.min.css';
 
 export default function ChangePinPage() {
   const router = useRouter();
@@ -21,9 +23,6 @@ export default function ChangePinPage() {
   const [confirmPin, setConfirmPin] = useState('');
 
   useEffect(() => {
-    // Import SweetAlert2 CSS
-    import('sweetalert2/dist/sweetalert2.min.css');
-
     // Redirect to login if not authenticated
     if (status === 'unauthenticated') {
       router.push('/login');

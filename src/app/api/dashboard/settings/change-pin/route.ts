@@ -30,9 +30,9 @@ const rateLimitStore = new Map<string, number[]>();
  * Clean up old rate limit entries
  */
 function cleanupRateLimit(userId: string): void {
-  const now = Date.now();
-  const timestamps = rateLimitStore.get(userId) || [];
-  const validTimestamps = timestamps.filter((ts) => now - ts < RATE_LIMIT.WINDOW_MS);
+  const now: number = Date.now();
+  const timestamps: number[] = rateLimitStore.get(userId) || [];
+  const validTimestamps: number[] = timestamps.filter((ts: number) => now - ts < RATE_LIMIT.WINDOW_MS);
   
   if (validTimestamps.length === 0) {
     rateLimitStore.delete(userId);
@@ -46,7 +46,7 @@ function cleanupRateLimit(userId: string): void {
  */
 function checkRateLimit(userId: string): boolean {
   cleanupRateLimit(userId);
-  const timestamps = rateLimitStore.get(userId) || [];
+  const timestamps: number[] = rateLimitStore.get(userId) || [];
   return timestamps.length < RATE_LIMIT.MAX_ATTEMPTS;
 }
 
@@ -54,8 +54,8 @@ function checkRateLimit(userId: string): boolean {
  * Record PIN change attempt
  */
 function recordAttempt(userId: string): void {
-  const now = Date.now();
-  const timestamps = rateLimitStore.get(userId) || [];
+  const now: number = Date.now();
+  const timestamps: number[] = rateLimitStore.get(userId) || [];
   timestamps.push(now);
   rateLimitStore.set(userId, timestamps);
 }
@@ -70,53 +70,47 @@ const changePinSchema = z.object({
 
 export const POST = withAuth(async (request: Request, session: ExtendedSession) => {
   try {
-    const body = await request.json();
+    const body: unknown = await request.json();
     const { oldPin, newPin } = changePinSchema.parse(body);
 
     // Trim and ensure PINs are strings
-    const trimmedOldPin = String(oldPin).trim();
-    const trimmedNewPin = String(newPin).trim();
+    const trimmedOldPin: string = String(oldPin).trim();
+    const trimmedNewPin: string = String(newPin).trim();
 
     // Validate PINs are not empty after trimming
     if (!trimmedOldPin || !trimmedNewPin) {
-      return Response.json<ApiResponse>(
-        {
-          success: false,
-          error: 'PIN tidak boleh kosong',
-        },
-        { status: 400 }
-      );
+      const response: ApiResponse = {
+        success: false,
+        error: 'PIN tidak boleh kosong',
+      };
+      return Response.json(response, { status: 400 });
     }
 
     // Check if old PIN and new PIN are different
     if (trimmedOldPin === trimmedNewPin) {
-      return Response.json<ApiResponse>(
-        {
-          success: false,
-          error: 'PIN baru harus berbeda dengan PIN lama',
-        },
-        { status: 400 }
-      );
+      const response: ApiResponse = {
+        success: false,
+        error: 'PIN baru harus berbeda dengan PIN lama',
+      };
+      return Response.json(response, { status: 400 });
     }
 
     // Check rate limit
     if (!checkRateLimit(session.userId)) {
       cleanupRateLimit(session.userId);
-      const timestamps = rateLimitStore.get(session.userId) || [];
-      const resetAt = timestamps.length > 0
+      const timestamps: number[] = rateLimitStore.get(session.userId) || [];
+      const resetAt: Date = timestamps.length > 0
         ? new Date(Math.min(...timestamps) + RATE_LIMIT.WINDOW_MS)
         : new Date();
 
-      return Response.json<ApiResponse<{ resetAt: string }>>(
-        {
-          success: false,
-          error: `Terlalu banyak percobaan. Silakan coba lagi setelah ${resetAt.toLocaleString('id-ID')}`,
-          data: {
-            resetAt: resetAt.toISOString(),
-          },
+      const response: ApiResponse<{ resetAt: string }> = {
+        success: false,
+        error: `Terlalu banyak percobaan. Silakan coba lagi setelah ${resetAt.toLocaleString('id-ID')}`,
+        data: {
+          resetAt: resetAt.toISOString(),
         },
-        { status: 429 } // Too Many Requests
-      );
+      };
+      return Response.json(response, { status: 429 }); // Too Many Requests
     }
 
     // Get user from database
@@ -130,33 +124,27 @@ export const POST = withAuth(async (request: Request, session: ExtendedSession) 
     });
 
     if (!user) {
-      return Response.json<ApiResponse>(
-        {
-          success: false,
-          error: 'User tidak ditemukan',
-        },
-        { status: 404 }
-      );
+      const response: ApiResponse = {
+        success: false,
+        error: 'User tidak ditemukan',
+      };
+      return Response.json(response, { status: 404 });
     }
 
     if (!user.isActive) {
-      return Response.json<ApiResponse>(
-        {
-          success: false,
-          error: 'Akun tidak aktif',
-        },
-        { status: 403 }
-      );
+      const response: ApiResponse = {
+        success: false,
+        error: 'Akun tidak aktif',
+      };
+      return Response.json(response, { status: 403 });
     }
 
     if (!user.pin) {
-      return Response.json<ApiResponse>(
-        {
-          success: false,
-          error: 'PIN belum diatur',
-        },
-        { status: 400 }
-      );
+      const response: ApiResponse = {
+        success: false,
+        error: 'PIN belum diatur',
+      };
+      return Response.json(response, { status: 400 });
     }
 
     // Validate stored PIN hash format (should start with $2a$, $2b$, or $2y$)
@@ -165,17 +153,15 @@ export const POST = withAuth(async (request: Request, session: ExtendedSession) 
         userId: session.userId,
         pinPrefix: user.pin.substring(0, 10),
       });
-      return Response.json<ApiResponse>(
-        {
-          success: false,
-          error: 'Format PIN tidak valid. Silakan hubungi administrator.',
-        },
-        { status: 500 }
-      );
+      const response: ApiResponse = {
+        success: false,
+        error: 'Format PIN tidak valid. Silakan hubungi administrator.',
+      };
+      return Response.json(response, { status: 500 });
     }
 
     // Verify old PIN (use trimmed version)
-    const isValidOldPin = await bcrypt.compare(trimmedOldPin, user.pin);
+    const isValidOldPin: boolean = await bcrypt.compare(trimmedOldPin, user.pin);
 
     if (!isValidOldPin) {
       // Record failed attempt
@@ -190,17 +176,15 @@ export const POST = withAuth(async (request: Request, session: ExtendedSession) 
         storedPinPrefix: user.pin.substring(0, 7), // Only show prefix, not full hash
       });
 
-      return Response.json<ApiResponse>(
-        {
-          success: false,
-          error: 'PIN lama tidak benar. Pastikan Anda memasukkan PIN yang benar.',
-        },
-        { status: 401 }
-      );
+      const response: ApiResponse = {
+        success: false,
+        error: 'PIN lama tidak benar. Pastikan Anda memasukkan PIN yang benar.',
+      };
+      return Response.json(response, { status: 401 });
     }
 
     // Hash new PIN (use trimmed version)
-    const hashedNewPin = await bcrypt.hash(trimmedNewPin, 10);
+    const hashedNewPin: string = await bcrypt.hash(trimmedNewPin, 10);
 
     // Update PIN and pinChangedAt
     await prisma.user.update({
@@ -215,33 +199,27 @@ export const POST = withAuth(async (request: Request, session: ExtendedSession) 
     // Clear rate limit on successful change
     rateLimitStore.delete(session.userId);
 
-    return Response.json<ApiResponse>(
-      {
-        success: true,
-        message: 'PIN berhasil diubah',
-      },
-      { status: 200 }
-    );
-  } catch (error) {
+    const response: ApiResponse = {
+      success: true,
+      message: 'PIN berhasil diubah',
+    };
+    return Response.json(response, { status: 200 });
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return Response.json<ApiResponse>(
-        {
-          success: false,
-          error: 'Data tidak valid',
-          message: error.errors.map((e) => e.message).join(', '),
-        },
-        { status: 400 }
-      );
+      const response: ApiResponse = {
+        success: false,
+        error: 'Data tidak valid',
+        message: error.issues.map((issue) => issue.message).join(', '),
+      };
+      return Response.json(response, { status: 400 });
     }
 
     console.error('Change PIN error:', error);
-    return Response.json<ApiResponse>(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Gagal mengubah PIN',
-      },
-      { status: 500 }
-    );
+    const response: ApiResponse = {
+      success: false,
+      error: error instanceof Error ? error.message : 'Gagal mengubah PIN',
+    };
+    return Response.json(response, { status: 500 });
   }
 }, {
   requireOutlet: false, // PIN change doesn't require outlet context
