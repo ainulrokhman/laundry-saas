@@ -167,70 +167,71 @@ export default function DashboardPage() {
     <>
       {/* Info Boxes */}
       <div className="row">
-            {/* Order Hari Ini */}
-            <div className="col-lg-3 col-6">
-              <div className="small-box bg-info">
-                <div className="inner">
-                  <h3>{stats?.ordersToday || 0}</h3>
-                  <p>Order Hari Ini</p>
-                </div>
-                <div className="icon">
-                  <i className="fas fa-shopping-cart"></i>
-                </div>
-                <Link href="/dashboard/orders" className="small-box-footer">
-                  Lihat Detail <i className="fas fa-arrow-circle-right"></i>
-                </Link>
-              </div>
+        {/* Order Hari Ini */}
+        <div className="col-lg-3 col-6">
+          <div className="small-box text-bg-primary">
+            <div className="inner">
+              <h3>{stats?.ordersToday || 0}</h3>
+              <p>Order Hari Ini</p>
             </div>
-
-            {/* Omzet Hari Ini */}
-            <div className="col-lg-3 col-6">
-              <div className="small-box bg-success">
-                <div className="inner">
-                  <h3>{formatCurrency(stats?.revenueToday || 0)}</h3>
-                  <p>Omzet Hari Ini</p>
-                </div>
-                <div className="icon">
-                  <i className="fas fa-money-bill-wave"></i>
-                </div>
-                <Link href="/dashboard/transactions" className="small-box-footer">
-                  Lihat Detail <i className="fas fa-arrow-circle-right"></i>
-                </Link>
-              </div>
-            </div>
-
-            {/* Cucian Tertunda */}
-            <div className="col-lg-3 col-6">
-              <div className="small-box bg-warning">
-                <div className="inner">
-                  <h3>{stats?.pendingOrders || 0}</h3>
-                  <p>Cucian Tertunda</p>
-                </div>
-                <div className="icon">
-                  <i className="fas fa-clock"></i>
-                </div>
-                <Link href="/dashboard/orders" className="small-box-footer">
-                  Lihat Detail <i className="fas fa-arrow-circle-right"></i>
-                </Link>
-              </div>
-            </div>
-
-            {/* Total Pelanggan */}
-            <div className="col-lg-3 col-6">
-              <div className="small-box bg-danger">
-                <div className="inner">
-                  <h3>{stats?.totalCustomers || 0}</h3>
-                  <p>Total Pelanggan</p>
-                </div>
-                <div className="icon">
-                  <i className="fas fa-users"></i>
-                </div>
-                <Link href="/dashboard/customers" className="small-box-footer">
-                  Lihat Detail <i className="fas fa-arrow-circle-right"></i>
-                </Link>
-              </div>
-            </div>
+            <svg className="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M2.25 2.25a.75.75 0 000 1.5h1.386c.17 0 .318.114.362.278l2.558 9.592a3.752 3.752 0 00-2.806 3.63c0 .414.336.75.75.75h15.75a.75.75 0 000-1.5H5.378A2.25 2.25 0 017.5 15h11.218a.75.75 0 00.674-.421 60.358 60.358 0 002.96-7.228.75.75 0 00-.525-.965A60.864 60.864 0 005.68 4.509l-.232-.867A1.875 1.875 0 003.636 2.25H2.25zM3.75 20.25a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM16.5 20.25a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z"></path>
+            </svg>
+            <Link href="/dashboard/orders" className="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
+              Selengkapnya <i className="bi bi-link-45deg"></i>
+            </Link>
           </div>
+        </div>
+
+        {/* Omzet Hari Ini */}
+        <div className="col-lg-3 col-6">
+          <div className="small-box text-bg-success">
+            <div className="inner">
+              <h3>{formatCurrency(stats?.revenueToday || 0)}</h3>
+              <p>Omzet Hari Ini</p>
+            </div>
+            <svg className="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M10.464 8.746c.227-.18.497-.311.786-.394v2.795a2.252 2.252 0 01-.786-.393c-.394-.313-.546-.681-.546-1.004 0-.323.152-.691.546-1.004zM12.75 15.662v-2.824c.347.085.664.228.921.421.427.32.579.686.579.991 0 .305-.152.671-.579.991a2.214 2.214 0 01-.921.42z"></path>
+              <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 00-1.5 0v.816a3.836 3.836 0 00-1.72.756c-.712.566-1.112 1.35-1.112 2.178 0 .829.4 1.612 1.113 2.178.502.4 1.102.647 1.719.756v2.978a2.536 2.536 0 01-.921-.421l-.879-.66a.75.75 0 00-1.06.06l-.75.75a.75.75 0 001.06 1.061l.879-.66c.533-.4 1.169-.645 1.821-.75V18a.75.75 0 001.5 0v-.81a4.124 4.124 0 001.821-.75c.712-.566 1.112-1.35 1.112-2.178 0-.829-.4-1.612-1.113-2.178a4.124 4.124 0 00-1.821-.75V6z"></path>
+            </svg>
+            <Link href="/dashboard/transactions" className="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
+              Selengkapnya <i className="bi bi-link-45deg"></i>
+            </Link>
+          </div>
+        </div>
+
+        {/* Cucian Tertunda */}
+        <div className="col-lg-3 col-6">
+          <div className="small-box text-bg-warning">
+            <div className="inner">
+              <h3>{stats?.pendingOrders || 0}</h3>
+              <p>Cucian Tertunda</p>
+            </div>
+            <svg className="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 00-1.5 0v6a.75.75 0 001.5 0V6zm-3 2.25a.75.75 0 00-1.5 0v3.75a.75.75 0 001.5 0V8.25zM18 10.5a.75.75 0 00-1.5 0v2.25a.75.75 0 001.5 0V10.5zM8.25 18a.75.75 0 000-1.5H5.625a1.125 1.125 0 010-2.25h2.625a.75.75 0 000-1.5H5.625a2.625 2.625 0 000 5.25h2.625z" clipRule="evenodd"></path>
+            </svg>
+            <Link href="/dashboard/orders" className="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
+              Selengkapnya <i className="bi bi-link-45deg"></i>
+            </Link>
+          </div>
+        </div>
+
+        {/* Total Pelanggan */}
+        <div className="col-lg-3 col-6">
+          <div className="small-box text-bg-danger">
+            <div className="inner">
+              <h3>{stats?.totalCustomers || 0}</h3>
+              <p>Total Pelanggan</p>
+            </div>
+            <svg className="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M4.5 6.375a4.125 4.125 0 118.25 0 4.125 4.125 0 01-8.25 0zM14.25 8.625a3.375 3.375 0 116.75 0 3.375 3.375 0 01-6.75 0zM1.5 19.125a7.125 7.125 0 0114.25 0v.003l-.001.119a.75.75 0 01-.363.63 13.067 13.067 0 01-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 01-.364-.63l-.001-.122zM17.25 19.128l-.001.144a2.25 2.25 0 01-.233.96 10.088 10.088 0 005.06-1.01.75.75 0 00.42-.643 4.875 4.875 0 00-6.957-4.611 8.586 8.586 0 011.71 5.157v.003z"></path>
+            </svg>
+            <Link href="/dashboard/customers" className="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
+              Selengkapnya <i className="bi bi-link-45deg"></i>
+            </Link>
+          </div>
+        </div>
+      </div>
 
         {/* Recent Orders Table */}
         <div className="row">

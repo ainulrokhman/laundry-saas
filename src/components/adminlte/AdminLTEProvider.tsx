@@ -45,19 +45,26 @@ export function AdminLTEProvider({ children }: AdminLTEProviderProps) {
     window.addEventListener('error', errorHandler, true); // Use capture phase
     window.addEventListener('unhandledrejection', rejectionHandler);
 
-    let retryCount = 0;
-    const MAX_RETRIES = 50;
     let isInitialized = false;
+
+    // Helper function to check if element is a valid Element
+    const isValidElement = (el: any): el is Element => {
+      return el instanceof Element && el.isConnected && el.ownerDocument === document;
+    };
 
     const initAdminLTE = () => {
       if (typeof window === 'undefined') return;
       if (isInitialized) return; // Prevent multiple initializations
 
-      retryCount++;
-
-      // Wait for DOM to be fully ready
+      // Wait for DOM to be fully ready - must be 'complete' not just 'interactive'
       if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initAdminLTE);
+        document.addEventListener('DOMContentLoaded', initAdminLTE, { once: true });
+        return;
+      }
+
+      // Wait for window load event to ensure all resources are loaded
+      if (document.readyState !== 'complete') {
+        window.addEventListener('load', initAdminLTE, { once: true });
         return;
       }
 
@@ -65,78 +72,88 @@ export function AdminLTEProvider({ children }: AdminLTEProviderProps) {
       const appWrapper = document.querySelector('.app-wrapper');
       const sidebarWrapper = document.querySelector('.sidebar-wrapper');
       
-      if (!appWrapper || !sidebarWrapper) {
-        if (retryCount < MAX_RETRIES) {
-          setTimeout(initAdminLTE, 100);
-        } else {
-          console.warn('AdminLTE: Required elements not found after maximum retries');
-        }
-        return;
-      }
-
-      // Verify elements are actually connected to the DOM
-      if (!appWrapper.isConnected || !sidebarWrapper.isConnected) {
-        if (retryCount < MAX_RETRIES) {
-          setTimeout(initAdminLTE, 100);
-        }
+      // Validate elements are actual Element instances and connected to DOM
+      if (!appWrapper || !sidebarWrapper || 
+          !isValidElement(appWrapper) || !isValidElement(sidebarWrapper)) {
         return;
       }
 
       // Ensure AdminLTE is available
       if (typeof (window as any).AdminLTE === 'undefined') {
-        if (retryCount < MAX_RETRIES) {
-          setTimeout(initAdminLTE, 100);
-        } else {
-          console.warn('AdminLTE: AdminLTE object not found after maximum retries');
-        }
         return;
       }
 
-      // Wait a bit more to ensure all styles are applied and elements are fully rendered
-      setTimeout(() => {
-        try {
-          // Initialize AdminLTE if init method exists
-          if (typeof (window as any).AdminLTE?.init === 'function') {
-            (window as any).AdminLTE.init();
-          }
-        } catch (error) {
-          // If error occurs, it might be because AdminLTE already initialized
-          // or elements are not ready - this is okay, we'll suppress it
-          if (error instanceof TypeError && error.message.includes('getComputedStyle')) {
-            // Element not ready yet, will be handled by error handler
-            console.debug('AdminLTE init delayed due to element not ready');
-          } else {
-            console.warn('Failed to initialize AdminLTE:', error);
-          }
-        }
-
-        // Initialize OverlayScrollbars for sidebar if available
-        // Disable on mobile devices to prevent touch interference
-        const isMobile = window.innerWidth <= 992;
-        
-        if (!isMobile && (window as any).OverlayScrollbarsGlobal?.OverlayScrollbars) {
+      // Wait for next frame to ensure all React renders are complete
+      // and all styles are applied
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
           try {
-            if (sidebarWrapper && sidebarWrapper instanceof Element && sidebarWrapper.isConnected) {
-              (window as any).OverlayScrollbarsGlobal.OverlayScrollbars(sidebarWrapper, {
-                scrollbars: {
-                  theme: 'os-theme-light',
-                  autoHide: 'leave',
-                  clickScroll: true,
-                },
-              });
+            // Double-check elements are still valid before initialization
+            const currentAppWrapper = document.querySelector('.app-wrapper');
+            const currentSidebarWrapper = document.querySelector('.sidebar-wrapper');
+            
+            if (!currentAppWrapper || !currentSidebarWrapper ||
+                !isValidElement(currentAppWrapper) || !isValidElement(currentSidebarWrapper)) {
+              return;
+            }
+
+            // Initialize AdminLTE if init method exists
+            if (typeof (window as any).AdminLTE?.init === 'function') {
+              (window as any).AdminLTE.init();
             }
           } catch (error) {
-            console.warn('Failed to initialize OverlayScrollbars:', error);
+            // If error occurs, it might be because AdminLTE already initialized
+            // or elements are not ready - this is okay, we'll suppress it
+            if (error instanceof TypeError && error.message.includes('getComputedStyle')) {
+              // Element not ready yet, will be handled by error handler
+              console.debug('AdminLTE init delayed due to element not ready');
+            } else {
+              console.warn('Failed to initialize AdminLTE:', error);
+            }
+            return;
           }
-        }
 
-        isInitialized = true;
-      }, 300); // Additional delay to ensure DOM is fully ready
+          // Initialize OverlayScrollbars for sidebar if available
+          // Disable on mobile devices to prevent touch interference
+          const isMobile = window.innerWidth <= 992;
+          
+          if (!isMobile && (window as any).OverlayScrollbarsGlobal?.OverlayScrollbars) {
+            try {
+              const currentSidebarWrapper = document.querySelector('.sidebar-wrapper');
+              if (currentSidebarWrapper && isValidElement(currentSidebarWrapper)) {
+                (window as any).OverlayScrollbarsGlobal.OverlayScrollbars(currentSidebarWrapper, {
+                  scrollbars: {
+                    theme: 'os-theme-light',
+                    autoHide: 'leave',
+                    clickScroll: true,
+                  },
+                });
+              }
+            } catch (error) {
+              console.warn('Failed to initialize OverlayScrollbars:', error);
+            }
+          }
+
+          isInitialized = true;
+        });
+      });
     };
 
     const handleAdminLTELoaded = () => {
-      // Wait a bit before initializing to ensure DOM is ready
-      setTimeout(initAdminLTE, 100);
+      // Wait for DOM to be complete before initializing
+      if (document.readyState === 'complete') {
+        // Use requestAnimationFrame to ensure React has finished rendering
+        requestAnimationFrame(() => {
+          setTimeout(initAdminLTE, 100);
+        });
+      } else {
+        // Wait for load event
+        window.addEventListener('load', () => {
+          requestAnimationFrame(() => {
+            setTimeout(initAdminLTE, 100);
+          });
+        }, { once: true });
+      }
     };
 
     window.addEventListener('adminlte:loaded', handleAdminLTELoaded);
@@ -168,13 +185,16 @@ export function AdminLTEProvider({ children }: AdminLTEProviderProps) {
           if (typeof window !== 'undefined') {
             // Wait for DOM to be fully ready before triggering initialization
             const triggerInit = () => {
-              // Additional delay to ensure all elements are rendered
-              setTimeout(() => {
-                window.dispatchEvent(new Event('adminlte:loaded'));
-              }, 300);
+              // Wait for next frame to ensure all React renders are complete
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  window.dispatchEvent(new Event('adminlte:loaded'));
+                });
+              });
             };
 
-            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            // Only trigger after DOM is complete
+            if (document.readyState === 'complete') {
               triggerInit();
             } else {
               window.addEventListener('load', triggerInit, { once: true });

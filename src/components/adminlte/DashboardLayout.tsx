@@ -109,6 +109,54 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="app-wrapper">
+      {/* Sidebar - Must be before app-main for AdminLTE structure */}
+      <aside className="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
+        {/* Sidebar Brand */}
+        <div className="sidebar-brand">
+          {/* Brand Link */}
+          <Link href="/dashboard" className="brand-link">
+            {/* Brand Text */}
+            <span className="brand-text fw-light">Ainul Laundry</span>
+            {/* End Brand Text */}
+          </Link>
+          {/* End Brand Link */}
+        </div>
+        {/* End Sidebar Brand */}
+
+        {/* Sidebar Wrapper */}
+        <div className="sidebar-wrapper">
+          <nav className="mt-2">
+            {/* Sidebar Menu */}
+            <ul
+              className="nav sidebar-menu flex-column"
+              data-lte-toggle="treeview"
+              role="navigation"
+              aria-label="Main navigation"
+              data-accordion="false"
+              id="navigation"
+            >
+              {filteredMenuItems.map((item) => {
+                const active = isActive(item.href);
+                return (
+                  <li key={item.href} className="nav-item">
+                    <Link
+                      href={item.href}
+                      className={`nav-link ${active ? 'active' : ''}`}
+                    >
+                      <i className={`nav-icon ${item.icon}`}></i>
+                      <p>{item.label}</p>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+            {/* End Sidebar Menu */}
+          </nav>
+        </div>
+        {/* End Sidebar Wrapper */}
+      </aside>
+      {/* End Sidebar */}
+
       {/* Header */}
       <nav className="app-header navbar navbar-expand bg-body">
         {/* Container */}
@@ -191,54 +239,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* End Container */}
       </nav>
       {/* End Header */}
-
-      {/* Sidebar */}
-      <aside className="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
-        {/* Sidebar Brand */}
-        <div className="sidebar-brand">
-          {/* Brand Link */}
-          <Link href="/dashboard" className="brand-link">
-            {/* Brand Text */}
-            <span className="brand-text fw-light">Ainul Laundry</span>
-            {/* End Brand Text */}
-          </Link>
-          {/* End Brand Link */}
-        </div>
-        {/* End Sidebar Brand */}
-
-        {/* Sidebar Wrapper */}
-        <div className="sidebar-wrapper">
-          <nav className="mt-2">
-            {/* Sidebar Menu */}
-            <ul
-              className="nav sidebar-menu flex-column"
-              data-lte-toggle="treeview"
-              role="navigation"
-              aria-label="Main navigation"
-              data-accordion="false"
-              id="navigation"
-            >
-              {filteredMenuItems.map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <li key={item.href} className="nav-item">
-                    <Link
-                      href={item.href}
-                      className={`nav-link ${active ? 'active' : ''}`}
-                    >
-                      <i className={`nav-icon ${item.icon}`}></i>
-                      <p>{item.label}</p>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-            {/* End Sidebar Menu */}
-          </nav>
-        </div>
-        {/* End Sidebar Wrapper */}
-      </aside>
-      {/* End Sidebar */}
 
       {/* App Main */}
       <main className="app-main">
