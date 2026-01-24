@@ -242,32 +242,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* App Main */}
       <main className="app-main">
-        {/* App Content Header */}
-        <div className="app-content-header">
-          {/* Container */}
-          <div className="container-fluid">
-            {/* Row */}
-            <div className="row">
-              <div className="col-sm-6">
-                <h3 className="mb-0">Dashboard</h3>
-              </div>
-              <div className="col-sm-6">
-                <ol className="breadcrumb float-sm-end">
-                  <li className="breadcrumb-item">
-                    <Link href="/dashboard">Home</Link>
-                  </li>
-                  <li className="breadcrumb-item active" aria-current="page">
-                    {pathname?.replace('/dashboard', '') || 'Dashboard'}
-                  </li>
-                </ol>
-              </div>
-            </div>
-            {/* End Row */}
-          </div>
-          {/* End Container */}
-        </div>
-        {/* End App Content Header */}
-
         {/* App Content */}
         <div className="app-content">
           {/* Container */}

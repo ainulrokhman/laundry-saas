@@ -108,10 +108,13 @@ Laundry SaaS Platform - Multi-tenant laundry management system optimized for Ver
 ## 🎨 UI/UX Standards (AdminLTE v4)
 
 ### Component Structure
+- **ALWAYS use Bootstrap 5 classes** instead of custom CSS or inline styles
 - Use AdminLTE v4 HTML structure and Bootstrap 5 classes
 - Example sidebar: Use AdminLTE sidebar classes (`sidebar`, `nav-sidebar`)
 - Example cards: Use `card`, `card-header`, `card-body` classes
 - Example badges: Use AdminLTE color classes (`bg-warning`, `bg-success`, `bg-danger`)
+- **Avoid inline styles** - use Bootstrap utility classes (`mb-3`, `pt-3`, `text-center`, etc.)
+- **Avoid custom CSS** - prefer Bootstrap classes for spacing, colors, typography
 
 ### Navigation
 - Sidebar: Role-based menu (Owner vs Staff see different items)
@@ -122,21 +125,66 @@ Laundry SaaS Platform - Multi-tenant laundry management system optimized for Ver
 - Use Bootstrap DataTables for sortable/searchable tables
 - Include search and filter functionality
 - Pagination using AdminLTE pagination styles
+- Use Bootstrap table classes: `table`, `table-striped`, `table-hover`, `table-light` (for thead)
 
 ### Modals
 - Use Bootstrap 5 modal component
 - AdminLTE modal styling for forms
 - Include proper form validation
+- Use Bootstrap modal classes: `modal`, `modal-dialog`, `modal-content`, `modal-header`, `modal-body`, `modal-footer`
 
 ### Status Badges
 - Order Status: `bg-warning` (Washing), `bg-success` (Ready), `bg-info` (Queued)
 - Payment Status: `bg-danger` (Unpaid), `bg-success` (Settlement)
 - Use AdminLTE badge classes consistently
+- Use Bootstrap badge classes: `badge`, `bg-*` (not custom CSS)
 
 ### Forms
 - Use Bootstrap 5 form classes
 - Include validation feedback
 - Use AdminLTE form styling
+- Use Bootstrap form classes: `form-control`, `form-label`, `form-check`, `is-invalid`, `is-valid`, `invalid-feedback`, `valid-feedback`
+- Use Bootstrap input group: `input-group`, `input-group-text` for icons/buttons
+
+### Notifications & Alerts
+- **ALWAYS use SweetAlert2** for user notifications (success, error, warning, confirmation)
+- **NEVER use** `alert()`, `confirm()`, or `prompt()` - use `Swal.fire()` instead
+- Import SweetAlert2: `import Swal from 'sweetalert2'` and `import 'sweetalert2/dist/sweetalert2.min.css'`
+- Use consistent SweetAlert configuration:
+  ```typescript
+  // Success
+  await Swal.fire({
+    icon: 'success',
+    title: 'Berhasil!',
+    text: 'Message here',
+    confirmButtonColor: '#3085d6',
+    confirmButtonText: 'OK',
+    timer: 2000,
+    timerProgressBar: true,
+  });
+  
+  // Error
+  await Swal.fire({
+    icon: 'error',
+    title: 'Error!',
+    text: 'Error message',
+    confirmButtonColor: '#3085d6',
+    confirmButtonText: 'OK',
+  });
+  
+  // Confirmation
+  const result = await Swal.fire({
+    icon: 'warning',
+    title: 'Konfirmasi',
+    text: 'Are you sure?',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Ya',
+    cancelButtonText: 'Batal',
+  });
+  ```
+- Use Bootstrap alert classes only for inline form errors: `alert`, `alert-danger`, `alert-success`
 
 ## 📁 Project Structure
 
@@ -354,6 +402,10 @@ __tests__/
 8. **❌ Direct Prisma in services**: Use repositories
 9. **❌ Using NextAuth v4 patterns**: Use `auth()` not `getServerSession()`
 10. **❌ Importing NextAuthOptions**: Use NextAuth v5 API patterns
+11. **❌ Using alert() or confirm()**: Always use SweetAlert2 (`Swal.fire()`)
+12. **❌ Using inline styles or custom CSS**: Always use Bootstrap utility classes first
+13. **❌ Manual spacing with CSS**: Use Bootstrap spacing classes (`mb-3`, `pt-3`, `px-2`, etc.)
+14. **❌ Custom colors**: Use Bootstrap color classes (`text-primary`, `bg-success`, etc.)
 
 ### Testing
 11. **❌ Using production database for tests**: Always use `TEST_DATABASE_URL`
@@ -369,6 +421,8 @@ Before committing code, ensure:
 - [ ] All API responses use DTO pattern
 - [ ] All inputs validated with Zod
 - [ ] AdminLTE components use Bootstrap 5 classes
+- [ ] **SweetAlert2 used for all notifications** (no `alert()`, `confirm()`, or `prompt()`)
+- [ ] **Bootstrap utility classes used** instead of inline styles or custom CSS
 - [ ] FontAwesome icons used for navigation
 - [ ] TypeScript strict mode passes
 - [ ] ESLint passes
@@ -412,6 +466,147 @@ Before committing code, ensure:
 - Proxy automatically verifies session and outletId
 - Proxy handles authorization checks before handler execution
 - Never manually check session in route handlers - use proxy
+
+## 🎯 SweetAlert2 Best Practices
+
+### Always Use SweetAlert2
+- **NEVER** use `alert()`, `confirm()`, or `prompt()` - always use `Swal.fire()`
+- Import in every component that needs notifications:
+  ```typescript
+  import Swal from 'sweetalert2';
+  import 'sweetalert2/dist/sweetalert2.min.css';
+  ```
+
+### Standard Configurations
+
+#### Success Notification
+```typescript
+await Swal.fire({
+  icon: 'success',
+  title: 'Berhasil!',
+  text: 'Operation completed successfully',
+  confirmButtonColor: '#3085d6',
+  confirmButtonText: 'OK',
+  timer: 2000,
+  timerProgressBar: true,
+});
+```
+
+#### Error Notification
+```typescript
+await Swal.fire({
+  icon: 'error',
+  title: 'Error!',
+  text: 'Error message here',
+  confirmButtonColor: '#3085d6',
+  confirmButtonText: 'OK',
+});
+```
+
+#### Warning/Confirmation Dialog
+```typescript
+const result = await Swal.fire({
+  icon: 'warning',
+  title: 'Konfirmasi',
+  text: 'Are you sure you want to proceed?',
+  showCancelButton: true,
+  confirmButtonColor: '#d33',
+  cancelButtonColor: '#3085d6',
+  confirmButtonText: 'Ya',
+  cancelButtonText: 'Batal',
+});
+
+if (result.isConfirmed) {
+  // User confirmed
+}
+```
+
+#### Info Notification
+```typescript
+await Swal.fire({
+  icon: 'info',
+  title: 'Informasi',
+  text: 'Information message',
+  confirmButtonColor: '#3085d6',
+  confirmButtonText: 'OK',
+});
+```
+
+## 🎨 Bootstrap 5 Best Practices (AdminLTE v4)
+
+### Always Use Bootstrap Classes
+- **PRIORITY**: Use Bootstrap 5 utility classes instead of custom CSS or inline styles
+- **Avoid inline styles** - use Bootstrap classes whenever possible
+- **Avoid custom CSS** - prefer Bootstrap utility classes
+
+### Spacing (Margin & Padding)
+- Use Bootstrap spacing classes: `m-*`, `mt-*`, `mb-*`, `ms-*`, `me-*`, `mx-*`, `my-*`
+- Use Bootstrap padding classes: `p-*`, `pt-*`, `pb-*`, `ps-*`, `pe-*`, `px-*`, `py-*`
+- Examples: `mb-3`, `pt-3`, `px-2`, `py-4`, `mt-2`
+- **Avoid**: `style={{ marginBottom: '1rem' }}` → Use `mb-3` instead
+
+### Colors
+- Use Bootstrap color classes: `text-*`, `bg-*`, `border-*`
+- Examples: `text-primary`, `bg-success`, `text-muted`, `text-danger`, `bg-warning`
+- **Avoid**: `style={{ color: '#007bff' }}` → Use `text-primary` instead
+
+### Typography
+- Use Bootstrap typography classes: `fw-*`, `fs-*`, `text-*`
+- Examples: `fw-bold`, `fw-light`, `text-center`, `text-start`, `text-end`, `small`
+- **Avoid**: `style={{ fontWeight: 'bold' }}` → Use `fw-bold` instead
+
+### Layout
+- Use Bootstrap grid: `row`, `col-*`, `col-sm-*`, `col-md-*`, `col-lg-*`
+- Use Bootstrap flexbox: `d-flex`, `justify-content-*`, `align-items-*`, `flex-*`
+- Use Bootstrap display: `d-none`, `d-block`, `d-inline`, `d-flex`
+- **Avoid**: `style={{ display: 'flex' }}` → Use `d-flex` instead
+
+### Sizing
+- Use Bootstrap sizing classes: `w-*`, `h-*`
+- Examples: `w-100`, `h-50`, `mw-100`
+
+### Borders
+- Use Bootstrap border classes: `border`, `border-*`, `rounded`, `rounded-*`
+- Examples: `border`, `border-primary`, `rounded`, `rounded-3`
+
+### Shadows
+- Use Bootstrap shadow classes: `shadow`, `shadow-sm`, `shadow-lg`
+
+### Examples of Good vs Bad
+
+#### ✅ GOOD (Bootstrap Classes)
+```tsx
+<div className="mb-3 pt-3">
+  <h1 className="text-primary fw-bold">Title</h1>
+  <p className="text-muted small">Description</p>
+</div>
+```
+
+#### ❌ BAD (Inline Styles)
+```tsx
+<div style={{ marginBottom: '1rem', paddingTop: '1rem' }}>
+  <h1 style={{ color: '#007bff', fontWeight: 'bold' }}>Title</h1>
+  <p style={{ color: '#6c757d', fontSize: '0.875rem' }}>Description</p>
+</div>
+```
+
+#### ✅ GOOD (Bootstrap Classes)
+```tsx
+<button className="btn btn-primary btn-sm mb-2">
+  <i className="fas fa-save me-1"></i>
+  Simpan
+</button>
+```
+
+#### ❌ BAD (Inline Styles)
+```tsx
+<button 
+  className="btn btn-primary"
+  style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}
+>
+  Simpan
+</button>
+```
 
 ## 🔐 NextAuth.js v5 Patterns
 
@@ -470,10 +665,13 @@ When generating code:
 - Always use DTO for API responses
 - Always validate inputs with Zod
 - Always use AdminLTE v4 + Bootstrap 5 structure
+- **Always use SweetAlert2** for notifications (never use `alert()`, `confirm()`, or `prompt()`)
+- **Always use Bootstrap utility classes** instead of inline styles or custom CSS
 - Always use FontAwesome icons
 - Always follow SOLID principles
 - Always consider multi-tenancy security
 - Always write tests for critical paths
+- **Prefer Bootstrap classes** for spacing (`mb-3`, `pt-3`, `px-2`), colors (`text-primary`, `bg-success`), typography (`fw-bold`, `text-muted`), etc.
 
 When generating tests:
 - **Database tests**: Always use `createTestPrismaClient()` and `cleanupTestDatabase()`

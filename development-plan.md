@@ -229,12 +229,12 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - [x] Setup role-based dashboard content
 
 ### 1.6 Outlet Management (SuperAdmin)
-- [ ] Buat halaman list outlets (`app/admin/outlets/page.tsx`)
-- [ ] Implementasi CRUD untuk outlets
-- [ ] Buat form create/edit outlet dengan AdminLTE styling
-- [ ] Implementasi outlet slug generation
-- [ ] Buat halaman detail outlet
-- [ ] Implementasi outlet status management
+- [x] Buat halaman list outlets (`app/admin/outlets/page.tsx`)
+- [x] Implementasi CRUD untuk outlets
+- [x] Buat form create/edit outlet dengan AdminLTE styling
+- [x] Implementasi outlet slug generation
+- [x] Buat halaman detail outlet
+- [x] Implementasi outlet status management
 
 ### 1.6.1 Bank Account Management (Owner)
 - [ ] Buat halaman bank account management (`app/dashboard/settings/bank-accounts/page.tsx`)
@@ -589,11 +589,12 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - ✅ Phase 1.3: Multi-Tenancy Foundation (Completed)
 - ✅ Phase 1.4: Database Models (Completed)
 - ✅ Phase 1.5: Dashboard Homepage (Completed)
+- ✅ Phase 1.6: Outlet Management (SuperAdmin) (Completed)
 
 **Next Steps:**
-1. AdminLTE Layout Integration
-2. Multi-Tenancy Foundation
-3. Complete Database Models
+1. Phase 1.6.1: Bank Account Management (Owner)
+2. Phase 1.6.2: Payment Gateway Configuration (Owner)
+3. Phase 1.7: Outlet Microsite (Public)
 
 ---
 
@@ -602,6 +603,16 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - **WAJIB**: Baca dan ikuti `.cursorrules` sebelum coding
 - Setiap task harus mengikuti prinsip SOLID
 - Semua UI components harus menggunakan AdminLTE v4 styling
+- **WAJIB**: Selalu gunakan **SweetAlert2** untuk semua notifikasi (success, error, warning, confirmation)
+  - **JANGAN** menggunakan `alert()`, `confirm()`, atau `prompt()`
+  - Import: `import Swal from 'sweetalert2'` dan `import 'sweetalert2/dist/sweetalert2.min.css'`
+- **WAJIB**: Utamakan **Bootstrap 5 utility classes** daripada CSS manual atau inline styles
+  - Gunakan Bootstrap classes untuk spacing: `mb-3`, `pt-3`, `px-2`, `py-4`, dll
+  - Gunakan Bootstrap classes untuk colors: `text-primary`, `bg-success`, `text-muted`, dll
+  - Gunakan Bootstrap classes untuk typography: `fw-bold`, `text-center`, `small`, dll
+  - Gunakan Bootstrap classes untuk layout: `row`, `col-*`, `d-flex`, `justify-content-*`, dll
+  - **Hindari** inline styles (`style={{ ... }}`) kecuali benar-benar diperlukan
+  - **Hindari** custom CSS untuk styling yang bisa dicapai dengan Bootstrap classes
 - Setiap API endpoint harus memiliki validasi Zod
 - Setiap query database harus include outlet filtering (CRITICAL)
 - Semua sensitive data harus di-scrub sebelum dikirim ke client
@@ -621,6 +632,16 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - ✅ DashboardService untuk business logic dashboard statistics
 - ✅ API endpoints untuk dashboard stats dan recent orders
 - ✅ Comprehensive testing untuk dashboard features
+- ✅ Outlet Management untuk SuperAdmin dengan CRUD lengkap (Phase 1.6)
+- ✅ Outlet DTO untuk response scrubbing
+- ✅ API routes untuk outlet management dengan SuperAdmin authorization
+- ✅ Halaman list outlets dengan AdminLTE styling
+- ✅ Form create/edit outlet dengan slug generation otomatis
+- ✅ Halaman detail outlet dengan informasi lengkap (users, bank accounts, payment gateways)
+- ✅ Outlet status management (isPro toggle)
+- ✅ Validasi slug sebelum submit dengan perbedaan create/update
+- ✅ SweetAlert2 integration untuk semua notifikasi
+- ✅ Comprehensive testing untuk OutletRepository (CRUD, slug management, relations)
 
 ---
 
@@ -629,9 +650,11 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 Development plan ini akan diupdate secara berkala sesuai dengan progress dan perubahan requirement.
 
 **Last Updated**: 2026-01-24  
-**Version**: 1.2
+**Version**: 1.4
 
 ### Changelog
+- **v1.4 (2026-01-24)**: Updated rules - Always use SweetAlert2 and Bootstrap utility classes (no inline styles/custom CSS)
+- **v1.3 (2026-01-24)**: Completed Phase 1.6 (Outlet Management for SuperAdmin)
 - **v1.2 (2026-01-24)**: Completed Phase 1.4 (Database Models) dan Phase 1.5 (Dashboard Homepage)
 - **v1.1 (2026-01-23)**: Completed Phase 1.1.1 - 1.1.6 (Authentication System foundation)
 - **v1.0 (2026-01-23)**: Initial development plan
