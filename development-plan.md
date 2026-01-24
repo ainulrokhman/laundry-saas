@@ -157,7 +157,7 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
   - [x] Credentials provider untuk PIN-based login
   - [x] Session include: userId, outletId, role, phone
   - [x] Update lastLoginAt setelah login berhasil
-- [ ] Implementasi rate limiting untuk login attempts (max 5 attempts per 15 menit per phone)
+- [x] Implementasi rate limiting untuk login attempts (max 5 attempts per 15 menit per phone)
 - [x] Handle error cases (invalid credentials, inactive user, dll)
 - [x] Phone number normalization untuk konsistensi
 
@@ -169,7 +169,7 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
   - [x] `getSession()`, `getCurrentUser()`, `requireAuth()`, `requireRole()`
   - [x] `isSuperAdmin()`, `isOwner()`, `isStaff()`, `isOwnerOrSuperAdmin()`
   - [x] `getOutletId()`, `requireOutletId()`
-- [ ] Implementasi middleware untuk route protection (menggunakan route proxy pattern)
+- [x] Implementasi middleware untuk route protection (menggunakan route proxy pattern)
 
 #### 1.1.7 PIN Management
 - [x] Buat halaman change PIN (`app/dashboard/settings/change-pin/page.tsx`)
@@ -206,7 +206,18 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - [x] Implementasi OutletRepository dan ServiceRepository dengan outlet filtering
 - [x] Implementasi ServiceService dengan role-based access control
 
-### 1.4 Database Models (Complete Schema)
+### 1.4 Security Implementation Review & Completion
+- [x] Implementasi tenant isolation di semua queries (via BaseRepository)
+- [x] Buat DTO untuk response scrubbing (OutletDTO sudah ada, perlu extend untuk lainnya)
+- [x] Implementasi middleware untuk outlet verification (via route proxy pattern)
+- [x] Setup rate limiting untuk auth endpoints (OTP, login, change PIN)
+- [x] Implementasi Zod validation untuk forms (registration, login, change PIN)
+- [x] Review dan audit semua API endpoints untuk memastikan tenant isolation (dokumentasi: `docs/SECURITY-AUDIT.md`)
+- [x] Extend DTO pattern ke semua API responses (OrderDTO, TransactionDTO, ServiceDTO sudah dibuat)
+- [x] Implementasi comprehensive input sanitization (`src/lib/utils/sanitize.ts`)
+- [x] Setup security headers di Next.js config (X-Frame-Options, CSP, HSTS, dll)
+
+### 1.5 Database Models (Complete Schema)
 - [x] Implementasi User model lengkap
 - [x] Implementasi Outlet model lengkap
 - [x] Implementasi BankAccount model (multiple rekening per outlet)
@@ -217,7 +228,7 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - [x] Setup semua relasi antar model
 - [x] Run Prisma migrations
 
-### 1.5 Dashboard Homepage
+### 1.6 Dashboard Homepage
 - [x] Buat dashboard page (`app/dashboard/page.tsx`)
 - [x] Implementasi Cards & Widgets (AdminLTE Info Box)
   - [x] Order hari ini
@@ -228,7 +239,7 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - [x] Implementasi recent orders table
 - [x] Setup role-based dashboard content
 
-### 1.6 Outlet Management (SuperAdmin)
+### 1.7 Outlet Management (SuperAdmin)
 - [x] Buat halaman list outlets (`app/admin/outlets/page.tsx`)
 - [x] Implementasi CRUD untuk outlets
 - [x] Buat form create/edit outlet dengan AdminLTE styling
@@ -236,7 +247,7 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - [x] Buat halaman detail outlet
 - [x] Implementasi outlet status management
 
-### 1.6.1 Bank Account Management (Owner)
+### 1.8 Bank Account Management (Owner)
 - [ ] Buat halaman bank account management (`app/dashboard/settings/bank-accounts/page.tsx`)
 - [ ] Implementasi CRUD untuk bank accounts per outlet
 - [ ] Buat form add/edit bank account dengan AdminLTE styling
@@ -244,17 +255,7 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - [ ] Buat bank account selection untuk display di public outlet page
 - [ ] Implementasi validation untuk bank account data
 
-### 1.6.2 Payment Gateway Configuration (Owner)
-- [ ] Buat halaman payment gateway settings (`app/dashboard/settings/payment-gateways/page.tsx`)
-- [ ] Display list available payment gateways (Midtrans, Xendit)
-- [ ] Implementasi enable/disable gateway per outlet
-- [ ] Buat form konfigurasi untuk setiap gateway type
-- [ ] Implementasi secure storage untuk API keys (encryption)
-- [ ] Buat test connection untuk gateway configuration
-- [ ] Display gateway status (active/inactive, last verified)
-- [ ] Implementasi validation untuk gateway credentials
-
-### 1.7 Outlet Microsite (Public)
+### 1.9 Outlet Microsite (Public)
 - [ ] Buat dynamic route `/outlet/[slug]`
 - [ ] Buat halaman publik outlet dengan desain minimalis
 - [ ] Display outlet information (nama, alamat, kontak)
@@ -263,20 +264,13 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - [ ] Buat form quick order (opsional untuk Fase 1)
 - [ ] Implementasi SEO-friendly metadata
 
-### 1.8 User Management
+### 1.10 User Management
 - [ ] Buat halaman user management (`app/admin/users/page.tsx`)
 - [ ] Implementasi CRUD untuk users
 - [ ] Buat form assign user ke outlet
 - [ ] Implementasi role assignment
 - [ ] Buat halaman profile user
 - [ ] Implementasi change password
-
-### 1.9 Security Implementation (Phase 1)
-- [ ] Implementasi tenant isolation di semua queries
-- [ ] Buat DTO untuk response scrubbing
-- [ ] Implementasi middleware untuk outlet verification
-- [ ] Setup rate limiting untuk auth endpoints
-- [ ] Implementasi Zod validation untuk forms
 
 ---
 
@@ -579,22 +573,24 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - ✅ Phase 1.1.2: WhatsApp Service Integration (Fonnte)
 - ✅ Phase 1.1.3: OTP Service dengan rate limiting
 - ✅ Phase 1.1.4: Registration Flow (OWNER only) dengan modern UI
-- ✅ Phase 1.1.5: PIN-based Login dengan modern UI dan SweetAlert
-- ✅ Phase 1.1.6: Session Management utilities
+- ✅ Phase 1.1.5: PIN-based Login dengan modern UI dan SweetAlert (termasuk rate limiting)
+- ✅ Phase 1.1.6: Session Management utilities (termasuk route proxy pattern)
 - ✅ Phase 1.1.7: PIN Management
 - ✅ Phase 1.1.8: Security Features (rate limiting, account lockout, logging, CSRF, secure cookies)
 
 **In Progress:**
 - ✅ Phase 1.2: AdminLTE Layout Integration (Completed)
 - ✅ Phase 1.3: Multi-Tenancy Foundation (Completed)
-- ✅ Phase 1.4: Database Models (Completed)
-- ✅ Phase 1.5: Dashboard Homepage (Completed)
-- ✅ Phase 1.6: Outlet Management (SuperAdmin) (Completed)
+- ✅ Phase 1.4: Security Implementation Review & Completion (In Progress - sebagian sudah selesai)
+- ✅ Phase 1.5: Database Models (Completed)
+- ✅ Phase 1.6: Dashboard Homepage (Completed)
+- ✅ Phase 1.7: Outlet Management (SuperAdmin) (Completed)
 
 **Next Steps:**
-1. Phase 1.6.1: Bank Account Management (Owner)
-2. Phase 1.6.2: Payment Gateway Configuration (Owner)
-3. Phase 1.7: Outlet Microsite (Public)
+1. Phase 1.4: Security Implementation Review & Completion (audit & extend DTO pattern)
+2. Phase 1.8: Bank Account Management (Owner)
+3. Phase 1.9: Outlet Microsite (Public)
+4. Phase 1.10: User Management
 
 ---
 
@@ -650,9 +646,15 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 Development plan ini akan diupdate secara berkala sesuai dengan progress dan perubahan requirement.
 
 **Last Updated**: 2026-01-24  
-**Version**: 1.4
+**Version**: 1.5
 
 ### Changelog
+- **v1.5 (2026-01-24)**: 
+  - Updated task status: Rate limiting dan route protection middleware sudah selesai
+  - Reorganized Phase 1: Pindahkan Security Implementation ke posisi lebih awal (1.4)
+  - Removed duplicate: Hapus Phase 1.6.2 (Payment Gateway Configuration) karena duplikat dengan Phase 3.5.2
+  - Updated numbering: Renumber Phase 1 sections (1.4→1.5, 1.5→1.6, 1.6→1.7, 1.6.1→1.8, 1.7→1.9, 1.8→1.10)
+  - Updated next steps dengan urutan yang lebih logis
 - **v1.4 (2026-01-24)**: Updated rules - Always use SweetAlert2 and Bootstrap utility classes (no inline styles/custom CSS)
 - **v1.3 (2026-01-24)**: Completed Phase 1.6 (Outlet Management for SuperAdmin)
 - **v1.2 (2026-01-24)**: Completed Phase 1.4 (Database Models) dan Phase 1.5 (Dashboard Homepage)

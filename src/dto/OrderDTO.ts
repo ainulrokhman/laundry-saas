@@ -1,0 +1,108 @@
+/**
+ * Order DTO
+ * 
+ * Data Transfer Objects for order responses.
+ * Ensures sensitive data is scrubbed before sending to client.
+ */
+
+import { Order, OrderStatus, PaymentStatus, PaymentMethod } from '@/generated/prisma';
+
+export interface OrderWithRelations extends Order {
+  outlet?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  transactions?: Array<{
+    id: string;
+    amount: number;
+    paymentMethod: PaymentMethod | null;
+    status: PaymentStatus;
+  }>;
+}
+
+export class OrderDTO {
+  /**
+   * Transform order to response format
+   * Scrubs sensitive data and only includes necessary fields
+   */
+  static toResponse(order: OrderWithRelations) {
+    return {
+      id: order.id,
+      trackingCode: order.trackingCode,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      paymentMethod: order.paymentMethod,
+      totalAmount: order.totalAmount,
+      customerName: order.customerName || null,
+      customerPhone: order.customerPhone ? this.maskPhone(order.customerPhone) : null, // Mask phone for privacy
+      notes: order.notes || null,
+      createdAt: order.createdAt.toISOString(),
+      updatedAt: order.updatedAt.toISOString(),
+      completedAt: order.completedAt?.toISOString() || null,
+      // Include outlet info if available (minimal)
+      ...(order.outlet && {
+        outlet: {
+          id: order.outlet.id,
+          name: order.outlet.name,
+          slug: order.outlet.slug,
+        },
+      }),
+      // Include transaction summary if available
+      ...(order.transactions && order.transactions.length > 0 && {
+        transactions: order.transactions.map((tx) => ({
+          id: tx.id,
+          amount: tx.amount,
+          paymentMethod: tx.paymentMethod,
+          status: tx.status,
+        })),
+      }),
+    };
+  }
+
+  /**
+   * Transform order to public response format (for tracking page)
+   * Only includes minimal, non-sensitive data
+   */
+  static toPublicResponse(order: OrderWithRelations) {
+    return {
+      trackingCode: order.trackingCode,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      totalAmount: order.totalAmount,
+      customerName: order.customerName ? this.maskName(order.customerName) : null, // Mask name for privacy
+      createdAt: order.createdAt.toISOString(),
+      completedAt: order.completedAt?.toISOString() || null,
+      // Minimal outlet info
+      ...(order.outlet && {
+        outletName: order.outlet.name,
+      }),
+    };
+  }
+
+  /**
+   * Transform array of orders to response format
+   */
+  static toResponseArray(orders: OrderWithRelations[]) {
+    return orders.map((order) => this.toResponse(order));
+  }
+
+  /**
+   * Mask phone number for privacy (e.g., 6281234567890 -> 6281****7890)
+   */
+  private static maskPhone(phone: string): string {
+    if (phone.length <= 4) return '****';
+    const start = phone.slice(0, 4);
+    const end = phone.slice(-4);
+    return `${start}****${end}`;
+  }
+
+  /**
+   * Mask customer name for privacy (e.g., "John Doe" -> "Jo***")
+   */
+  private static maskName(name: string): string {
+    if (name.length <= 2) return '***';
+    const start = name.slice(0, 2);
+    return `${start}***`;
+  }
+}
