@@ -1,0 +1,179 @@
+/**
+ * Bank Accounts API Routes
+ * 
+ * CRUD operations for bank accounts (Owner only)
+ */
+
+import { NextRequest } from 'next/server';
+import { z } from 'zod';
+import { withOwnerAuth } from '@/lib/proxy/route-proxy';
+import { ExtendedSession } from '@/lib/auth';
+import { BankAccountRepository } from '@/repositories/BankAccountRepository';
+import { BankAccountDTO } from '@/dto/BankAccountDTO';
+
+const bankAccountRepository = new BankAccountRepository();
+
+// Validation schemas
+const createBankAccountSchema = z.object({
+  bankName: z
+    .string({
+      required_error: 'Nama bank harus diisi',
+      invalid_type_error: 'Nama bank harus berupa teks',
+    })
+    .trim()
+    .min(1, 'Nama bank harus diisi')
+    .max(100, 'Nama bank maksimal 100 karakter'),
+  accountName: z
+    .string({
+      required_error: 'Nama pemilik rekening harus diisi',
+      invalid_type_error: 'Nama pemilik rekening harus berupa teks',
+    })
+    .trim()
+    .min(1, 'Nama pemilik rekening harus diisi')
+    .max(255, 'Nama pemilik rekening maksimal 255 karakter'),
+  accountNumber: z
+    .string({
+      required_error: 'Nomor rekening harus diisi',
+      invalid_type_error: 'Nomor rekening harus berupa teks',
+    })
+    .trim()
+    .min(1, 'Nomor rekening harus diisi')
+    .max(50, 'Nomor rekening maksimal 50 karakter')
+    .regex(/^[0-9]+$/, 'Nomor rekening hanya boleh mengandung angka'),
+  isActive: z.boolean().optional().default(true),
+});
+
+const updateBankAccountSchema = z.object({
+  bankName: z.string().min(1).max(100).optional(),
+  accountName: z.string().min(1).max(255).optional(),
+  accountNumber: z.string().min(1).max(50).regex(/^[0-9]+$/).optional(),
+  isActive: z.boolean().optional(),
+});
+
+/**
+ * GET /api/dashboard/settings/bank-accounts
+ * Get all bank accounts for the authenticated outlet (Owner only)
+ */
+export const GET = withOwnerAuth(async (
+  request: NextRequest,
+  session: ExtendedSession
+) => {
+  try {
+    if (!session.outletId) {
+      return Response.json(
+        {
+          success: false,
+          error: 'Outlet context required',
+        },
+        { status: 403 }
+      );
+    }
+
+    const bankAccounts = await bankAccountRepository.findByOutletId(
+      session.outletId
+    );
+
+    return Response.json({
+      success: true,
+      data: BankAccountDTO.toResponseArray(bankAccounts),
+    });
+  } catch (error) {
+    console.error('Error fetching bank accounts:', error);
+    return Response.json(
+      {
+        success: false,
+        error: 'Failed to fetch bank accounts',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
+  }
+});
+
+/**
+ * POST /api/dashboard/settings/bank-accounts
+ * Create new bank account (Owner only)
+ */
+export const POST = withOwnerAuth(async (
+  request: NextRequest,
+  session: ExtendedSession
+) => {
+  try {
+    if (!session.outletId) {
+      return Response.json(
+        {
+          success: false,
+          error: 'Outlet context required',
+        },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+
+    // Validate request body
+    const validatedData = createBankAccountSchema.parse(body);
+
+    try {
+      const bankAccount = await bankAccountRepository.create(
+        session.outletId,
+        {
+          bankName: validatedData.bankName.trim(),
+          accountName: validatedData.accountName.trim(),
+          accountNumber: validatedData.accountNumber.trim(),
+          isActive: validatedData.isActive ?? true,
+        }
+      );
+
+      return Response.json(
+        {
+          success: true,
+          data: BankAccountDTO.toResponse(bankAccount),
+          message: 'Rekening bank berhasil ditambahkan',
+        },
+        { status: 201 }
+      );
+    } catch (dbError: any) {
+      console.error('Database error creating bank account:', dbError);
+      throw dbError;
+    }
+  } catch (error) {
+    console.error('Error creating bank account:', error);
+
+    if (error instanceof z.ZodError) {
+      const errorMessages = error.errors.map((e) => {
+        const field = e.path.join('.');
+        return `${field}: ${e.message}`;
+      });
+
+      return Response.json(
+        {
+          success: false,
+          error: 'Validation error',
+          message: errorMessages.join(', '),
+          errors: error.errors.map((e) => ({
+            field: e.path.join('.'),
+            message: e.message,
+          })),
+        },
+        { status: 400 }
+      );
+    }
+
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error occurred';
+
+    return Response.json(
+      {
+        success: false,
+        error: 'Failed to create bank account',
+        message: errorMessage,
+        ...(process.env.NODE_ENV === 'development' &&
+          error instanceof Error && {
+            stack: error.stack,
+          }),
+      },
+      { status: 500 }
+    );
+  }
+});

@@ -248,12 +248,12 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - [x] Implementasi outlet status management
 
 ### 1.8 Bank Account Management (Owner)
-- [ ] Buat halaman bank account management (`app/dashboard/settings/bank-accounts/page.tsx`)
-- [ ] Implementasi CRUD untuk bank accounts per outlet
-- [ ] Buat form add/edit bank account dengan AdminLTE styling
-- [ ] Implementasi bank account activation/deactivation
+- [x] Buat halaman bank account management (`app/dashboard/settings/bank-accounts/page.tsx`)
+- [x] Implementasi CRUD untuk bank accounts per outlet
+- [x] Buat form add/edit bank account dengan AdminLTE styling
+- [x] Implementasi bank account activation/deactivation
 - [ ] Buat bank account selection untuk display di public outlet page
-- [ ] Implementasi validation untuk bank account data
+- [x] Implementasi validation untuk bank account data
 
 ### 1.9 Outlet Microsite (Public)
 - [ ] Buat dynamic route `/outlet/[slug]`
@@ -581,16 +581,15 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 **In Progress:**
 - ✅ Phase 1.2: AdminLTE Layout Integration (Completed)
 - ✅ Phase 1.3: Multi-Tenancy Foundation (Completed)
-- ✅ Phase 1.4: Security Implementation Review & Completion (In Progress - sebagian sudah selesai)
+- ✅ Phase 1.4: Security Implementation Review & Completion (Completed)
 - ✅ Phase 1.5: Database Models (Completed)
 - ✅ Phase 1.6: Dashboard Homepage (Completed)
 - ✅ Phase 1.7: Outlet Management (SuperAdmin) (Completed)
+- ✅ Phase 1.8: Bank Account Management (Owner) (Completed)
 
 **Next Steps:**
-1. Phase 1.4: Security Implementation Review & Completion (audit & extend DTO pattern)
-2. Phase 1.8: Bank Account Management (Owner)
-3. Phase 1.9: Outlet Microsite (Public)
-4. Phase 1.10: User Management
+1. Phase 1.9: Outlet Microsite (Public)
+2. Phase 1.10: User Management
 
 ---
 
@@ -638,6 +637,14 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - ✅ Validasi slug sebelum submit dengan perbedaan create/update
 - ✅ SweetAlert2 integration untuk semua notifikasi
 - ✅ Comprehensive testing untuk OutletRepository (CRUD, slug management, relations)
+- ✅ Bank Account Management untuk Owner dengan CRUD lengkap (Phase 1.8)
+- ✅ BankAccountRepository dengan outlet filtering
+- ✅ BankAccountDTO untuk response scrubbing
+- ✅ API routes untuk bank account management dengan Owner authorization
+- ✅ Halaman bank account management dengan AdminLTE styling
+- ✅ Form add/edit bank account dengan validasi lengkap
+- ✅ Bank account activation/deactivation toggle
+- ✅ Validasi nomor rekening (hanya angka)
 
 ---
 
@@ -646,9 +653,16 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 Development plan ini akan diupdate secara berkala sesuai dengan progress dan perubahan requirement.
 
 **Last Updated**: 2026-01-24  
-**Version**: 1.5
+**Version**: 1.6
 
 ### Changelog
+- **v1.6 (2026-01-24)**: 
+  - Completed Phase 1.8: Bank Account Management (Owner)
+  - Added BankAccountRepository dengan outlet filtering
+  - Added BankAccountDTO untuk response scrubbing
+  - Added API routes untuk bank account CRUD operations
+  - Added halaman bank account management dengan AdminLTE styling
+  - Implemented bank account activation/deactivation toggle
 - **v1.5 (2026-01-24)**: 
   - Updated task status: Rate limiting dan route protection middleware sudah selesai
   - Reorganized Phase 1: Pindahkan Security Implementation ke posisi lebih awal (1.4)

@@ -72,7 +72,7 @@ const menuItems: MenuItem[] = [
     label: 'Settings',
     icon: 'fas fa-cog',
     href: '/dashboard/settings',
-    roles: [Role.SUPERADMIN, Role.OWNER],
+    roles: [Role.OWNER, Role.STAFF],
   },
   {
     label: 'Outlets',
