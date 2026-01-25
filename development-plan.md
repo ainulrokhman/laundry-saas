@@ -1,71 +1,139 @@
 # 📋 Development Plan: Laundry SaaS Platform
 
-Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry SaaS sesuai dengan blueprint arsitektur.
+This document is a detailed development plan to build the Laundry SaaS system based on the architecture blueprint.
 
-> **Note**: Pastikan membaca `.cursorrules` untuk guidelines coding, security, dan best practices sebelum memulai development.
+> **Note**: Please read `.cursorrules` for coding guidelines, security rules, and best practices before starting development.
 
 ---
 
 ## 🎯 Overview
 
-**Project**: Laundry SaaS Platform (Ainul Laundry)  
-**Framework**: Next.js 16.x LTS (App Router)  
-**UI**: AdminLTE v4 (Bootstrap 5)  
-**Database**: PostgreSQL (Neon.tech)  
-**ORM**: Prisma  
-**Auth**: NextAuth.js v5  
-**Testing**: Vitest + Playwright  
+**Project**: Laundry SaaS Platform (Ainul Laundry)
+**Framework**: Next.js 16.x LTS (App Router)
+**UI**: AdminLTE v4 (Bootstrap 5)
+**Database**: PostgreSQL (Neon.tech)
+**ORM**: Prisma
+**Auth**: NextAuth.js v5
+**Testing**: Vitest + Playwright
 
 ---
 
+## 🔐 Role Model & Access (RBAC)
+
+The main goal of the role model is to keep **multi-tenancy** secure and clearly separate the **SaaS platform** area vs the **outlet operations** area.
+
+### Core Principles
+- **Outlet context (multi-tenancy)**: outlet endpoints/features **must** use `outletId` from the session (not from request/client).
+- **Multi-outlet note (OWNER)**: `session.outletId` represents the **active outlet** currently selected by the user, not the “only outlet” owned by the OWNER.
+- **Application area separation**:
+  - **Admin Panel (platform)**: `/admin/*` and `/api/admin/*` → **SUPERADMIN**
+  - **Outlet Dashboard (tenant)**: `/dashboard/*` and `/api/dashboard/*` → **OWNER/STAFF** (**requires** `outletId`)
+  - **Public**: `/track/*`, `/outlet/*`, `/api/public/*` → public (no auth, with rate limiting when needed)
+
+### Role Definitions
+- **SUPERADMIN (SaaS Admin)**:
+  - Focus: manage the SaaS system (outlets, platform users, subscriptions, payment verification, audit).
+  - Access: **only** `/admin/*` (does not run outlet operations).
+  - Outlet context: typically has **no** `outletId`, therefore **does not** access `/dashboard/*`.
+- **OWNER (Tenant Admin)**:
+  - Focus: outlet owner; manages outlet configuration and operations.
+  - Access: `/dashboard/*` (including sensitive settings like bank accounts, payment configuration, services, reports).
+  - Tenant-level user management: **can** manage **STAFF** accounts for their own outlet.
+- **STAFF (Tenant Operator)**:
+  - Focus: day-to-day outlet operations (POS, order workflow, customers).
+  - Access: `/dashboard/*` with limitations (e.g., cannot change sensitive configuration).
+  - Note: detailed permissions are mapped per feature (see tasks under POS/Orders/Settings).
+
+### Backlog: Impersonation (Support)
+- (Optional) For troubleshooting/support: SUPERADMIN can **impersonate** OWNER/STAFF via the admin panel.
+  This is not daily SUPERADMIN access to the outlet dashboard, and must be strictly audited/logged.
+
+---
+
+## 🧭 System Rules (Source of Truth)
+
+This section contains **system/product rules**. All implementations (API/UI) must follow these rules.
+
+- **RBAC & access areas**:
+  - SUPERADMIN → Admin Panel (`/admin/*`)
+  - OWNER/STAFF → Outlet Dashboard (`/dashboard/*`)
+- **Outlet context**:
+  - `session.outletId` = the **active outlet** selected by the user (OWNER can be multi-outlet; roadmap)
+  - `session.outletId` can be `null` for SUPERADMIN
+- **Payment scope**:
+  - **SaaS subscription**: manual transfer + proof upload by OWNER + verification/approval by SUPERADMIN
+  - **Outlet transactions (LAUNDRY_ORDER)**: **bookkeeping only** (PAID/UNPAID + optional `paidAt`), no payment approval
+- **Outlet Landing Page**:
+  - Public (`/outlet/[slug]`) and follows the **no overclaim** principle
+  - Landing page content is configurable by OWNER per outlet (roadmap)
+
+---
+
+## 🏷️ Role Tags for Tasks
+
+To make the roadmap clearer, each section/task uses role tags:
+
+- `[Role: SYSTEM]` → internal engineering work (security, infra, repo/service, testing)
+- `[Role: SUPERADMIN]` → Admin Panel features (SaaS platform)
+- `[Role: OWNER]` → Outlet Dashboard features for outlet owners
+- `[Role: STAFF]` → Outlet Dashboard features for operators
+- `[Role: OWNER/STAFF]` → Outlet Dashboard features accessible by both
+- `[Role: PUBLIC]` → public features (customer/public) without login
+
+Role reference (high-level features): `docs/roles/`
+
+---
+
+## ✅ Implemented (Done)
+
 ## 📦 Phase 0: Foundation & Setup
 
-### 0.1 Dependencies Installation
+### 0.1 Dependencies Installation [Role: SYSTEM]
 - [x] Install AdminLTE v4 (`admin-lte@4.0.0-rc4`)
 - [x] Install Bootstrap 5
 - [x] Install Prisma (`@prisma/client`, `prisma`)
 - [x] Install NextAuth.js v5 (`next-auth`)
-- [x] Install Zod untuk validasi (`zod`)
-- [x] Install bcrypt untuk hashing PIN (`bcryptjs` dan `@types/bcryptjs`)
-- [x] Install Fonnte SDK atau HTTP client untuk WhatsApp API (`axios` atau `node-fetch`)
-- [x] Install Vitest dan dependencies (`vitest`, `@testing-library/react`, `@testing-library/jest-dom`)
+- [x] Install Zod for validation (`zod`)
+- [x] Install bcrypt for PIN hashing (`bcryptjs` and `@types/bcryptjs`)
+- [x] Install Fonnte SDK or an HTTP client for WhatsApp API (`axios` or `node-fetch`)
+- [x] Install Vitest and dependencies (`vitest`, `@testing-library/react`, `@testing-library/jest-dom`)
 - [x] Install Playwright (`@playwright/test`)
 - [x] Install FontAwesome icons
 - [x] Install utility libraries (`date-fns`, `uuid`)
 
-### 0.2 Database Setup
+### 0.2 Database Setup [Role: SYSTEM]
 - [x] Setup Neon.tech PostgreSQL database (Singapore region)
-- [x] Konfigurasi Prisma schema sesuai blueprint
+- [x] Configure Prisma schema according to the blueprint
   - [x] Enum: Role, OrderStatus, PaymentStatus, PaymentMethod (CASH, TRANSFER, MIDTRANS, XENDIT), TransType, OtpType (REGISTER)
-  - [x] Model: User (dengan PIN, isPinSet, pinChangedAt), OtpCode, Outlet, BankAccount, PaymentGatewayConfig, Service, Order, Transaction
-  - [x] Relasi antar model:
+  - [x] Models: User (with PIN, isPinSet, pinChangedAt), OtpCode, Outlet, BankAccount, PaymentGatewayConfig, Service, Order, Transaction
+  - [x] Model relationships:
     - User → Outlet (many-to-one, optional)
     - Outlet → BankAccount (one-to-many)
     - Outlet → PaymentGatewayConfig (one-to-many)
     - Transaction → PaymentGatewayConfig (many-to-one, optional)
 - [x] Generate Prisma Client
 - [x] Setup Prisma migrations
-- [x] Seed database dengan data awal (SuperAdmin user dengan PIN default)
+- [x] Seed database with initial data (SuperAdmin user with default PIN)
 
-### 0.3 Environment Configuration
-- [x] Setup `.env.local` dari `.env.example`
-- [x] Konfigurasi `DATABASE_URL`
-- [x] Konfigurasi `NEXTAUTH_URL` dan `NEXTAUTH_SECRET`
-- [x] Konfigurasi `FONNTE_API_KEY` untuk WhatsApp service
-- [x] Konfigurasi `FONNTE_API_URL` (opsional, default dari Fonnte)
-- [x] Konfigurasi Cloudinary/Supabase Storage (opsional)
-- [x] Setup environment variables untuk Vercel (dokumentasi: `docs/VERCEL-ENV-SETUP.md`)
+### 0.3 Environment Configuration [Role: SYSTEM]
+- [x] Create `.env.local` from `.env.example`
+- [x] Configure `DATABASE_URL`
+- [x] Configure `NEXTAUTH_URL` and `NEXTAUTH_SECRET`
+- [x] Configure `FONNTE_API_KEY` for WhatsApp service
+- [x] Configure `FONNTE_API_URL` (optional, default from Fonnte)
+- [x] Configure Cloudinary/Supabase Storage (optional)
+- [x] Set up environment variables for Vercel (docs: `docs/VERCEL-ENV-SETUP.md`)
 
-### 0.4 Testing Setup
-- [x] Konfigurasi Vitest (`vitest.config.ts`)
-- [x] Konfigurasi Playwright (`playwright.config.ts`)
-- [x] Setup test utilities dan helpers (`__tests__/utils/`)
-- [x] Setup test database (separate schema untuk testing, dokumentasi: `docs/TEST-SETUP.md`)
-- [x] Tambahkan test scripts di `package.json`
-- [x] Buat verification tests untuk cursor rules compliance (`__tests__/verify-cursor-rules.test.ts`)
+### 0.4 Testing Setup [Role: SYSTEM]
+- [x] Configure Vitest (`vitest.config.ts`)
+- [x] Configure Playwright (`playwright.config.ts`)
+- [x] Set up test utilities and helpers (`__tests__/utils/`)
+- [x] Set up test database (separate schema for testing, docs: `docs/TEST-SETUP.md`)
+- [x] Add test scripts to `package.json`
+- [x] Create verification tests for Cursor rules compliance (`__tests__/verify-cursor-rules.test.ts`)
 
-### 0.5 Project Structure (SOLID Principles)
-- [x] Buat struktur folder:
+### 0.5 Project Structure (SOLID Principles) [Role: SYSTEM]
+- [x] Create folder structure:
   ```
   src/
   ├── app/                    # Next.js App Router
@@ -91,630 +159,673 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
   ├── types/                # TypeScript types
   └── dto/                  # Data Transfer Objects
   ```
-
-### 0.6 Cursor Rules Setup
-- [x] Buat `.cursorrules` file dengan guidelines lengkap
-- [x] Update `.cursorrules` untuk menggunakan proxy pattern (bukan middleware)
-- [ ] Review dan pastikan semua developer memahami cursor rules
-- [ ] Setup pre-commit hooks untuk code quality (opsional)
+### 0.6 Cursor Rules Setup [Role: SYSTEM]
+- [x] Create `.cursorrules` with complete guidelines
+- [x] Update `.cursorrules` to use the proxy pattern (not middleware)
 
 ---
 
 ## 🏗️ Phase 1: AdminLTE Dashboard Setup & Multi-Tenancy
 
-### 1.1 Authentication System
+### 1.1 Authentication System [Role: SYSTEM]
 
-#### 1.1.1 Database Models untuk Authentication
-- [x] Update User model dengan field PIN (hashed), isPinSet, pinChangedAt
-- [x] Update OtpCode model (OTP hanya untuk REGISTER, bukan LOGIN)
-- [x] Update OtpType enum (hanya REGISTER)
+#### 1.1.1 Database Models for Authentication
+- [x] Update User model with PIN fields (hashed), isPinSet, pinChangedAt
+- [x] Update OtpCode model (OTP only for REGISTER, not LOGIN)
+- [x] Update OtpType enum (REGISTER only)
 - [x] Run Prisma migrations
 
 #### 1.1.2 WhatsApp Service Integration
-- [x] Buat interface WhatsAppService (`src/services/whatsapp/interfaces/WhatsAppService.ts`)
-  - [x] Method: `sendOtp(phone: string, code: string): Promise<boolean>`
-  - [x] Method: `sendMessage(phone: string, message: string): Promise<boolean>`
-- [x] Implementasi FonnteWhatsAppService (`src/services/whatsapp/providers/FonnteWhatsAppService.ts`)
-  - [x] Integrasi dengan Fonnte API
-  - [x] Handle API response dan error
-  - [x] Template message untuk OTP
-- [x] Buat WhatsAppServiceFactory (`src/services/whatsapp/WhatsAppServiceFactory.ts`)
-- [x] Setup environment variables untuk Fonnte API key
+- [x] Create WhatsAppService interface (`src/services/whatsapp/interfaces/WhatsAppService.ts`)
+- [x] Method: `sendOtp(phone: string, code: string): Promise<boolean>`
+- [x] Method: `sendMessage(phone: string, message: string): Promise<boolean>`
+- [x] Implement FonnteWhatsAppService (`src/services/whatsapp/providers/FonnteWhatsAppService.ts`)
+- [x] Integrate with Fonnte API
+- [x] Handle API response and errors
+- [x] OTP message template
+- [x] Create WhatsAppServiceFactory (`src/services/whatsapp/WhatsAppServiceFactory.ts`)
+- [x] Set up environment variables for the Fonnte API key
 
 #### 1.1.3 OTP Service
-- [x] Buat OtpService (`src/services/auth/OtpService.ts`)
-  - [x] Method: `generateOtp(phone: string, type: OtpType): Promise<string>`
-  - [x] Method: `verifyOtp(phone: string, code: string, type: OtpType): Promise<boolean>`
-  - [x] Method: `cleanupExpiredOtps()` (background job)
-- [x] Implementasi rate limiting untuk OTP request (max 3 request per 10 menit per phone)
-- [x] Buat API route untuk request OTP (`/api/auth/otp/request`)
-- [x] Buat API route untuk verify OTP (`/api/auth/otp/verify`)
+- [x] Create OtpService (`src/services/auth/OtpService.ts`)
+- [x] Method: `generateOtp(phone: string, type: OtpType): Promise<string>`
+- [x] Method: `verifyOtp(phone: string, code: string, type: OtpType): Promise<boolean>`
+- [x] Method: `cleanupExpiredOtps()` (background job)
+- [x] Implement rate limiting for OTP requests (max 3 requests per 10 minutes per phone)
+- [x] Create API route for OTP request (`/api/auth/otp/request`)
+- [x] Create API route for OTP verification (`/api/auth/otp/verify`)
 
 #### 1.1.4 Registration Flow (OWNER only)
-- [x] Buat registration page (`app/register/page.tsx`) dengan modern design dan SweetAlert
-- [x] Step 1: Input nomor WhatsApp
+- [x] Create registration page (`app/register/page.tsx`) with a modern design and SweetAlert
+- [x] Step 1: Input WhatsApp number
 - [x] Step 2: Request OTP via WhatsApp (Fonnte API)
 - [x] Step 3: Verify OTP
-- [x] Step 4: Input data outlet (nama, alamat) dan set PIN (4-6 digit)
-- [x] Buat API route untuk registration (`/api/auth/register`)
-  - [x] Validasi: hanya OWNER yang boleh register
-  - [x] Create User dengan role OWNER
-  - [x] Create Outlet baru
-  - [x] Hash PIN dengan bcrypt
-  - [x] Redirect ke login setelah registrasi
-- [x] Implementasi validation dengan Zod
-- [x] Handle error cases (duplicate phone, invalid OTP, dll)
-- [x] Phone number normalization (tanpa + prefix untuk storage)
+- [x] Step 4: Input outlet data (name, address) and set a PIN (4-6 digits)
+- [x] Create API route for registration (`/api/auth/register`)
+- [x] Validation: only OWNER can register
+- [x] Create User with OWNER role
+- [x] Create a new Outlet
+- [x] Hash PIN with bcrypt
+- [x] Redirect to login after registration
+- [x] Implement validation with Zod
+- [x] Handle error cases (duplicate phone, invalid OTP, etc.)
+- [x] Phone number normalization (store without + prefix)
 
 #### 1.1.5 PIN-based Login
-- [x] Setup NextAuth.js v5 dengan credentials provider
-- [x] Buat login page (`app/login/page.tsx`) dengan modern design dan SweetAlert
-  - [x] Input: nomor WhatsApp dan PIN
-  - [x] Validasi format phone number
-  - [x] Validasi PIN (4-6 digit)
-- [x] Implementasi PIN verification (bcrypt comparison)
-- [x] Buat API route untuk authentication (`/api/auth/[...nextauth]`)
-  - [x] Credentials provider untuk PIN-based login
-  - [x] Session include: userId, outletId, role, phone
-  - [x] Update lastLoginAt setelah login berhasil
-- [x] Implementasi rate limiting untuk login attempts (max 5 attempts per 15 menit per phone)
-- [x] Handle error cases (invalid credentials, inactive user, dll)
-- [x] Phone number normalization untuk konsistensi
+- [x] Set up NextAuth.js v5 with credentials provider
+- [x] Create login page (`app/login/page.tsx`) with a modern design and SweetAlert
+- [x] Input: WhatsApp number and PIN
+- [x] Validate phone number format
+- [x] Validate PIN (4-6 digits)
+- [x] Implement PIN verification (bcrypt comparison)
+- [x] Create API route for authentication (`/api/auth/[...nextauth]`)
+- [x] Credentials provider for PIN-based login
+- [x] Session include: userId, outletId (nullable for SUPERADMIN), role, phone
+- [x] Update lastLoginAt after successful login
+- [x] Implement rate limiting for login attempts (max 5 attempts per 15 minutes per phone)
+- [x] Handle error cases (invalid credentials, inactive user, etc.)
+- [x] Phone number normalization for consistency
 
 #### 1.1.6 Session Management
-- [x] Setup session management dengan outletId
-- [x] Implementasi role-based access (SUPERADMIN, OWNER, STAFF)
-- [x] Buat session type definition untuk TypeScript
-- [x] Buat utility functions untuk session helpers (`src/lib/session.ts`)
-  - [x] `getSession()`, `getCurrentUser()`, `requireAuth()`, `requireRole()`
-  - [x] `isSuperAdmin()`, `isOwner()`, `isStaff()`, `isOwnerOrSuperAdmin()`
-  - [x] `getOutletId()`, `requireOutletId()`
-- [x] Implementasi middleware untuk route protection (menggunakan route proxy pattern)
+- [x] Set up session management with outletId (nullable for SUPERADMIN)
+- [x] Implement role-based access (SUPERADMIN, OWNER, STAFF)
+- [x] Create session type definitions for TypeScript
+- [x] Create utility functions for session helpers (`src/lib/session.ts`)
+- [x] `getSession()`, `getCurrentUser()`, `requireAuth()`, `requireRole()`
+- [x] `isSuperAdmin()`, `isOwner()`, `isStaff()`, `isOwnerOrSuperAdmin()`
+- [x] `getOutletId()`, `requireOutletId()`
+- [x] Implement route protection (using the route proxy pattern)
 
 #### 1.1.7 PIN Management
-- [x] Buat halaman change PIN (`app/dashboard/settings/change-pin/page.tsx`)
-- [x] Implementasi change PIN dengan validasi PIN lama
-- [x] Update pinChangedAt setelah PIN diubah
-- [x] Buat API route untuk change PIN (`/api/dashboard/settings/change-pin`)
-- [x] Implementasi rate limiting untuk change PIN
+- [x] Create change PIN page (`app/dashboard/settings/change-pin/page.tsx`)
+- [x] Implement change PIN with old PIN validation
+- [x] Update pinChangedAt after PIN change
+- [x] Create API route for change PIN (`/api/dashboard/settings/change-pin`)
+- [x] Implement rate limiting for change PIN
 
 #### 1.1.8 Security Features
-- [x] Implementasi rate limiting untuk semua auth endpoints
-- [x] Implementasi account lockout setelah multiple failed attempts
-- [x] Logging untuk security events (login attempts, OTP requests, dll)
-- [x] Implementasi CSRF protection (NextAuth v5 built-in)
+- [x] Implement rate limiting for all auth endpoints
+- [x] Implement account lockout after multiple failed attempts
+- [x] Log security events (login attempts, OTP requests, etc.)
+- [x] Implement CSRF protection (NextAuth v5 built-in)
 - [x] Setup secure session cookies
 
-### 1.2 AdminLTE Layout Integration
-- [x] Install dan import AdminLTE CSS/JS
-- [x] Buat layout component untuk dashboard (`components/adminlte/DashboardLayout.tsx`)
-- [x] Implementasi Sidebar Navigation dengan role-based menu
-- [x] Implementasi Navbar dengan user info
-- [x] Implementasi Footer
+### 1.2 AdminLTE Layout Integration [Role: SYSTEM]
+- [x] Install and import AdminLTE CSS/JS
+- [x] Create dashboard layout component (`components/adminlte/DashboardLayout.tsx`)
+- [x] Implement Sidebar Navigation with role-based menu
+- [x] Implement Navbar with user info
+- [x] Implement Footer
 - [x] Setup responsive design (mobile sidebar toggle)
-- [x] Integrasi FontAwesome icons
-- [x] Buat AdminLTEProvider untuk load JS files dari local assets (bukan CDN)
-- [x] Buat script untuk copy AdminLTE assets ke public folder
+- [x] Integrate FontAwesome icons
+- [x] Create AdminLTEProvider to load JS files from local assets (not CDN)
+- [x] Create script to copy AdminLTE assets to the public folder
 
-### 1.3 Multi-Tenancy Foundation
-- [x] Buat middleware untuk tenant isolation (via route proxy pattern)
-- [x] Implementasi outlet context/provider (via session utilities)
-- [x] Buat utility function untuk outlet filtering (`src/lib/outlet.ts`)
-- [x] Setup repository pattern untuk data access
-- [x] Implementasi base repository dengan outlet filtering (`BaseRepository`)
-- [x] Buat service layer untuk business logic (`BaseService`)
-- [x] Implementasi OutletRepository dan ServiceRepository dengan outlet filtering
-- [x] Implementasi ServiceService dengan role-based access control
+### 1.3 Multi-Tenancy Foundation [Role: SYSTEM]
+- [x] Implement tenant isolation (via route proxy pattern)
+- [x] Implement outlet context/provider (via session utilities)
+- [x] Create utility function for outlet filtering (`src/lib/outlet.ts`)
+- [x] Set up repository pattern for data access
+- [x] Implement base repository with outlet filtering (`BaseRepository`)
+- [x] Create service layer for business logic (`BaseService`)
+- [x] Implement OutletRepository and ServiceRepository with outlet filtering
+- [x] Implement ServiceService with role-based access control
 
-### 1.4 Security Implementation Review & Completion
-- [x] Implementasi tenant isolation di semua queries (via BaseRepository)
-- [x] Buat DTO untuk response scrubbing (OutletDTO sudah ada, perlu extend untuk lainnya)
-- [x] Implementasi middleware untuk outlet verification (via route proxy pattern)
-- [x] Setup rate limiting untuk auth endpoints (OTP, login, change PIN)
-- [x] Implementasi Zod validation untuk forms (registration, login, change PIN)
-- [x] Review dan audit semua API endpoints untuk memastikan tenant isolation (dokumentasi: `docs/SECURITY-AUDIT.md`)
-- [x] Extend DTO pattern ke semua API responses (OrderDTO, TransactionDTO, ServiceDTO sudah dibuat)
-- [x] Implementasi comprehensive input sanitization (`src/lib/utils/sanitize.ts`)
-- [x] Setup security headers di Next.js config (X-Frame-Options, CSP, HSTS, dll)
+### 1.4 Security Implementation Review & Completion [Role: SYSTEM]
+- [x] Implement tenant isolation across all queries (via BaseRepository)
+- [x] Create DTOs for response scrubbing (OutletDTO exists; extend for others)
+- [x] Implement outlet verification (via route proxy pattern)
+- [x] Set up rate limiting for auth endpoints (OTP, login, change PIN)
+- [x] Implement Zod validation for forms (registration, login, change PIN)
+- [x] Review and audit all API endpoints to ensure tenant isolation (docs: `docs/SECURITY-AUDIT.md`)
+- [x] Extend DTO pattern to all API responses (OrderDTO, TransactionDTO, ServiceDTO created)
+- [x] Implement comprehensive input sanitization (`src/lib/utils/sanitize.ts`)
+- [x] Set up security headers in Next.js config (X-Frame-Options, CSP, HSTS, etc.)
 
-### 1.5 Database Models (Complete Schema)
-- [x] Implementasi User model lengkap
-- [x] Implementasi Outlet model lengkap
-- [x] Implementasi BankAccount model (multiple rekening per outlet)
-- [x] Implementasi PaymentGatewayConfig model (konfigurasi gateway per outlet)
-- [x] Implementasi Service model (untuk layanan laundry)
-- [x] Implementasi Order model lengkap dengan relasi (include paymentMethod)
-- [x] Implementasi Transaction model lengkap (include paymentMethod, bankAccountId, paymentGatewayConfigId, gatewayTransactionId, gatewayResponse, webhookData)
-- [x] Setup semua relasi antar model
+### 1.5 Database Models (Complete Schema) [Role: SYSTEM]
+- [x] Implement full User model
+- [x] Implement full Outlet model
+- [x] Implement BankAccount model (multiple accounts per outlet)
+- [x] Implement PaymentGatewayConfig model (gateway configuration per outlet)
+- [x] Implement Service model (laundry services)
+- [x] Implement full Order model with relations (include paymentMethod)
+- [x] Implement full Transaction model (include paymentMethod, bankAccountId, paymentGatewayConfigId, gatewayTransactionId, gatewayResponse, webhookData)
+- [x] Setup all relationships between models
 - [x] Run Prisma migrations
 
-### 1.6 Dashboard Homepage
-- [x] Buat dashboard page (`app/dashboard/page.tsx`)
-- [x] Implementasi Cards & Widgets (AdminLTE Info Box)
-  - [x] Order hari ini
-  - [x] Omzet hari ini
-  - [x] Cucian tertunda
-  - [x] Total pelanggan
-- [x] Buat chart/graph untuk statistik (opsional)
-- [x] Implementasi recent orders table
+### 1.6 Dashboard Homepage [Role: OWNER/STAFF]
+- [x] Create dashboard page (`app/dashboard/page.tsx`)
+- [x] Implement Cards & Widgets (AdminLTE Info Box)
+- [x] Today’s orders
+- [x] Today’s revenue
+- [x] Pending laundry
+- [x] Total customers
+- [x] Create chart/graph for statistics (optional)
+- [x] Implement recent orders table
 - [x] Setup role-based dashboard content
 
-### 1.7 Outlet Management (SuperAdmin)
-- [x] Buat halaman list outlets (`app/admin/outlets/page.tsx`)
-- [x] Implementasi CRUD untuk outlets
-- [x] Buat form create/edit outlet dengan AdminLTE styling
-- [x] Implementasi outlet slug generation
-- [x] Buat halaman detail outlet
-- [x] Implementasi outlet status management
+### 1.7 Outlet Management (SuperAdmin) [Role: SUPERADMIN]
+- [x] Create outlet list page (`app/admin/outlets/page.tsx`)
+- [x] Implement CRUD for outlets
+- [x] Create create/edit outlet form with AdminLTE styling
+- [x] Implement outlet slug generation
+- [x] Create outlet detail page
+- [x] Implement outlet status management
 
-### 1.8 Bank Account Management (Owner)
-- [x] Buat halaman bank account management (`app/dashboard/settings/bank-accounts/page.tsx`)
-- [x] Implementasi CRUD untuk bank accounts per outlet
-- [x] Buat form add/edit bank account dengan AdminLTE styling
-- [x] Implementasi bank account activation/deactivation
-- [ ] Buat bank account selection untuk display di public outlet page
-- [x] Implementasi validation untuk bank account data
+### 1.8 Bank Account Management (Owner) [Role: OWNER]
+- [x] Create bank account management page (`app/dashboard/settings/bank-accounts/page.tsx`)
+- [x] Implement CRUD for bank accounts per outlet
+- [x] Create add/edit bank account form with AdminLTE styling
+- [x] Implement bank account activation/deactivation
+- [x] Implement validation for bank account data
 
-### 1.9 Outlet Microsite (Public)
-- [ ] **(Backlog dulu — setelah fitur SuperAdmin stabil)** Buat dynamic route `/outlet/[slug]`
-- [ ] Buat halaman publik outlet dengan desain minimalis
-- [ ] Display outlet information (nama, alamat, kontak)
-- [ ] Display services yang tersedia
-- [ ] Display bank accounts untuk transfer (hanya yang aktif)
-- [ ] Buat form quick order (opsional untuk Fase 1)
-- [ ] Implementasi SEO-friendly metadata
-
-### 1.10 User Management (SuperAdmin - Priority)
-- [x] Buat halaman user management (`app/admin/users/page.tsx`)
-- [x] Implementasi list users + filter:
-  - [x] Filter by role (SUPERADMIN, OWNER, STAFF)
-  - [x] Filter by outlet (untuk OWNER/STAFF)
-  - [x] Filter by status (aktif/nonaktif)
-  - [x] Search by nama/nomor HP
-  - [x] Pagination (page/limit)
-- [x] Implementasi CRUD user (SuperAdmin):
-  - [x] Create user (OWNER/STAFF/SUPERADMIN) + assign outlet (untuk OWNER/STAFF)
-  - [x] Update user (nama, role, outlet assignment, phone, status aktif)
-  - [x] Activate/Deactivate user
-- [x] Implementasi role assignment dengan guard yang ketat (SUPERADMIN only)
-- [x] Implementasi aksi admin:
-  - [x] Reset PIN user (generate PIN baru, set `pinChangedAt`, reset lockout, kirim WA best-effort)
-  - [ ] Force logout / revoke session (opsional / future)
-- [x] Buat halaman detail user (`app/admin/users/[id]/page.tsx`)
-- [x] Audit logging untuk operasi admin (via `SecurityLogService`):
-  - [x] ADMIN_USER_CREATE, ADMIN_USER_UPDATE, ADMIN_USER_ACTIVATE/DEACTIVATE, ADMIN_USER_RESET_PIN
+### 1.10 User Management (SuperAdmin - Platform) [Role: SUPERADMIN]
+- [x] Create user management page (`app/admin/users/page.tsx`)
+- [x] Implement user list + filters:
+- [x] Filter by role (SUPERADMIN, OWNER, STAFF)
+- [x] Filter by outlet (for OWNER/STAFF)
+- [x] Filter by status (active/inactive)
+- [x] Search by name/phone number
+- [x] Pagination (page/limit)
+- [x] Implement CRUD for users (SuperAdmin) for SaaS platform needs:
+- [x] Create user (OWNER/SUPERADMIN) + assign outlet (for OWNER)
+- [x] Update user (name, role, outlet assignment, phone, active status)
+- [x] Activate/Deactivate user
+- [x] Implement role assignment with strict guards (SUPERADMIN only)
+- [x] Implement admin actions:
+- [x] Reset user PIN (generate new PIN, set `pinChangedAt`, reset lockout, best-effort WhatsApp send)
+- [x] Create user detail page (`app/admin/users/[id]/page.tsx`)
+- [x] Audit logging for admin operations (via `SecurityLogService`):
+- [x] ADMIN_USER_CREATE, ADMIN_USER_UPDATE, ADMIN_USER_ACTIVATE/DEACTIVATE, ADMIN_USER_RESET_PIN
 - [x] API routes (SuperAdmin only):
-  - [x] `GET/POST /api/admin/users`
-  - [x] `GET/PUT /api/admin/users/[id]`
-  - [x] `POST /api/admin/users/[id]/reset-pin`
+- [x] `GET/POST /api/admin/users`
+- [x] `GET/PUT /api/admin/users/[id]`
+- [x] `POST /api/admin/users/[id]/reset-pin`
+
+> Note: **STAFF** accounts should ideally be managed by **OWNER** (tenant-level). SuperAdmin may still do cross-outlet monitoring and emergency actions (e.g., reset PIN / deactivate) when needed.
 
 ---
 
-## 🛒 Phase 2: POS dengan UI AdminLTE
+## 🚧 Roadmap (Priorities)
 
-### 2.1 Service Management
-- [ ] Buat halaman service management (`app/dashboard/services/page.tsx`)
-- [ ] Implementasi CRUD untuk services per outlet
-- [ ] Buat form service dengan AdminLTE styling
-- [ ] Implementasi service categories (Kiloan, Satuan, Paket)
-- [ ] Implementasi pricing management
-- [ ] Buat datatable dengan Bootstrap DataTables
+Priority order: **Multi-outlet OWNER → Landing Page + Settings → Staff Management → POS → Payment Verification/Subscription → the rest**.
 
-### 2.2 Order Management (POS)
-- [ ] Buat halaman POS (`app/dashboard/orders/new/page.tsx`)
-- [ ] Implementasi order creation form
-- [ ] Buat service selection interface
-- [ ] Implementasi quantity & price calculation
-- [ ] Buat order summary component
-- [ ] Implementasi payment method selection:
-  - [ ] CASH (langsung set paymentStatus = SETTLEMENT)
-  - [ ] TRANSFER (set paymentStatus = PENDING, require proof upload)
-  - [ ] MIDTRANS (redirect ke Midtrans payment page, set paymentStatus = PENDING)
-  - [ ] XENDIT (redirect ke Xendit payment page, set paymentStatus = PENDING)
-- [ ] Implementasi cash payment handling (langsung set paymentStatus = SETTLEMENT)
-- [ ] Implementasi transfer payment handling (set paymentStatus = PENDING, require proof upload)
-- [ ] Implementasi payment gateway flow (create payment, redirect, handle callback)
-- [ ] Implementasi order status workflow
-- [ ] Buat order list page dengan datatable
-- [ ] Implementasi filter dan search orders
-- [ ] Display payment method dan gateway info di order list
+### Priority 1: OWNER Multi-Outlet (Foundation) [Role: SYSTEM/OWNER]
+- [ ] (Roadmap) Change the outlet ownership model:
+- [ ] Add `Outlet.ownerId` (1 OWNER can have multiple outlets)
+- [ ] Add relation `User.ownedOutlets` (read-only via Prisma relation)
+- [ ] Evaluate migration from the old design `User.outletId` (for OWNER) → `Outlet.ownerId`
+- [ ] STAFF stays single-outlet: `User.outletId` is required for STAFF
+- [ ] (Roadmap) Outlet context for OWNER:
+- [ ] Add an “outlet switcher” in the dashboard (OWNER selects the active outlet)
+- [ ] `session.outletId` = active outlet (selected) for all tenant queries
+- [ ] (Roadmap) Security rules:
+- [ ] Server-side validation: active outlet must be one of the outlets owned by the OWNER
+- [ ] Do not accept `outletId` from the client as the source of truth (always from session)
 
-### 2.3 Order Workflow Visualization
-- [ ] Buat halaman order detail (`app/dashboard/orders/[id]/page.tsx`)
-- [ ] Implementasi AdminLTE Steps/Timeline untuk workflow
-- [ ] Visualisasi status: QUEUED → WASHING → DRYING → IRONING → READY → TAKEN
-- [ ] Implementasi status update buttons
-- [ ] Buat history log untuk status changes
-- [ ] Implementasi real-time status updates (opsional)
+### Priority 2: Outlet Landing Page + Settings [Role: PUBLIC/OWNER]
+- [ ] Create a public **Outlet Landing Page** per outlet (`/outlet/[slug]`) [Role: PUBLIC]
+- [ ] **No overclaim** principle (REQUIRED) [Role: PUBLIC]
+- [ ] Only show data that actually exists (name, address, description, etc.)
+- [ ] If data is missing, show a neutral empty state (no feature claims)
+- [ ] Content shown (conditional) [Role: PUBLIC]
+- [ ] Outlet info (name, address, description)
+- [ ] Services **if available**
+- [ ] Active bank accounts **if available** (for transfer info)
+- [ ] Per-outlet SEO metadata (title/description) [Role: PUBLIC]
+- [ ] Simple CTA (optional): WhatsApp/contact button (no complex order flow) [Role: PUBLIC]
+- [ ] OWNER can configure landing page content per outlet [Role: OWNER]
+- [ ] Outlet description
+- [ ] Contact/WhatsApp (optional)
+- [ ] Business hours (optional)
+- [ ] (Optional) Photo/cover/logo
+- [ ] Bank account selection for landing page display (active accounts only) [Role: OWNER]
+- [ ] (Roadmap) Data model for landing page content storage [Role: SYSTEM]
+- [ ] Option A: fields on `Outlet` (e.g., `description`, `contactPhone`, `businessHours`, `coverUrl`)
+- [ ] Option B: separate table `OutletLandingPage` (more flexible)
 
-### 2.4 Order Tracking (Public)
-- [ ] Buat halaman public tracking (`app/track/[code]/page.tsx`)
-- [ ] Implementasi tracking code lookup
+### Priority 3: Staff Management (Owner - Tenant) [Role: OWNER]
+- [ ] Create staff management page for OWNER (recommended under settings): `app/dashboard/settings/staff/page.tsx`
+- [ ] Implement staff list per outlet (session outlet only)
+- [ ] Implement create/update/deactivate staff (OWNER only)
+- [ ] Create STAFF (mandatory `outletId` = outlet session)
+- [ ] Update STAFF (name, phone, active status; role remains STAFF)
+- [ ] Deactivate STAFF (optional: cannot self-deactivate while logged in)
+- [ ] Implement strict guards & validation:
+- [ ] STAFF cannot be created/updated into OWNER/SUPERADMIN from the dashboard
+- [ ] Must not manage users across outlets (tenant isolation)
+- [ ] API routes (OWNER only, outlet scope):
+- [ ] `GET/POST /api/dashboard/settings/staff`
+- [ ] `GET/PUT /api/dashboard/settings/staff/[id]`
+
+### Priority 4: POS (Owner/Staff) [Role: OWNER/STAFF]
+(Implementation details are in Phase 2 below.)
+
+### Priority 5: Admin SaaS (SuperAdmin) [Role: SUPERADMIN]
+- [ ] Payment Verification (B2B) (see Phase 3.2)
+- [ ] Subscription Management (see Phase 3.3)
+- [ ] (Optional) Force logout / revoke session (admin action)
+
+### Priority 6: Housekeeping (System) [Role: SYSTEM]
+- [ ] Review and ensure all developers understand the Cursor rules
+- [ ] Set up pre-commit hooks for code quality (optional)
+
+---
+
+## 🛒 Phase 2: POS with AdminLTE UI
+
+### 2.1 Service Management [Role: OWNER]
+- [ ] Create service management page (`app/dashboard/services/page.tsx`)
+- [ ] Implement CRUD for services per outlet
+- [ ] Create service form with AdminLTE styling
+- [ ] Implement service categories (Kilo, Unit, Package)
+- [ ] Implement pricing management
+- [ ] Create datatable with Bootstrap DataTables
+
+### 2.2 Order Management (POS) [Role: OWNER/STAFF]
+- [ ] Create POS page (`app/dashboard/orders/new/page.tsx`)
+- [ ] Implement order creation form
+- [ ] Create service selection interface
+- [ ] Implement quantity & price calculation
+- [ ] Create order summary component
+- [ ] Order payment is **bookkeeping only** (no paymentMethod, no proof upload, no approval):
+- [ ] Simple status: **PAID / UNPAID**
+- [ ] Timestamp `paidAt` (optional) + internal note (optional)
+- [ ] Implement order status workflow
+- [ ] Create order list page with datatable
+- [ ] Implement order filters and search
+- [ ] (Optional) Display simple payment status (PAID/UNPAID) in the order list
+
+### 2.3 Order Workflow Visualization [Role: OWNER/STAFF]
+- [ ] Create order detail page (`app/dashboard/orders/[id]/page.tsx`)
+- [ ] Implement AdminLTE Steps/Timeline for workflow
+- [ ] Status visualization: QUEUED → WASHING → DRYING → IRONING → READY → TAKEN
+- [ ] Implement status update buttons
+- [ ] Create history log for status changes
+- [ ] Implement real-time status updates (optional)
+
+### 2.4 Order Tracking (Public) [Role: PUBLIC]
+- [ ] Create public tracking page (`app/track/[code]/page.tsx`)
+- [ ] Implement tracking code lookup
 - [ ] Display minimal order information (privacy-focused)
-- [ ] Implementasi status visualization untuk public
-- [ ] Buat form untuk input tracking code
-- [ ] Implementasi rate limiting untuk tracking page
+- [ ] Implement status visualization for public
+- [ ] Create form for tracking code input
+- [ ] Implement rate limiting for the tracking page
 
-### 2.5 Digital Invoice/Nota
-- [ ] Buat halaman invoice (`app/dashboard/orders/[id]/invoice/page.tsx`)
-- [ ] Implementasi invoice template dengan AdminLTE styling
+### 2.5 Digital Invoice/Receipt [Role: OWNER/STAFF]
+- [ ] Create invoice page (`app/dashboard/orders/[id]/invoice/page.tsx`)
+- [ ] Implement invoice template with AdminLTE styling
 - [ ] Display order details, customer info, services
-- [ ] Implementasi print functionality
-- [ ] Buat share to WhatsApp functionality
-- [ ] Implementasi PDF download (opsional)
+- [ ] Implement print functionality
+- [ ] Create share to WhatsApp functionality
+- [ ] Implement PDF download (optional)
 
-### 2.6 Customer Management
-- [ ] Buat model Customer di Prisma
-- [ ] Buat halaman customer list (`app/dashboard/customers/page.tsx`)
-- [ ] Implementasi CRUD untuk customers
-- [ ] Buat customer detail page dengan order history
-- [ ] Implementasi customer search
-- [ ] Buat quick customer selection di POS
+### 2.6 Customer Management [Role: OWNER/STAFF]
+- [ ] Create Customer model in Prisma
+- [ ] Create customer list page (`app/dashboard/customers/page.tsx`)
+- [ ] Implement CRUD for customers
+- [ ] Create customer detail page with order history
+- [ ] Implement customer search
+- [ ] Create quick customer selection in POS
 
-### 2.7 Order Reports
-- [ ] Buat halaman reports (`app/dashboard/reports/page.tsx`)
-- [ ] Implementasi daily/weekly/monthly reports
-- [ ] Buat chart untuk order statistics
-- [ ] Implementasi export to Excel/PDF (opsional)
-- [ ] Buat filter by date range
+### 2.7 Order Reports [Role: OWNER]
+- [ ] Create reports page (`app/dashboard/reports/page.tsx`)
+- [ ] Implement daily/weekly/monthly reports
+- [ ] Create chart for order statistics
+- [ ] Implement export to Excel/PDF (optional)
+- [ ] Create date range filter
 
 ---
 
-## 💳 Phase 3: Sistem Pembayaran Manual & Admin Panel
+## 💳 Phase 3: Manual Payment System & Admin Panel
 
-### 3.1 Payment Proof Upload (B2C)
-- [ ] Buat halaman payment upload (`app/track/[code]/payment/page.tsx`)
-- [ ] Implementasi file upload untuk bukti transfer (hanya untuk paymentMethod = TRANSFER)
-- [ ] Integrasi dengan Cloudinary/Supabase Storage
-- [ ] Buat form upload dengan AdminLTE styling
-- [ ] Display bank account options untuk transfer
-- [ ] Implementasi image preview
-- [ ] Buat payment status display
-- [ ] Implementasi validation untuk upload
-- [ ] Handle cash payment (tidak perlu upload bukti, langsung verified di POS)
+> Scope note: **Payment methods + approval/verification are only for SaaS subscriptions**. Outlet transactions (laundry orders) are **bookkeeping only**.
 
-### 3.2 Payment Verification (B2B - SuperAdmin)
-- [ ] Buat halaman payment verification (`app/admin/payments/page.tsx`)
-- [ ] Implementasi list pending payments
-- [ ] Buat AdminLTE Info Box untuk payment status
-- [ ] Implementasi approve/reject payment
-- [ ] Buat payment detail modal
-- [ ] Implementasi payment history
-- [ ] Buat notification system untuk payment status
+### 3.2 Payment Verification (Subscription - SuperAdmin) [Role: SUPERADMIN]
+- [ ] Create payment verification page (`app/admin/payments/page.tsx`)
+- [ ] Implement list of pending payments (subscription only)
+- [ ] Create AdminLTE Info Box for payment status
+- [ ] Implement approve/reject for subscription payments
+- [ ] Create payment detail modal
+- [ ] Implement payment history
+- [ ] Create notification system for payment status
 
-### 3.3 Subscription Management
-- [ ] Buat halaman subscription management (`app/admin/subscriptions/page.tsx`)
-- [ ] Implementasi subscription status per outlet
-- [ ] Buat subscription renewal interface
-- [ ] Implementasi subscription expiry tracking
-- [ ] Buat subscription payment verification
-- [ ] Implementasi auto-disable features untuk expired subscription
+### 3.3 Subscription Management [Role: SUPERADMIN]
+- [ ] Create subscription management page (`app/admin/subscriptions/page.tsx`)
+- [ ] Implement subscription status per outlet
+- [ ] Create subscription renewal interface
+- [ ] Implement subscription expiry tracking
+- [ ] Create subscription payment verification
+- [ ] Implement auto-disable features for expired subscriptions
 
-### 3.4 Transaction Management
-- [ ] Buat halaman transaction list (`app/dashboard/transactions/page.tsx`)
-- [ ] Implementasi filter by type (SUBSCRIPTION, LAUNDRY_ORDER)
-- [ ] Implementasi filter by payment method (CASH, TRANSFER, MIDTRANS, XENDIT)
-- [ ] Buat transaction detail page
-- [ ] Implementasi transaction status management
-- [ ] Display bank account info untuk transfer transactions
-- [ ] Display payment gateway info untuk gateway transactions (gateway type, transaction ID, response data)
-- [ ] Buat transaction reports dengan breakdown per payment method
-- [ ] Implementasi export functionality
-- [ ] Display webhook data untuk debugging (admin only)
+### 3.1 Subscription Payment Proof Upload (Owner) [Role: OWNER]
+- [ ] Create subscription payment proof upload page (authenticated) (e.g., `settings/subscription`)
+- [ ] Implement transfer proof file upload (subscription only)
+- [ ] Integrate storage (Cloudinary/Supabase Storage)
+- [ ] Implement upload validation
+- [ ] Show “pending verification” status after submit
 
-### 3.5 Payment Gateway Integration (Future-ready)
+### 3.4 Transaction Management [Role: OWNER]
+- [ ] Create transaction list page (`app/dashboard/transactions/page.tsx`)
+- [ ] Implement filter by type (SUBSCRIPTION, LAUNDRY_ORDER)
+- [ ] Create transaction detail page
+- [ ] Implement transaction status management
+- [ ] Outlet transactions (LAUNDRY_ORDER) are **bookkeeping only** (no approval/verification, no paymentMethod)
+- [ ] (Optional) Create transaction reports for internal bookkeeping (daily/monthly, etc.)
+- [ ] Implement export functionality
+- [ ] Display webhook data for debugging (Admin Panel) [Role: SUPERADMIN]
 
-#### 3.5.1 Payment Gateway Architecture
-- [ ] Buat PaymentProcessor interface (`src/services/payment/interfaces/PaymentProcessor.ts`)
-  - [ ] Method: `createPayment(amount, orderId, metadata)`
-  - [ ] Method: `verifyPayment(transactionId)`
-  - [ ] Method: `handleWebhook(payload, signature)`
-  - [ ] Method: `getPaymentStatus(transactionId)`
-- [ ] Implementasi base payment processor abstract class
-- [ ] Buat payment processor factory (`src/services/payment/PaymentProcessorFactory.ts`)
-- [ ] Buat payment service untuk orchestration (`src/services/payment/PaymentService.ts`)
+### 3.5 Payment Gateway Integration (Future-ready) [Role: SYSTEM]
 
-#### 3.5.2 Payment Gateway Configuration Management
-- [ ] Buat halaman payment gateway settings (`app/dashboard/settings/payment-gateways/page.tsx`)
-- [ ] Implementasi CRUD untuk payment gateway config per outlet
-- [ ] Buat form untuk konfigurasi Midtrans (API key, merchant ID, dll)
-- [ ] Buat form untuk konfigurasi Xendit (API key, secret, dll)
-- [ ] Implementasi encryption untuk API keys dan secrets (gunakan environment encryption)
-- [ ] Implementasi enable/disable gateway per outlet
-- [ ] Buat validation untuk gateway configuration
+#### 3.5.1 Payment Gateway Architecture [Role: SYSTEM]
+- [ ] Create PaymentProcessor interface (`src/services/payment/interfaces/PaymentProcessor.ts`)
+- [ ] Method: `createPayment(amount, orderId, metadata)`
+- [ ] Method: `verifyPayment(transactionId)`
+- [ ] Method: `handleWebhook(payload, signature)`
+- [ ] Method: `getPaymentStatus(transactionId)`
+- [ ] Implement base payment processor abstract class
+- [ ] Create payment processor factory (`src/services/payment/PaymentProcessorFactory.ts`)
+- [ ] Create payment service for orchestration (`src/services/payment/PaymentService.ts`)
 
-#### 3.5.3 Midtrans Integration
+#### 3.5.2 Payment Gateway Configuration Management [Role: OWNER]
+- [ ] Create payment gateway settings page (`app/dashboard/settings/payment-gateways/page.tsx`)
+- [ ] Implement CRUD for payment gateway config per outlet
+- [ ] Create form for Midtrans configuration (API key, merchant ID, etc.)
+- [ ] Create form for Xendit configuration (API key, secret, etc.)
+- [ ] Implement encryption for API keys and secrets [Role: SYSTEM]
+- [ ] Implement enable/disable gateway per outlet
+- [ ] Create validation for gateway configuration
+
+#### 3.5.3 Midtrans Integration [Role: SYSTEM]
 - [ ] Install Midtrans SDK (`midtrans-client`)
-- [ ] Buat MidtransPaymentProcessor class yang implement PaymentProcessor
-- [ ] Implementasi createPayment untuk Midtrans (Snap/API)
-- [ ] Implementasi webhook handler untuk Midtrans
-- [ ] Implementasi payment verification
-- [ ] Buat API route untuk Midtrans webhook (`/api/webhooks/midtrans`)
-- [ ] Implementasi error handling dan retry logic
-- [ ] Buat test untuk Midtrans integration
+- [ ] Create MidtransPaymentProcessor class implementing PaymentProcessor
+- [ ] Implement createPayment for Midtrans (Snap/API)
+- [ ] Implement webhook handler for Midtrans
+- [ ] Implement payment verification
+- [ ] Create API route for Midtrans webhook (`/api/webhooks/midtrans`)
+- [ ] Implement error handling and retry logic
+- [ ] Create tests for Midtrans integration
 
-#### 3.5.4 Xendit Integration
+#### 3.5.4 Xendit Integration [Role: SYSTEM]
 - [ ] Install Xendit SDK (`xendit-node`)
-- [ ] Buat XenditPaymentProcessor class yang implement PaymentProcessor
-- [ ] Implementasi createPayment untuk Xendit (Virtual Account/EWallet)
-- [ ] Implementasi webhook handler untuk Xendit
-- [ ] Implementasi payment verification
-- [ ] Buat API route untuk Xendit webhook (`/api/webhooks/xendit`)
-- [ ] Implementasi error handling dan retry logic
-- [ ] Buat test untuk Xendit integration
+- [ ] Create XenditPaymentProcessor class implementing PaymentProcessor
+- [ ] Implement createPayment for Xendit (Virtual Account/EWallet)
+- [ ] Implement webhook handler for Xendit
+- [ ] Implement payment verification
+- [ ] Create API route for Xendit webhook (`/api/webhooks/xendit`)
+- [ ] Implement error handling and retry logic
+- [ ] Create tests for Xendit integration
 
-#### 3.5.5 Payment Gateway UI Integration
-- [ ] Update order creation form untuk include payment gateway options
-- [ ] Buat payment selection component (CASH, TRANSFER, MIDTRANS, XENDIT)
-- [ ] Implementasi payment gateway redirect flow (untuk Midtrans Snap)
-- [ ] Buat payment status page setelah redirect dari gateway
-- [ ] Implementasi real-time payment status update (polling atau websocket)
-- [ ] Buat payment gateway selection di public tracking page (jika diperlukan)
+#### 3.5.5 Payment Gateway UI Integration [Role: OWNER/STAFF]
+- (Future/backlog) Payment gateways are **not used** for outlet laundry transactions at the moment.
+- If implemented later, the main scope is **SaaS subscription payments** (not laundry order payments).
 
-#### 3.5.6 Webhook Security & Verification
-- [ ] Implementasi webhook signature verification untuk Midtrans
-- [ ] Implementasi webhook signature verification untuk Xendit
-- [ ] Buat webhook handler service dengan rate limiting
-- [ ] Implementasi idempotency untuk webhook processing
-- [ ] Buat webhook logging dan audit trail
-- [ ] Implementasi webhook retry mechanism
+#### 3.5.6 Webhook Security & Verification [Role: SYSTEM]
+- [ ] Implement webhook signature verification for Midtrans
+- [ ] Implement webhook signature verification for Xendit
+- [ ] Create webhook handler service with rate limiting
+- [ ] Implement idempotency for webhook processing
+- [ ] Create webhook logging and audit trail
+- [ ] Implement webhook retry mechanism
 
 #### 3.5.7 Payment Gateway Testing
-- [ ] Buat unit test untuk PaymentProcessor interface
-- [ ] Buat integration test untuk Midtrans (menggunakan sandbox)
-- [ ] Buat integration test untuk Xendit (menggunakan sandbox)
-- [ ] Buat E2E test untuk payment flow dengan gateway
-- [ ] Test webhook handling dengan mock payloads
+- [ ] Create unit tests for the PaymentProcessor interface
+- [ ] Create integration tests for Midtrans (using sandbox)
+- [ ] Create integration tests for Xendit (using sandbox)
+- [ ] Create E2E tests for payment flow with a gateway
+- [ ] Test webhook handling with mock payloads
 
 ---
 
 ## 🔐 Phase 4: Security & Optimization
 
-### 4.1 Advanced Security
-- [ ] Implementasi comprehensive tenant isolation
-- [ ] Setup rate limiting untuk semua public endpoints
-- [ ] Implementasi CSRF protection
-- [ ] Setup security headers di Next.js
-- [ ] Implementasi input sanitization
-- [ ] Buat security audit checklist
+### 4.1 Advanced Security [Role: SYSTEM]
+- [ ] Implement comprehensive tenant isolation
+- [ ] Setup rate limiting for all public endpoints
+- [ ] Implement CSRF protection
+- [ ] Setup security headers in Next.js
+- [ ] Implement input sanitization
+- [ ] Create security audit checklist
 
-### 4.2 Data Protection
-- [ ] Implementasi DTO untuk semua API responses
-- [ ] Buat response scrubbing utilities
-- [ ] Implementasi data masking untuk sensitive fields
-- [ ] Setup audit logging untuk critical operations
-- [ ] Implementasi data retention policies
+### 4.2 Data Protection [Role: SYSTEM]
+- [ ] Implement DTOs for all API responses
+- [ ] Create response scrubbing utilities
+- [ ] Implement data masking for sensitive fields
+- [ ] Setup audit logging for critical operations
+- [ ] Implement data retention policies
 
-### 4.3 Performance Optimization
-- [ ] Implementasi database indexing
+### 4.3 Performance Optimization [Role: SYSTEM]
+- [ ] Implement database indexing
 - [ ] Setup query optimization
-- [ ] Implementasi caching strategy
-- [ ] Optimize images dengan Next.js Image
-- [ ] Setup CDN untuk static assets
-- [ ] Implementasi lazy loading untuk components
+- [ ] Implement caching strategy
+- [ ] Optimize images with Next.js Image
+- [ ] Setup CDN for static assets
+- [ ] Implement lazy loading for components
 
-### 4.4 Error Handling
-- [ ] Buat global error boundary
-- [ ] Implementasi error logging
-- [ ] Buat user-friendly error messages
-- [ ] Setup error monitoring (opsional: Sentry)
+### 4.4 Error Handling [Role: SYSTEM]
+- [ ] Create global error boundary
+- [ ] Implement error logging
+- [ ] Create user-friendly error messages
+- [ ] Setup error monitoring (optional: Sentry)
 
 ---
 
 ## 🧪 Phase 5: Testing & Quality Assurance
 
-### 5.1 Unit Testing (Vitest)
-- [ ] Test untuk repositories
-- [ ] Test untuk services
-- [ ] Test untuk utilities
-- [ ] Test untuk DTOs
+### 5.1 Unit Testing (Vitest) [Role: SYSTEM]
+- [ ] Tests for repositories
+- [ ] Tests for services
+- [ ] Tests for utilities
+- [ ] Tests for DTOs
 - [ ] Setup test coverage reporting
 
-### 5.2 Component Testing
-- [ ] Test untuk AdminLTE components
-- [ ] Test untuk custom UI components
-- [ ] Test untuk forms
-- [ ] Test untuk data tables
+### 5.2 Component Testing [Role: SYSTEM]
+- [ ] Tests for AdminLTE components
+- [ ] Tests for custom UI components
+- [ ] Tests for forms
+- [ ] Tests for data tables
 
-### 5.3 Integration Testing
-- [ ] Test untuk API routes
-- [ ] Test untuk authentication flow
-- [ ] Test untuk multi-tenancy isolation
-- [ ] Test untuk database operations
+### 5.3 Integration Testing [Role: SYSTEM]
+- [ ] Tests for API routes
+- [ ] Tests for authentication flow
+- [ ] Tests for multi-tenancy isolation
+- [ ] Tests for database operations
 
-### 5.4 E2E Testing (Playwright)
-- [ ] Test untuk user authentication
-- [ ] Test untuk order creation flow
-- [ ] Test untuk payment upload flow
-- [ ] Test untuk public tracking
-- [ ] Test untuk admin operations
-- [ ] Test untuk cross-browser compatibility
+### 5.4 E2E Testing (Playwright) [Role: SYSTEM]
+- [ ] Tests for user authentication
+- [ ] Tests for order creation flow
+- [ ] Tests for payment upload flow
+- [ ] Tests for public tracking
+- [ ] Tests for admin operations
+- [ ] Tests for cross-browser compatibility
 
-### 5.5 Security Testing
-- [ ] Test untuk tenant isolation
-- [ ] Test untuk authorization
-- [ ] Test untuk input validation
-- [ ] Test untuk rate limiting
-- [ ] Penetration testing (opsional)
+### 5.5 Security Testing [Role: SYSTEM]
+- [ ] Tests for tenant isolation
+- [ ] Tests for authorization
+- [ ] Tests for input validation
+- [ ] Tests for rate limiting
+- [ ] Penetration testing (optional)
 
 ---
 
 ## 🚀 Phase 6: Deployment & Production
 
-### 6.1 Vercel Deployment
+### 6.1 Vercel Deployment [Role: SYSTEM]
 - [ ] Setup Vercel project
-- [ ] Konfigurasi environment variables
+- [ ] Configure environment variables
 - [ ] Setup database connection
 - [ ] Deploy staging environment
 - [ ] Setup custom domain
 - [ ] Configure SSL certificates
 
-### 6.2 Database Migration
+### 6.2 Database Migration [Role: SYSTEM]
 - [ ] Run production migrations
 - [ ] Setup database backups
 - [ ] Configure connection pooling
 - [ ] Setup database monitoring
 
-### 6.3 Monitoring & Analytics
+### 6.3 Monitoring & Analytics [Role: SYSTEM]
 - [ ] Setup error monitoring
 - [ ] Setup performance monitoring
-- [ ] Setup user analytics (opsional)
+- [ ] Setup user analytics (optional)
 - [ ] Setup uptime monitoring
 
-### 6.4 Documentation
-- [ ] Buat API documentation
-- [ ] Buat user manual
-- [ ] Buat admin guide
+### 6.4 Documentation [Role: SYSTEM]
+- [ ] Create API documentation
+- [ ] Create user manual
+- [ ] Create admin guide
 - [ ] Update README.md
-- [ ] Buat deployment guide
+- [ ] Create deployment guide
 
 ---
 
 ## 📊 Progress Tracking
 
-### Current Status: Fokus SuperAdmin (In Progress)
+### Current Status: Owner Growth Focus (In Progress)
 
-**Completed:**
-- ✅ Phase 0: Foundation & Setup
-  - ✅ Next.js 16.x LTS setup
-  - ✅ React 18.3.1
-  - ✅ TypeScript configuration
-  - ✅ ESLint configuration
-  - ✅ Dependencies installation
-  - ✅ Database setup dengan Prisma
-  - ✅ NextAuth.js v5 configuration
-  - ✅ Testing framework setup
+### Already in the codebase (quick verification)
+- **Admin Panel (SUPERADMIN)**:
+- Pages: `src/app/admin/outlets/**`, `src/app/admin/users/**`
+- API: `src/app/api/admin/outlets/**`, `src/app/api/admin/users/**` (including reset PIN)
+- **Dashboard Outlet (OWNER/STAFF)**:
+- Pages: `src/app/dashboard/page.tsx`, `src/app/dashboard/settings/**` (settings index + change PIN + bank accounts)
+- API: `src/app/api/dashboard/stats/**`, `src/app/api/dashboard/recent-orders/**`, `src/app/api/dashboard/settings/**`
+- **Auth (Public/System)**:
+- API: `src/app/api/auth/[...nextauth]/**`, `src/app/api/auth/register/**`, `src/app/api/auth/otp/**`
 
-- ✅ Phase 1.1.1: Database Models untuk Authentication
-- ✅ Phase 1.1.2: WhatsApp Service Integration (Fonnte)
-- ✅ Phase 1.1.3: OTP Service dengan rate limiting
-- ✅ Phase 1.1.4: Registration Flow (OWNER only) dengan modern UI
-- ✅ Phase 1.1.5: PIN-based Login dengan modern UI dan SweetAlert (termasuk rate limiting)
-- ✅ Phase 1.1.6: Session Management utilities (termasuk route proxy pattern)
-- ✅ Phase 1.1.7: PIN Management
-- ✅ Phase 1.1.8: Security Features (rate limiting, account lockout, logging, CSRF, secure cookies)
+### Summary status
+- ✅ Completed: see **✅ Implemented (Done)** above.
+- 🚧 Not yet implemented: see **🚧 Roadmap (Priorities)** above.
 
-- ✅ Phase 1.2: AdminLTE Layout Integration
-- ✅ Phase 1.3: Multi-Tenancy Foundation
-- ✅ Phase 1.4: Security Implementation Review & Completion
-- ✅ Phase 1.5: Database Models
-- ✅ Phase 1.6: Dashboard Homepage
-- ✅ Phase 1.7: Outlet Management (SuperAdmin)
-- ✅ Phase 1.8: Bank Account Management (Owner)
-- ✅ Phase 1.10: User Management (SuperAdmin - MVP)
-
-**In Progress (fokus SuperAdmin):**
-- 🔄 Phase 3.2: Payment Verification (B2B - SuperAdmin)
-
-**Next Steps (urut prioritas SuperAdmin):**
-1. Phase 3.2: Payment Verification (B2B - SuperAdmin)
-2. Phase 3.3: Subscription Management (SuperAdmin)
-3. (Opsional) Tambahkan view `app/admin/transactions/page.tsx` untuk cross-outlet transaction monitoring (read-only)
-4. (Opsional) Force logout / revoke session (admin action)
-
-**Backlog (setelah SuperAdmin core selesai):**
-- Phase 1.9: Outlet Microsite (Public)
-- Phase 2: POS (Owner/Staff)
-- Phase 3.1: Payment Proof Upload (B2C)
-- Phase 3.4: Transaction Management (dashboard/outlet scope)
+### Current focus (Owner Growth)
+1. Priority 1: OWNER Multi-Outlet (Foundation)
+2. Priority 2: Outlet Landing Page + Settings
+3. Priority 3: Staff Management (Owner)
+4. Priority 4: POS (Owner/Staff)
+5. Priority 5: Payment Verification + Subscription (SuperAdmin)
+6. Priority 6: Housekeeping (System)
 
 ---
 
 ## 📝 Notes
 
-- **WAJIB**: Baca dan ikuti `.cursorrules` sebelum coding
-- Setiap task harus mengikuti prinsip SOLID
-- Semua UI components harus menggunakan AdminLTE v4 styling
-- **WAJIB**: Selalu gunakan **SweetAlert2** untuk semua notifikasi (success, error, warning, confirmation)
-  - **JANGAN** menggunakan `alert()`, `confirm()`, atau `prompt()`
-  - Import: `import Swal from 'sweetalert2'` dan `import 'sweetalert2/dist/sweetalert2.min.css'`
-- **WAJIB**: Utamakan **Bootstrap 5 utility classes** daripada CSS manual atau inline styles
-  - Gunakan Bootstrap classes untuk spacing: `mb-3`, `pt-3`, `px-2`, `py-4`, dll
-  - Gunakan Bootstrap classes untuk colors: `text-primary`, `bg-success`, `text-muted`, dll
-  - Gunakan Bootstrap classes untuk typography: `fw-bold`, `text-center`, `small`, dll
-  - Gunakan Bootstrap classes untuk layout: `row`, `col-*`, `d-flex`, `justify-content-*`, dll
-  - **Hindari** inline styles (`style={{ ... }}`) kecuali benar-benar diperlukan
-  - **Hindari** custom CSS untuk styling yang bisa dicapai dengan Bootstrap classes
-- Setiap API endpoint harus memiliki validasi Zod
-- Setiap query database harus include outlet filtering (CRITICAL)
-- Semua sensitive data harus di-scrub sebelum dikirim ke client
-- Testing harus ditulis untuk setiap feature baru
-- Gunakan DTO pattern untuk semua API responses
-- Multi-tenancy security adalah prioritas utama
+- **REQUIRED**: Read and follow `.cursorrules` before coding
+- Each task must follow SOLID principles
+- All UI components must use AdminLTE v4 styling
+- **REQUIRED**: Always use **SweetAlert2** for all notifications (success, error, warning, confirmation)
+- **DO NOT** use `alert()`, `confirm()`, or `prompt()`
+- Import: `import Swal from 'sweetalert2'` and `import 'sweetalert2/dist/sweetalert2.min.css'`
+- **REQUIRED**: Prefer **Bootstrap 5 utility classes** over manual CSS or inline styles
+- Use Bootstrap classes for spacing: `mb-3`, `pt-3`, `px-2`, `py-4`, etc.
+- Use Bootstrap classes for colors: `text-primary`, `bg-success`, `text-muted`, etc.
+- Use Bootstrap classes for typography: `fw-bold`, `text-center`, `small`, etc.
+- Use Bootstrap classes for layout: `row`, `col-*`, `d-flex`, `justify-content-*`, etc.
+- **Avoid** inline styles (`style={{ ... }}`) unless truly necessary
+- **Avoid** custom CSS for styling that can be achieved with Bootstrap classes
+- Each API endpoint must have Zod validation
+- Each database query must include outlet filtering (CRITICAL)
+- All sensitive data must be scrubbed before sending to the client
+- Tests should be written for every new feature
+- Use the DTO pattern for all API responses
+- Multi-tenancy security is the top priority
+
+### TODO: Conflicts / Needs alignment
+- The latest RBAC defines SUPERADMIN only for the **Admin Panel** (not the Outlet Dashboard), but currently:
+- `src/components/adminlte/DashboardLayout.tsx` still allows `SUPERADMIN` to see some `/dashboard/*` menus (Orders/Services/Customers/Transactions/Reports).
+- `docs/ADMINLTE-SETUP.md` still states SUPERADMIN has all dashboard menus.
+- Impact: potential UX confusion and links to non-existent pages (404) or access not aligned with the intended design.
+- Recommended actions (this document only tracks; it does not change code):
+- Align menu role filtering in `DashboardLayout.tsx` to match RBAC.
+- Update `docs/ADMINLTE-SETUP.md` to match the latest role definitions.
 
 ### Recent Improvements (2026-01-24)
-- ✅ Modern UI design untuk login dan registration pages dengan gradient background
-- ✅ SweetAlert2 integration untuk better user experience
-- ✅ Phone number normalization (tanpa + prefix untuk database storage)
-- ✅ Improved error handling dan logging untuk OTP verification
-- ✅ Multi-step registration flow dengan progress indicator
+- ✅ Modern UI design for login and registration pages with a gradient background
+- ✅ SweetAlert2 integration for better user experience
+- ✅ Phone number normalization (store without + prefix for database storage)
+- ✅ Improved error handling and logging for OTP verification
+- ✅ Multi-step registration flow with a progress indicator
 - ✅ Complete database schema implementation (Phase 1.4)
-- ✅ Dashboard homepage dengan AdminLTE Info Box widgets (Phase 1.6)
-- ✅ OrderRepository dan TransactionRepository dengan outlet filtering
-- ✅ DashboardService untuk business logic dashboard statistics
-- ✅ API endpoints untuk dashboard stats dan recent orders
-- ✅ Comprehensive testing untuk dashboard features
-- ✅ Outlet Management untuk SuperAdmin dengan CRUD lengkap (Phase 1.7)
-- ✅ Outlet DTO untuk response scrubbing
-- ✅ API routes untuk outlet management dengan SuperAdmin authorization
-- ✅ Halaman list outlets dengan AdminLTE styling
-- ✅ Form create/edit outlet dengan slug generation otomatis
-- ✅ Halaman detail outlet dengan informasi lengkap (users, bank accounts, payment gateways)
+- ✅ Dashboard homepage with AdminLTE Info Box widgets (Phase 1.6)
+- ✅ OrderRepository and TransactionRepository with outlet filtering
+- ✅ DashboardService for dashboard statistics business logic
+- ✅ API endpoints for dashboard stats and recent orders
+- ✅ Comprehensive testing for dashboard features
+- ✅ Outlet Management for SuperAdmin with full CRUD (Phase 1.7)
+- ✅ Outlet DTO for response scrubbing
+- ✅ API routes for outlet management with SuperAdmin authorization
+- ✅ Outlet list page with AdminLTE styling
+- ✅ Create/edit outlet form with automatic slug generation
+- ✅ Outlet detail page with full information (users, bank accounts, payment gateways)
 - ✅ Outlet status management (isPro toggle)
-- ✅ Validasi slug sebelum submit dengan perbedaan create/update
-- ✅ SweetAlert2 integration untuk semua notifikasi
-- ✅ Comprehensive testing untuk OutletRepository (CRUD, slug management, relations)
-- ✅ Bank Account Management untuk Owner dengan CRUD lengkap (Phase 1.8)
-- ✅ BankAccountRepository dengan outlet filtering
-- ✅ BankAccountDTO untuk response scrubbing
-- ✅ API routes untuk bank account management dengan Owner authorization
-- ✅ Halaman bank account management dengan AdminLTE styling
-- ✅ Form add/edit bank account dengan validasi lengkap
+- ✅ Slug validation before submit with create vs update differences
+- ✅ SweetAlert2 integration for all notifications
+- ✅ Comprehensive testing for OutletRepository (CRUD, slug management, relations)
+- ✅ Bank Account Management for Owner with full CRUD (Phase 1.8)
+- ✅ BankAccountRepository with outlet filtering
+- ✅ BankAccountDTO for response scrubbing
+- ✅ API routes for bank account management with Owner authorization
+- ✅ Bank account management page with AdminLTE styling
+- ✅ Add/edit bank account form with full validation
 - ✅ Bank account activation/deactivation toggle
-- ✅ Validasi nomor rekening (hanya angka)
+- ✅ Bank account number validation (digits only)
 
 ### Recent Improvements (2026-01-25)
-- ✅ Implementasi User Management (SuperAdmin) MVP:
-  - ✅ UI list & filter users (`/admin/users`)
-  - ✅ UI detail user (`/admin/users/[id]`)
-  - ✅ API admin users (`/api/admin/users`, `/api/admin/users/[id]`)
-  - ✅ Reset PIN admin (`/api/admin/users/[id]/reset-pin`) + WhatsApp best-effort
-  - ✅ Guard keamanan: tidak bisa self-deactivate, tidak bisa menurunkan/menonaktifkan SuperAdmin terakhir
-  - ✅ UserDTO untuk scrub field sensitif + UserRepository untuk data access
+- ✅ User Management (SuperAdmin - Platform) MVP implementation:
+- ✅ UI list & filter users (`/admin/users`)
+- ✅ UI detail user (`/admin/users/[id]`)
+- ✅ API admin users (`/api/admin/users`, `/api/admin/users/[id]`)
+- ✅ Reset PIN admin (`/api/admin/users/[id]/reset-pin`) + WhatsApp best-effort
+- ✅ Security guards: cannot self-deactivate, cannot demote/deactivate the last SuperAdmin
+- ✅ UserDTO to scrub sensitive fields + UserRepository for data access
 
 ---
 
 ## 🔄 Review & Updates
 
-Development plan ini akan diupdate secara berkala sesuai dengan progress dan perubahan requirement.
+This development plan is updated periodically based on progress and requirement changes.
 
-**Last Updated**: 2026-01-25  
-**Version**: 1.8
+**Last Updated**: 2026-01-26
+**Version**: 1.12
 
 ### Changelog
+- **v1.12 (2026-01-26)**:
+- Reordered document: **✅ Implemented (Done)** moved to the top, then **🚧 Roadmap (Priorities)** sorted owner-growth-first
+- Updated Progress Tracking to align with Roadmap (Priorities)
+- **v1.11 (2026-01-26)**:
+- Roadmap: OWNER multi-outlet support (concept `Outlet.ownerId` + outlet switcher/context)
+- Revised Phase 1.9 into **Outlet Landing Page (Public)** + **no overclaim** principle
+- Added roadmap **Landing Page Settings (Owner)** per outlet
+- **v1.10 (2026-01-26)**:
+- Retouched document structure: added `[Role: ...]` tags on each Phase section
+- Added “Already in the codebase (quick verification)” to Progress Tracking
+- Added TODO note for RBAC conflicts (DashboardLayout menu & AdminLTE docs)
+- **v1.9 (2026-01-26)**:
+- Corrected role definitions & access area separation (Admin Panel vs Outlet Dashboard)
+- Added **Role Model & Access (RBAC)** section + impersonation support backlog
+- Rescoped Phase 1.10 (User Management - SuperAdmin Platform) and added Phase 1.11 (Staff Management by OWNER)
 - **v1.8 (2026-01-25)**:
-  - Completed Phase 1.10: User Management (SuperAdmin MVP)
-  - Added admin users API routes + reset PIN endpoint
-  - Added `/admin/users` list + `/admin/users/[id]` detail UI
+- Completed Phase 1.10: User Management (SuperAdmin - Platform) MVP
+- Added admin users API routes + reset PIN endpoint
+- Added `/admin/users` list + `/admin/users/[id]` detail UI
 - **v1.7 (2026-01-25)**:
-  - Fokus roadmap ke **SuperAdmin**
-  - Prioritaskan Phase 1.10 (User Management) lalu Phase 3.2/3.3 (Payment Verification & Subscription)
-  - Tandai Phase 1.9 (Outlet Microsite - Public) sebagai backlog dulu
-- **v1.6 (2026-01-24)**: 
-  - Completed Phase 1.8: Bank Account Management (Owner)
-  - Added BankAccountRepository dengan outlet filtering
-  - Added BankAccountDTO untuk response scrubbing
-  - Added API routes untuk bank account CRUD operations
-  - Added halaman bank account management dengan AdminLTE styling
-  - Implemented bank account activation/deactivation toggle
-- **v1.5 (2026-01-24)**: 
-  - Updated task status: Rate limiting dan route protection middleware sudah selesai
-  - Reorganized Phase 1: Pindahkan Security Implementation ke posisi lebih awal (1.4)
-  - Removed duplicate: Hapus Phase 1.6.2 (Payment Gateway Configuration) karena duplikat dengan Phase 3.5.2
-  - Updated numbering: Renumber Phase 1 sections (1.4→1.5, 1.5→1.6, 1.6→1.7, 1.6.1→1.8, 1.7→1.9, 1.8→1.10)
-  - Updated next steps dengan urutan yang lebih logis
+- Roadmap focus on **SuperAdmin**
+- Prioritized Phase 1.10 (User Management - SuperAdmin Platform) then Phase 3.2/3.3 (Payment Verification & Subscription)
+- Marked Phase 1.9 (Outlet Landing Page - Public) as backlog for now
+- **v1.6 (2026-01-24)**:
+- Completed Phase 1.8: Bank Account Management (Owner)
+- Added BankAccountRepository with outlet filtering
+- Added BankAccountDTO for response scrubbing
+- Added API routes for bank account CRUD operations
+- Added bank account management page with AdminLTE styling
+- Implemented bank account activation/deactivation toggle
+- **v1.5 (2026-01-24)**:
+- Updated task status: rate limiting and route protection completed
+- Reorganized Phase 1: moved Security Implementation earlier (1.4)
+- Removed duplicate: removed Phase 1.6.2 (Payment Gateway Configuration) because it duplicated Phase 3.5.2
+- Updated numbering: Renumber Phase 1 sections (1.4→1.5, 1.5→1.6, 1.6→1.7, 1.6.1→1.8, 1.7→1.9, 1.8→1.10)
+- Updated next steps with a more logical order
 - **v1.4 (2026-01-24)**: Updated rules - Always use SweetAlert2 and Bootstrap utility classes (no inline styles/custom CSS)
 - **v1.3 (2026-01-24)**: Completed Phase 1.6 (Outlet Management for SuperAdmin)
-- **v1.2 (2026-01-24)**: Completed Phase 1.4 (Database Models) dan Phase 1.5 (Dashboard Homepage)
+- **v1.2 (2026-01-24)**: Completed Phase 1.4 (Database Models) and Phase 1.5 (Dashboard Homepage)
 - **v1.1 (2026-01-23)**: Completed Phase 1.1.1 - 1.1.6 (Authentication System foundation)
 - **v1.0 (2026-01-23)**: Initial development plan
