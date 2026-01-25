@@ -256,7 +256,7 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - [x] Implementasi validation untuk bank account data
 
 ### 1.9 Outlet Microsite (Public)
-- [ ] Buat dynamic route `/outlet/[slug]`
+- [ ] **(Backlog dulu — setelah fitur SuperAdmin stabil)** Buat dynamic route `/outlet/[slug]`
 - [ ] Buat halaman publik outlet dengan desain minimalis
 - [ ] Display outlet information (nama, alamat, kontak)
 - [ ] Display services yang tersedia
@@ -264,13 +264,29 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - [ ] Buat form quick order (opsional untuk Fase 1)
 - [ ] Implementasi SEO-friendly metadata
 
-### 1.10 User Management
-- [ ] Buat halaman user management (`app/admin/users/page.tsx`)
-- [ ] Implementasi CRUD untuk users
-- [ ] Buat form assign user ke outlet
-- [ ] Implementasi role assignment
-- [ ] Buat halaman profile user
-- [ ] Implementasi change password
+### 1.10 User Management (SuperAdmin - Priority)
+- [x] Buat halaman user management (`app/admin/users/page.tsx`)
+- [x] Implementasi list users + filter:
+  - [x] Filter by role (SUPERADMIN, OWNER, STAFF)
+  - [x] Filter by outlet (untuk OWNER/STAFF)
+  - [x] Filter by status (aktif/nonaktif)
+  - [x] Search by nama/nomor HP
+  - [x] Pagination (page/limit)
+- [x] Implementasi CRUD user (SuperAdmin):
+  - [x] Create user (OWNER/STAFF/SUPERADMIN) + assign outlet (untuk OWNER/STAFF)
+  - [x] Update user (nama, role, outlet assignment, phone, status aktif)
+  - [x] Activate/Deactivate user
+- [x] Implementasi role assignment dengan guard yang ketat (SUPERADMIN only)
+- [x] Implementasi aksi admin:
+  - [x] Reset PIN user (generate PIN baru, set `pinChangedAt`, reset lockout, kirim WA best-effort)
+  - [ ] Force logout / revoke session (opsional / future)
+- [x] Buat halaman detail user (`app/admin/users/[id]/page.tsx`)
+- [x] Audit logging untuk operasi admin (via `SecurityLogService`):
+  - [x] ADMIN_USER_CREATE, ADMIN_USER_UPDATE, ADMIN_USER_ACTIVATE/DEACTIVATE, ADMIN_USER_RESET_PIN
+- [x] API routes (SuperAdmin only):
+  - [x] `GET/POST /api/admin/users`
+  - [x] `GET/PUT /api/admin/users/[id]`
+  - [x] `POST /api/admin/users/[id]/reset-pin`
 
 ---
 
@@ -556,7 +572,7 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 
 ## 📊 Progress Tracking
 
-### Current Status: Phase 1 - Authentication System (In Progress)
+### Current Status: Fokus SuperAdmin (In Progress)
 
 **Completed:**
 - ✅ Phase 0: Foundation & Setup
@@ -578,18 +594,29 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - ✅ Phase 1.1.7: PIN Management
 - ✅ Phase 1.1.8: Security Features (rate limiting, account lockout, logging, CSRF, secure cookies)
 
-**In Progress:**
-- ✅ Phase 1.2: AdminLTE Layout Integration (Completed)
-- ✅ Phase 1.3: Multi-Tenancy Foundation (Completed)
-- ✅ Phase 1.4: Security Implementation Review & Completion (Completed)
-- ✅ Phase 1.5: Database Models (Completed)
-- ✅ Phase 1.6: Dashboard Homepage (Completed)
-- ✅ Phase 1.7: Outlet Management (SuperAdmin) (Completed)
-- ✅ Phase 1.8: Bank Account Management (Owner) (Completed)
+- ✅ Phase 1.2: AdminLTE Layout Integration
+- ✅ Phase 1.3: Multi-Tenancy Foundation
+- ✅ Phase 1.4: Security Implementation Review & Completion
+- ✅ Phase 1.5: Database Models
+- ✅ Phase 1.6: Dashboard Homepage
+- ✅ Phase 1.7: Outlet Management (SuperAdmin)
+- ✅ Phase 1.8: Bank Account Management (Owner)
+- ✅ Phase 1.10: User Management (SuperAdmin - MVP)
 
-**Next Steps:**
-1. Phase 1.9: Outlet Microsite (Public)
-2. Phase 1.10: User Management
+**In Progress (fokus SuperAdmin):**
+- 🔄 Phase 3.2: Payment Verification (B2B - SuperAdmin)
+
+**Next Steps (urut prioritas SuperAdmin):**
+1. Phase 3.2: Payment Verification (B2B - SuperAdmin)
+2. Phase 3.3: Subscription Management (SuperAdmin)
+3. (Opsional) Tambahkan view `app/admin/transactions/page.tsx` untuk cross-outlet transaction monitoring (read-only)
+4. (Opsional) Force logout / revoke session (admin action)
+
+**Backlog (setelah SuperAdmin core selesai):**
+- Phase 1.9: Outlet Microsite (Public)
+- Phase 2: POS (Owner/Staff)
+- Phase 3.1: Payment Proof Upload (B2C)
+- Phase 3.4: Transaction Management (dashboard/outlet scope)
 
 ---
 
@@ -622,12 +649,12 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - ✅ Improved error handling dan logging untuk OTP verification
 - ✅ Multi-step registration flow dengan progress indicator
 - ✅ Complete database schema implementation (Phase 1.4)
-- ✅ Dashboard homepage dengan AdminLTE Info Box widgets (Phase 1.5)
+- ✅ Dashboard homepage dengan AdminLTE Info Box widgets (Phase 1.6)
 - ✅ OrderRepository dan TransactionRepository dengan outlet filtering
 - ✅ DashboardService untuk business logic dashboard statistics
 - ✅ API endpoints untuk dashboard stats dan recent orders
 - ✅ Comprehensive testing untuk dashboard features
-- ✅ Outlet Management untuk SuperAdmin dengan CRUD lengkap (Phase 1.6)
+- ✅ Outlet Management untuk SuperAdmin dengan CRUD lengkap (Phase 1.7)
 - ✅ Outlet DTO untuk response scrubbing
 - ✅ API routes untuk outlet management dengan SuperAdmin authorization
 - ✅ Halaman list outlets dengan AdminLTE styling
@@ -646,16 +673,33 @@ Dokumen ini adalah rencana pengembangan detail untuk membangun sistem Laundry Sa
 - ✅ Bank account activation/deactivation toggle
 - ✅ Validasi nomor rekening (hanya angka)
 
+### Recent Improvements (2026-01-25)
+- ✅ Implementasi User Management (SuperAdmin) MVP:
+  - ✅ UI list & filter users (`/admin/users`)
+  - ✅ UI detail user (`/admin/users/[id]`)
+  - ✅ API admin users (`/api/admin/users`, `/api/admin/users/[id]`)
+  - ✅ Reset PIN admin (`/api/admin/users/[id]/reset-pin`) + WhatsApp best-effort
+  - ✅ Guard keamanan: tidak bisa self-deactivate, tidak bisa menurunkan/menonaktifkan SuperAdmin terakhir
+  - ✅ UserDTO untuk scrub field sensitif + UserRepository untuk data access
+
 ---
 
 ## 🔄 Review & Updates
 
 Development plan ini akan diupdate secara berkala sesuai dengan progress dan perubahan requirement.
 
-**Last Updated**: 2026-01-24  
-**Version**: 1.6
+**Last Updated**: 2026-01-25  
+**Version**: 1.8
 
 ### Changelog
+- **v1.8 (2026-01-25)**:
+  - Completed Phase 1.10: User Management (SuperAdmin MVP)
+  - Added admin users API routes + reset PIN endpoint
+  - Added `/admin/users` list + `/admin/users/[id]` detail UI
+- **v1.7 (2026-01-25)**:
+  - Fokus roadmap ke **SuperAdmin**
+  - Prioritaskan Phase 1.10 (User Management) lalu Phase 3.2/3.3 (Payment Verification & Subscription)
+  - Tandai Phase 1.9 (Outlet Microsite - Public) sebagai backlog dulu
 - **v1.6 (2026-01-24)**: 
   - Completed Phase 1.8: Bank Account Management (Owner)
   - Added BankAccountRepository dengan outlet filtering
