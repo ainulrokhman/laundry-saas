@@ -415,12 +415,12 @@ Priority order: **Multi-outlet OWNER → Landing Page + Settings → Staff Manag
 ## 🛒 Phase 2: POS with AdminLTE UI
 
 ### 2.1 Service Management [Role: OWNER]
-- [ ] Create service management page (`app/dashboard/services/page.tsx`)
-- [ ] Implement CRUD for services per outlet
-- [ ] Create service form with AdminLTE styling
-- [ ] Implement service categories (Kilo, Unit, Package)
-- [ ] Implement pricing management
-- [ ] Create datatable with Bootstrap DataTables
+- [x] Create service management page (`app/dashboard/services/page.tsx`)
+- [x] Implement CRUD for services per outlet
+- [x] Create service form with AdminLTE styling
+- [x] Implement service categories (Kiloan, Satuan, Paket)
+- [x] Implement pricing management
+- [x] Create datatable (tanpa plugin: search/filter/sort/pagination)
 
 ### 2.2 Order Management (POS) [Role: OWNER/STAFF]
 - [ ] Create POS page (`app/dashboard/orders/new/page.tsx`)

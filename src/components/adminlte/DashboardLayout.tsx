@@ -48,10 +48,10 @@ const menuItems: MenuItem[] = [
     roles: [Role.SUPERADMIN, Role.OWNER, Role.STAFF],
   },
   {
-    label: 'Services',
+    label: 'Layanan',
     icon: 'fas fa-concierge-bell',
     href: '/dashboard/services',
-    roles: [Role.SUPERADMIN, Role.OWNER],
+    roles: [Role.OWNER],
   },
   {
     label: 'Customers',
