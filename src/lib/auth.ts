@@ -25,6 +25,12 @@ export interface ExtendedSession {
   phone: string;
 }
 
+function isValidUuid(id: string | null | undefined): id is string {
+  if (!id) return false;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+}
+
 /**
  * Rate limiting configuration for login
  */
@@ -82,7 +88,13 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         // Find user by phone
         const user = await prisma.user.findUnique({
           where: { phone: normalizedPhone },
-          include: { outlet: true },
+          include: {
+            outlet: true,
+            ownedOutlets: {
+              select: { id: true },
+              orderBy: { createdAt: 'asc' },
+            },
+          },
         });
 
         if (!user || !user.pin) {
@@ -148,6 +160,70 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           throw new Error('Account is inactive');
         }
 
+        // Multi-outlet OWNER foundation:
+        // - Kepemilikan outlet via Outlet.ownerId
+        // - user.outletId dipakai sebagai "outlet aktif" (session.outletId)
+        if (user.role === Role.OWNER) {
+          const ownedIds = user.ownedOutlets?.map((o) => o.id) ?? [];
+
+          // Auto-migrasi dari desain lama: OWNER lama punya user.outletId (single outlet).
+          // Jika outlet tersebut belum memiliki ownerId, set ownerId = user.id.
+          if (isValidUuid(user.outletId)) {
+            const outlet = await prisma.outlet.findUnique({
+              where: { id: user.outletId },
+              select: { id: true, ownerId: true },
+            });
+            if (outlet && !outlet.ownerId) {
+              await prisma.outlet.update({
+                where: { id: outlet.id },
+                data: { ownerId: user.id },
+              });
+            }
+          }
+
+          // Pastikan outlet aktif valid:
+          // - Jika user.outletId kosong / tidak dimiliki, pilih outlet pertama yang dimiliki (jika ada) dan persist.
+          let nextActiveOutletId: string | null = isValidUuid(user.outletId) ? user.outletId : null;
+          if (nextActiveOutletId) {
+            const owns = await prisma.outlet.count({
+              where: { id: nextActiveOutletId, ownerId: user.id },
+            });
+            if (owns <= 0) {
+              nextActiveOutletId = null;
+            }
+          }
+
+          if (!nextActiveOutletId) {
+            // Re-fetch owned outlets from DB (authoritative)
+            const firstOwned = await prisma.outlet.findFirst({
+              where: { ownerId: user.id },
+              orderBy: { createdAt: 'asc' },
+              select: { id: true },
+            });
+            if (firstOwned) {
+              nextActiveOutletId = firstOwned.id;
+              await prisma.user.update({
+                where: { id: user.id },
+                data: { outletId: nextActiveOutletId },
+              });
+            }
+          }
+
+          // If OWNER has no owned outlets, block dashboard access early.
+          if (!nextActiveOutletId) {
+            throw new Error('Akun OWNER Anda belum memiliki outlet. Silakan hubungi admin untuk mengaitkan outlet.');
+          }
+
+          // Mutate return payload outletId to ensure session uses active outlet.
+          (user as any).outletId = nextActiveOutletId;
+        }
+
+        if (user.role === Role.STAFF) {
+          if (!isValidUuid(user.outletId)) {
+            throw new Error('Akun STAFF wajib memiliki outlet. Silakan hubungi admin.');
+          }
+        }
+
         // Successful login - reset failed attempts and clear rate limit
         await resetFailedAttempts(user.id);
         // Note: We don't clear rate limit on success to prevent enumeration attacks
@@ -166,6 +242,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
         return {
           id: user.id,
+          name: user.name,
           outletId: user.outletId,
           role: user.role,
           phone: user.phone,
@@ -174,13 +251,56 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.userId = user.id;
         token.outletId = (user as any).outletId;
         token.role = (user as any).role;
         token.phone = (user as any).phone;
+        token.name = (user as any).name;
       }
+
+      // Allow outlet context switching for OWNER via useSession().update({ outletId })
+      if (trigger === 'update' && session) {
+        const requestedOutletId = (session as any).outletId as string | null | undefined;
+        if (requestedOutletId !== undefined) {
+          if (!isValidUuid(requestedOutletId)) {
+            throw new Error('Outlet tidak valid');
+          }
+
+          const role = token.role as Role | undefined;
+          const userId = token.userId as string | undefined;
+
+          if (!role || !userId) {
+            throw new Error('Session tidak valid');
+          }
+
+          if (role === Role.OWNER) {
+            const owns = await prisma.outlet.count({
+              where: { id: requestedOutletId, ownerId: userId },
+            });
+            if (owns <= 0) {
+              throw new Error('Outlet tidak termasuk dalam kepemilikan Anda');
+            }
+
+            // Persist active outlet for consistency across devices
+            await prisma.user.update({
+              where: { id: userId },
+              data: { outletId: requestedOutletId },
+            });
+
+            token.outletId = requestedOutletId;
+          } else if (role === Role.STAFF) {
+            // STAFF tidak boleh mengganti outlet context (single outlet)
+            if (token.outletId !== requestedOutletId) {
+              throw new Error('STAFF tidak dapat mengganti outlet');
+            }
+          } else {
+            throw new Error('Role tidak dapat mengganti outlet');
+          }
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
@@ -189,6 +309,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         (session.user as any).outletId = token.outletId;
         (session.user as any).role = token.role;
         (session.user as any).phone = token.phone;
+        (session.user as any).name = (token as any).name;
       }
       return session;
     },

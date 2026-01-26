@@ -13,8 +13,11 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
 import { Role } from '@/generated/prisma';
 
 interface DashboardLayoutProps {
@@ -89,10 +92,18 @@ const menuItems: MenuItem[] = [
 ];
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const pathname = usePathname();
+  const router = useRouter();
   const user = session?.user as any;
   const userRole = user?.role as Role | undefined;
+
+  const activeOutletId = (user?.outletId as string | null | undefined) ?? null;
+
+  type OwnedOutlet = { id: string; name: string };
+  const [ownedOutlets, setOwnedOutlets] = useState<OwnedOutlet[]>([]);
+  const [outletsLoading, setOutletsLoading] = useState(false);
+  const [switching, setSwitching] = useState(false);
 
   // Filter menu items based on user role
   const filteredMenuItems = menuItems.filter((item) =>
@@ -106,6 +117,94 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     }
     return pathname?.startsWith(href);
   };
+
+  const showOutletSwitcher = useMemo(() => {
+    return userRole === Role.OWNER;
+  }, [userRole]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadOwnedOutlets() {
+      if (!showOutletSwitcher) return;
+      setOutletsLoading(true);
+
+      try {
+        const res = await fetch('/api/dashboard/outlets', { method: 'GET' });
+        const json = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          throw new Error(json?.message || 'Gagal memuat daftar outlet');
+        }
+
+        const outlets: OwnedOutlet[] = Array.isArray(json?.data)
+          ? json.data.map((o: any) => ({ id: o.id, name: o.name }))
+          : [];
+
+        if (!cancelled) {
+          setOwnedOutlets(outlets);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setOwnedOutlets([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setOutletsLoading(false);
+        }
+      }
+    }
+
+    void loadOwnedOutlets();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showOutletSwitcher]);
+
+  async function handleSwitchOutlet(nextOutletId: string) {
+    if (!nextOutletId || nextOutletId === activeOutletId) return;
+    if (switching) return;
+
+    setSwitching(true);
+    try {
+      // Server-side validation that outlet belongs to OWNER
+      const validateRes = await fetch('/api/dashboard/outlet-context', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ outletId: nextOutletId }),
+      });
+      const validateJson = await validateRes.json().catch(() => null);
+      if (!validateRes.ok) {
+        throw new Error(validateJson?.message || 'Outlet tidak valid');
+      }
+
+      // Update NextAuth session (JWT) - server will re-validate again in jwt callback
+      await update({ outletId: nextOutletId } as any);
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: 'Outlet aktif berhasil diubah.',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#3085d6',
+        timer: 1500,
+        timerProgressBar: true,
+      });
+
+      router.refresh();
+    } catch (e) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: e instanceof Error ? e.message : 'Gagal mengubah outlet aktif.',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#3085d6',
+      });
+    } finally {
+      setSwitching(false);
+    }
+  }
 
   return (
     <div className="app-wrapper">
@@ -178,6 +277,39 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
           {/* End Navbar Links */}
           <ul className="navbar-nav ms-auto">
+            {showOutletSwitcher && (
+              <li className="nav-item d-flex align-items-center me-2">
+                <div className="input-group input-group-sm">
+                  <span className="input-group-text">
+                    <i className="fas fa-store"></i>
+                  </span>
+                  <select
+                    className="form-select form-select-sm"
+                    value={activeOutletId ?? ''}
+                    disabled={outletsLoading || switching || ownedOutlets.length === 0}
+                    onChange={(e) => void handleSwitchOutlet(e.target.value)}
+                    aria-label="Pilih outlet aktif"
+                  >
+                    {outletsLoading && (
+                      <option value="">
+                        Memuat outlet...
+                      </option>
+                    )}
+                    {!outletsLoading && ownedOutlets.length === 0 && (
+                      <option value="">
+                        Tidak ada outlet
+                      </option>
+                    )}
+                    {!outletsLoading &&
+                      ownedOutlets.map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </li>
+            )}
             {/* User Dropdown Menu */}
             <li className="nav-item dropdown user-menu">
               <a

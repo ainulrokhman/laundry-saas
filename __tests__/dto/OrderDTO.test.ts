@@ -8,7 +8,6 @@
  * - Array transformations work correctly
  */
 
-import { describe, it, expect } from 'vitest';
 import { OrderDTO, OrderWithRelations } from '@/dto/OrderDTO';
 import { OrderStatus, PaymentStatus, PaymentMethod } from '@/generated/prisma';
 

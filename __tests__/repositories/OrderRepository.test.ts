@@ -4,14 +4,15 @@
  * Tests for OrderRepository with outlet filtering and dashboard stats methods
  */
 
-import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { OrderRepository } from '@/repositories/OrderRepository';
-import { createTestPrismaClient, cleanupTestDatabase } from '../utils/test-db';
+import { createTestPrismaClient, cleanupTestDatabase, isDatabaseAvailable } from '../utils/test-db';
 import { createOutletData, createOrderData } from '../utils/factories';
 import { OrderStatus, PaymentStatus, PaymentMethod } from '@/generated/prisma';
 import { startOfDay, endOfDay, subDays } from 'date-fns';
 
-describe('OrderRepository', () => {
+const describeDb = isDatabaseAvailable() ? describe : describe.skip;
+
+describeDb('OrderRepository', () => {
   const prisma = createTestPrismaClient();
   const repo = new OrderRepository();
 

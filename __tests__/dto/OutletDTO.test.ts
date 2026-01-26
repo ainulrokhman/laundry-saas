@@ -7,7 +7,6 @@
  * - Array transformations work correctly
  */
 
-import { describe, it, expect } from 'vitest';
 import { OutletDTO } from '@/dto/OutletDTO';
 import { Outlet, Role } from '@/generated/prisma';
 

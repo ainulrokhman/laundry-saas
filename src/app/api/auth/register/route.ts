@@ -133,16 +133,6 @@ export async function POST(request: NextRequest) {
 
     // Create outlet and user in transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Create outlet
-      const outlet = await tx.outlet.create({
-        data: {
-          name: outletName,
-          slug,
-          address: outletAddress,
-          isPro: false,
-        },
-      });
-
       // Create user (store phone without + prefix)
       const user = await tx.user.create({
         data: {
@@ -150,11 +140,28 @@ export async function POST(request: NextRequest) {
           name,
           pin: hashedPin,
           role: Role.OWNER,
-          outletId: outlet.id,
+          outletId: null, // akan diisi setelah outlet dibuat (sebagai outlet aktif)
           isActive: true,
           isPinSet: true,
           pinChangedAt: new Date(),
         },
+      });
+
+      // Create outlet (ownerId = user.id)
+      const outlet = await tx.outlet.create({
+        data: {
+          name: outletName,
+          slug,
+          address: outletAddress,
+          isPro: false,
+          ownerId: user.id,
+        },
+      });
+
+      // Set outlet aktif untuk OWNER
+      await tx.user.update({
+        where: { id: user.id },
+        data: { outletId: outlet.id },
       });
 
       return { user, outlet };

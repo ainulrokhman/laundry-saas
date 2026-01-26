@@ -1,13 +1,15 @@
 /**
  * Prisma Seed Script
  * 
- * Seeds the database with comprehensive initial data:
- * - SuperAdmin user
- * - Multiple outlets with owners and staff
- * - Services for each outlet
- * - Bank accounts for each outlet
- * - Sample orders with various statuses
- * - Sample transactions
+ * Seed database dengan data awal (mode demo):
+ * - SUPERADMIN user
+ * - Outlets + OWNER multi-outlet (via Outlet.ownerId) + STAFF single-outlet
+ * - Services + bank accounts per outlet
+ * - (Opsional) Sample orders + transactions
+ *
+ * Catatan penting:
+ * - Script ini dibuat **idempotent** untuk data demo (berdasarkan slug outlet + phone user).
+ * - Untuk production, gunakan prefix (`SEED_PREFIX`) agar tidak bentrok dengan data nyata.
  * 
  * Run with: npm run prisma:seed
  */
@@ -23,6 +25,25 @@ import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 
 const prisma = new PrismaClient();
+
+function envFlag(name: string): boolean {
+  const v = String(process.env[name] ?? '').trim().toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes' || v === 'y';
+}
+
+function envString(name: string, fallback?: string): string {
+  const v = String(process.env[name] ?? '').trim();
+  return v.length > 0 ? v : (fallback ?? '');
+}
+
+function envCsv(name: string): string[] {
+  const v = String(process.env[name] ?? '').trim();
+  if (!v) return [];
+  return v
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
 /**
  * Generate random tracking code
@@ -46,21 +67,69 @@ function randomDate(daysAgo: number = 7): Date {
 }
 
 async function main() {
-  console.log('🌱 Starting comprehensive database seed...\n');
+  console.log('🌱 Memulai seed database...\n');
 
   // Default PIN: 123456 (hashed)
   const defaultPin = await bcrypt.hash('123456', 10);
+
+  // ============================================
+  // 0. Seed configuration (via env)
+  // ============================================
+  const seedPrefix = envString('SEED_PREFIX', 'demo');
+  const includeTransactions = envFlag('SEED_INCLUDE_TRANSACTIONS'); // include orders + transactions
+  const allowProdSeed = envFlag('ALLOW_PROD_SEED');
+  const useDemoPhones = envFlag('SEED_USE_DEMO_PHONES');
+
+  const demoOwnerPhonesDefault = ['6281111111111', '6282222222222']; // 2 owner demo
+  const demoStaffPhonesDefault = [
+    '6284444444444', '6285555555555',
+    '6286666666666', '6287777777777',
+    '6288888888888', '6289999999999',
+  ]; // 6 staff demo (2 per outlet)
+
+  const ownerPhones = envCsv('SEED_OWNER_PHONES');
+  const staffPhonesFlat = envCsv('SEED_STAFF_PHONES');
+
+  const resolvedOwnerPhones = ownerPhones.length > 0 ? ownerPhones : demoOwnerPhonesDefault;
+  const resolvedStaffPhones = staffPhonesFlat.length > 0 ? staffPhonesFlat : demoStaffPhonesDefault;
+
+  if (includeTransactions && !allowProdSeed) {
+    throw new Error(
+      'Seed demo dengan orders/transactions diblokir untuk keamanan.\n' +
+        'Set ALLOW_PROD_SEED=1 jika Anda benar-benar ingin membuat data demo (termasuk orders/transactions).'
+    );
+  }
+
+  if (resolvedOwnerPhones === demoOwnerPhonesDefault && !useDemoPhones) {
+    throw new Error(
+      'Seed demo menggunakan default phone diblokir untuk keamanan.\n' +
+        'Set SEED_USE_DEMO_PHONES=1 atau set SEED_OWNER_PHONES/SEED_STAFF_PHONES sendiri.'
+    );
+  }
+
+  if (resolvedOwnerPhones.length < 2) {
+    throw new Error('SEED_OWNER_PHONES harus berisi minimal 2 nomor (untuk 2 OWNER demo).');
+  }
+  if (resolvedStaffPhones.length < 6) {
+    throw new Error('SEED_STAFF_PHONES harus berisi minimal 6 nomor (2 STAFF per 3 outlet demo).');
+  }
+
+  const superAdminPhone = envString('SEED_SUPERADMIN_PHONE', '6281234567890');
+  const superAdminName = envString('SEED_SUPERADMIN_NAME', 'Super Admin');
+
+  const buildSlug = (baseSlug: string) => (seedPrefix ? `${seedPrefix}-${baseSlug}` : baseSlug);
+  const buildOutletName = (baseName: string) => (seedPrefix ? `${baseName} (${seedPrefix.toUpperCase()})` : baseName);
 
   // ============================================
   // 1. Create SuperAdmin user
   // ============================================
   console.log('📦 Creating SuperAdmin...');
   const superAdmin = await prisma.user.upsert({
-    where: { phone: '6281234567890' },
+    where: { phone: superAdminPhone },
     update: {},
     create: {
-      phone: '6281234567890',
-      name: 'Super Admin',
+      phone: superAdminPhone,
+      name: superAdminName,
       pin: defaultPin,
       role: Role.SUPERADMIN,
       isActive: true,
@@ -71,27 +140,94 @@ async function main() {
   console.log(`   ✅ ${superAdmin.name} (${superAdmin.phone})\n`);
 
   // ============================================
-  // 2. Create Multiple Outlets
+  // 2. Backfill ownerId untuk data legacy (single-outlet OWNER)
   // ============================================
-  console.log('🏪 Creating Outlets...');
+  console.log('🧩 Backfill Outlet.ownerId (legacy → model baru)...');
+  const outletsNeedingOwner = await prisma.outlet.findMany({
+    where: { ownerId: null },
+    select: { id: true, slug: true },
+  });
+
+  let backfillCount = 0;
+  for (const outlet of outletsNeedingOwner) {
+    const legacyOwner = await prisma.user.findFirst({
+      where: { role: Role.OWNER, outletId: outlet.id },
+      select: { id: true, phone: true },
+    });
+    if (!legacyOwner) continue;
+
+    await prisma.outlet.update({
+      where: { id: outlet.id },
+      data: { ownerId: legacyOwner.id },
+    });
+    backfillCount++;
+  }
+  console.log(`   ✅ Backfill selesai: ${backfillCount} outlet terisi ownerId\n`);
+
+  // ============================================
+  // 3. Create Demo Owners (multi-outlet)
+  // ============================================
+  console.log('👥 Creating Users (Owners & Staff)...');
+  const users = [];
+  const demoOwnerA = await prisma.user.upsert({
+    where: { phone: resolvedOwnerPhones[0] },
+    update: { role: Role.OWNER, isActive: true },
+    create: {
+      phone: resolvedOwnerPhones[0],
+      name: `Owner A (${seedPrefix.toUpperCase()})`,
+      pin: defaultPin,
+      role: Role.OWNER,
+      outletId: null, // akan diisi setelah outlet dibuat (outlet aktif)
+      isActive: true,
+      isPinSet: true,
+      pinChangedAt: new Date(),
+    },
+  });
+  users.push(demoOwnerA);
+  console.log(`   ✅ OWNER A: ${demoOwnerA.name} (${demoOwnerA.phone})`);
+
+  const demoOwnerB = await prisma.user.upsert({
+    where: { phone: resolvedOwnerPhones[1] },
+    update: { role: Role.OWNER, isActive: true },
+    create: {
+      phone: resolvedOwnerPhones[1],
+      name: `Owner B (${seedPrefix.toUpperCase()})`,
+      pin: defaultPin,
+      role: Role.OWNER,
+      outletId: null,
+      isActive: true,
+      isPinSet: true,
+      pinChangedAt: new Date(),
+    },
+  });
+  users.push(demoOwnerB);
+  console.log(`   ✅ OWNER B: ${demoOwnerB.name} (${demoOwnerB.phone})\n`);
+
+  // ============================================
+  // 4. Create Demo Outlets (with ownerId)
+  // ============================================
+  console.log('🏪 Creating Outlets (demo)...');
   const outlets = [
     {
-      name: 'Laundry Express Jakarta',
-      slug: 'laundry-express-jakarta',
+      name: buildOutletName('Laundry Express Jakarta'),
+      slug: buildSlug('laundry-express-jakarta'),
       address: 'Jl. Sudirman No. 123, Jakarta Pusat',
       isPro: true,
+      ownerId: demoOwnerA.id, // OwnerA owns outlet 1
     },
     {
-      name: 'Clean & Fresh Laundry',
-      slug: 'clean-fresh-laundry',
+      name: buildOutletName('Clean & Fresh Laundry'),
+      slug: buildSlug('clean-fresh-laundry'),
       address: 'Jl. Thamrin No. 456, Jakarta Selatan',
       isPro: false,
+      ownerId: demoOwnerA.id, // OwnerA owns outlet 2 (multi-outlet)
     },
     {
-      name: 'Quick Wash Bandung',
-      slug: 'quick-wash-bandung',
+      name: buildOutletName('Quick Wash Bandung'),
+      slug: buildSlug('quick-wash-bandung'),
       address: 'Jl. Dago No. 789, Bandung',
       isPro: false,
+      ownerId: demoOwnerB.id, // OwnerB owns outlet 3
     },
   ];
 
@@ -99,7 +235,12 @@ async function main() {
   for (const outletData of outlets) {
     const outlet = await prisma.outlet.upsert({
       where: { slug: outletData.slug },
-      update: {},
+      update: {
+        name: outletData.name,
+        address: outletData.address,
+        isPro: outletData.isPro,
+        ownerId: outletData.ownerId,
+      },
       create: outletData,
     });
     createdOutlets.push(outlet);
@@ -107,38 +248,27 @@ async function main() {
   }
   console.log('');
 
-  // ============================================
-  // 3. Create Owners and Staff for each Outlet
-  // ============================================
-  console.log('👥 Creating Users (Owners & Staff)...');
-  const users = [];
-  
-  // Owners
-  const ownerPhones = ['6281111111111', '6282222222222', '6283333333333'];
-  for (let i = 0; i < createdOutlets.length; i++) {
-    const owner = await prisma.user.upsert({
-      where: { phone: ownerPhones[i] },
-      update: { outletId: createdOutlets[i].id },
-      create: {
-        phone: ownerPhones[i],
-        name: `Owner ${createdOutlets[i].name}`,
-        pin: defaultPin,
-        role: Role.OWNER,
-        outletId: createdOutlets[i].id,
-        isActive: true,
-        isPinSet: true,
-        pinChangedAt: new Date(),
-      },
+  // Set outlet aktif untuk OWNER demo (session outlet context)
+  const firstOutletOwnerA = createdOutlets.find((o) => o.ownerId === demoOwnerA.id);
+  const firstOutletOwnerB = createdOutlets.find((o) => o.ownerId === demoOwnerB.id);
+  if (firstOutletOwnerA) {
+    await prisma.user.update({
+      where: { id: demoOwnerA.id },
+      data: { outletId: firstOutletOwnerA.id },
     });
-    users.push(owner);
-    console.log(`   ✅ OWNER: ${owner.name} (${owner.phone}) - ${createdOutlets[i].name}`);
+  }
+  if (firstOutletOwnerB) {
+    await prisma.user.update({
+      where: { id: demoOwnerB.id },
+      data: { outletId: firstOutletOwnerB.id },
+    });
   }
 
   // Staff (2 staff per outlet)
   const staffPhones = [
-    ['6284444444444', '6285555555555'],
-    ['6286666666666', '6287777777777'],
-    ['6288888888888', '6289999999999'],
+    [resolvedStaffPhones[0], resolvedStaffPhones[1]],
+    [resolvedStaffPhones[2], resolvedStaffPhones[3]],
+    [resolvedStaffPhones[4], resolvedStaffPhones[5]],
   ];
   
   for (let i = 0; i < createdOutlets.length; i++) {
@@ -164,7 +294,7 @@ async function main() {
   console.log('');
 
   // ============================================
-  // 4. Create Services for each Outlet
+  // 5. Create Services for each Outlet
   // ============================================
   console.log('🛍️  Creating Services...');
   const serviceTemplates = [
@@ -205,7 +335,7 @@ async function main() {
   console.log('');
 
   // ============================================
-  // 5. Create Bank Accounts for each Outlet
+  // 6. Create Bank Accounts for each Outlet
   // ============================================
   console.log('🏦 Creating Bank Accounts...');
   const bankAccounts = [
@@ -243,9 +373,24 @@ async function main() {
   console.log('');
 
   // ============================================
-  // 6. Create Sample Orders
+  // 7. Create Sample Orders (+ Transactions)
   // ============================================
-  console.log('📦 Creating Sample Orders...');
+  let orderCount = 0;
+  let transactionCount = 0;
+
+  if (!includeTransactions) {
+    console.log('⏭️  Skip sample orders/transactions (SEED_INCLUDE_TRANSACTIONS tidak diaktifkan)\n');
+  } else {
+    console.log('📦 Creating Sample Orders...');
+  const demoOutletIds = createdOutlets.map((o) => o.id);
+  const existingDemoOrders = await prisma.order.count({
+    where: { outletId: { in: demoOutletIds } },
+  });
+
+  if (existingDemoOrders > 0) {
+    console.log(`   ⏭️  Demo orders sudah ada (${existingDemoOrders}). Skip membuat orders baru.`);
+    orderCount = existingDemoOrders;
+  } else {
   const customerNames = ['Budi Santoso', 'Siti Nurhaliza', 'Ahmad Dahlan', 'Dewi Sartika', 'Raden Ajeng Kartini'];
   const customerPhones = ['6281000000001', '6281000000002', '6281000000003', '6281000000004', '6281000000005'];
   
@@ -269,7 +414,7 @@ async function main() {
     PaymentMethod.TRANSFER,
   ];
 
-  let orderCount = 0;
+  orderCount = 0;
   for (const outlet of createdOutlets) {
     // Create 10-15 orders per outlet
     const numOrders = 10 + Math.floor(Math.random() * 6);
@@ -319,9 +464,10 @@ async function main() {
     console.log(`   ✅ Created ${numOrders} orders for ${outlet.name}`);
   }
   console.log(`   📊 Total orders created: ${orderCount}\n`);
+  }
 
   // ============================================
-  // 7. Create Sample Transactions
+  // 8. Create Sample Transactions
   // ============================================
   console.log('💳 Creating Sample Transactions...');
   
@@ -329,6 +475,7 @@ async function main() {
   const settledOrders = await prisma.order.findMany({
     where: {
       paymentStatus: PaymentStatus.SETTLEMENT,
+      outletId: { in: demoOutletIds },
     },
     include: {
       outlet: {
@@ -342,8 +489,17 @@ async function main() {
     },
   });
 
-  let transactionCount = 0;
+  transactionCount = 0;
   for (const order of settledOrders) {
+    const existingTx = await prisma.transaction.findFirst({
+      where: {
+        type: TransType.LAUNDRY_ORDER,
+        orderId: order.id,
+      },
+      select: { id: true },
+    });
+    if (existingTx) continue;
+
     const bankAccount = order.outlet.bankAccounts[0];
     
     await prisma.transaction.create({
@@ -364,6 +520,7 @@ async function main() {
     transactionCount++;
   }
   console.log(`   ✅ Created ${transactionCount} transactions\n`);
+  }
 
   // ============================================
   // Summary
@@ -371,17 +528,18 @@ async function main() {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('📋 SEED SUMMARY');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`👤 Users:        ${users.length + 1} (1 SUPERADMIN, ${createdOutlets.length} OWNERS, ${users.length - createdOutlets.length} STAFF)`);
+  console.log(`👤 Users:        ${users.length + 1} (1 SUPERADMIN, 2 OWNERS, ${users.length - 2} STAFF)`);
   console.log(`🏪 Outlets:      ${createdOutlets.length}`);
   console.log(`🛍️  Services:     ${serviceTemplates.length * createdOutlets.length} (${serviceTemplates.length} per outlet)`);
   console.log(`🏦 Bank Accounts: ${bankAccounts.length}`);
-  console.log(`📦 Orders:       ${orderCount}`);
-  console.log(`💳 Transactions: ${transactionCount}`);
+  console.log(`📦 Orders:       ${includeTransactions ? orderCount : 0}`);
+  console.log(`💳 Transactions: ${includeTransactions ? transactionCount : 0}`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('\n📝 Login Credentials:');
-  console.log('   • SUPERADMIN: 6281234567890 / PIN: 123456');
+  console.log(`   • SUPERADMIN: ${superAdminPhone} / PIN: 123456`);
+  console.log(`   • OWNER A: ${resolvedOwnerPhones[0]} / PIN: 123456 (memiliki 2 outlet demo)`);
+  console.log(`   • OWNER B: ${resolvedOwnerPhones[1]} / PIN: 123456 (memiliki 1 outlet demo)`);
   for (let i = 0; i < createdOutlets.length; i++) {
-    console.log(`   • OWNER ${i + 1}: ${ownerPhones[i]} / PIN: 123456 (${createdOutlets[i].name})`);
     console.log(`   • STAFF ${i + 1}.1: ${staffPhones[i][0]} / PIN: 123456 (${createdOutlets[i].name})`);
     console.log(`   • STAFF ${i + 1}.2: ${staffPhones[i][1]} / PIN: 123456 (${createdOutlets[i].name})`);
   }

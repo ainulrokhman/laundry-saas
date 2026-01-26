@@ -7,7 +7,6 @@
  * - Sensitive data is not exposed
  */
 
-import { describe, it, expect } from 'vitest';
 import { DashboardDTO } from '@/dto/DashboardDTO';
 import { DashboardStats, RecentOrder } from '@/services/DashboardService';
 import { OrderStatus, PaymentStatus } from '@/generated/prisma';

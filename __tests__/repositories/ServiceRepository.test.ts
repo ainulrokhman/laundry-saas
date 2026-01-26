@@ -4,11 +4,12 @@
  * Tests for ServiceRepository with outlet filtering
  */
 
-import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { ServiceRepository } from '@/repositories/ServiceRepository';
-import { createTestPrismaClient, cleanupTestDatabase } from '../utils/test-db';
+import { createTestPrismaClient, cleanupTestDatabase, isDatabaseAvailable } from '../utils/test-db';
 
-describe('ServiceRepository', () => {
+const describeDb = isDatabaseAvailable() ? describe : describe.skip;
+
+describeDb('ServiceRepository', () => {
   const prisma = createTestPrismaClient();
   const repo = new ServiceRepository();
 

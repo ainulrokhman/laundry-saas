@@ -4,14 +4,15 @@
  * Tests for ServiceService business logic with multi-tenancy
  */
 
-import { describe, it, expect, beforeEach, vi, afterAll } from 'vitest';
 import { ServiceService } from '@/services/ServiceService';
 import { ServiceRepository } from '@/repositories/ServiceRepository';
-import { createTestPrismaClient, cleanupTestDatabase } from '../utils/test-db';
+import { createTestPrismaClient, cleanupTestDatabase, isDatabaseAvailable } from '../utils/test-db';
 import { SessionUser } from '@/lib/session';
 import { Role } from '@/generated/prisma';
 
-describe('ServiceService', () => {
+const describeDb = isDatabaseAvailable() ? describe : describe.skip;
+
+describeDb('ServiceService', () => {
   const prisma = createTestPrismaClient();
   const serviceRepo = new ServiceRepository();
   const serviceService = new ServiceService(serviceRepo);
@@ -105,6 +106,18 @@ describe('ServiceService', () => {
           price: 10000,
         })
       ).rejects.toThrow('Insufficient permissions');
+    });
+
+    it('should reject SuperAdmin without outletId (tenant isolation)', async () => {
+      const user = createMockUser(Role.SUPERADMIN, null);
+
+      await expect(
+        serviceService.createService(user, {
+          name: 'New Service',
+          type: 'KILOAN',
+          price: 10000,
+        })
+      ).rejects.toThrow('ServiceService requires outletId for multi-tenancy isolation');
     });
   });
 

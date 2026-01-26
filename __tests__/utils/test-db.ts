@@ -24,21 +24,21 @@ function ensureEnvLoaded(): void {
 
 /**
  * Get test database connection
- * Uses TEST_DATABASE_URL if available, otherwise falls back to DATABASE_URL
+ * Uses TEST_DATABASE_URL only (never fall back to DATABASE_URL)
  */
 export function getTestDatabaseUrl(): string {
   // Always ensure env vars are loaded
   ensureEnvLoaded();
   
-  const testDbUrl = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL;
-  
+  const testDbUrl = process.env.TEST_DATABASE_URL;
   if (!testDbUrl) {
     throw new Error(
-      'TEST_DATABASE_URL or DATABASE_URL must be set for testing. ' +
-      'Please set one of these environment variables in your .env.local file.'
+      'TEST_DATABASE_URL wajib diset untuk menjalankan database tests.\n' +
+      'Demi keamanan, suite test tidak akan pernah memakai DATABASE_URL.\n' +
+      'Silakan set TEST_DATABASE_URL di .env.local (gunakan database test terpisah).'
     );
   }
-  
+
   return testDbUrl;
 }
 
@@ -48,7 +48,9 @@ export function getTestDatabaseUrl(): string {
 export function isDatabaseAvailable(): boolean {
   // Ensure env vars are loaded
   ensureEnvLoaded();
-  return !!(process.env.TEST_DATABASE_URL || process.env.DATABASE_URL);
+  // Policy: DB tests auto-run jika TEST_DATABASE_URL tersedia.
+  // (Repo ini tidak akan pernah fallback ke DATABASE_URL demi keamanan.)
+  return !!process.env.TEST_DATABASE_URL;
 }
 
 /**

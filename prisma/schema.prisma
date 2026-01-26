@@ -66,6 +66,9 @@ model User {
   role                Role     @default(OWNER)
   outletId            String?
   outlet              Outlet?  @relation(fields: [outletId], references: [id])
+  // Multi-outlet OWNER (foundation): outletId tetap dipakai sebagai "outlet aktif" pada session,
+  // sedangkan kepemilikan outlet dimodelkan via Outlet.ownerId.
+  ownedOutlets         Outlet[] @relation("OutletOwner")
   isActive            Boolean  @default(true)
   isPinSet            Boolean  @default(false) // Flag untuk cek apakah PIN sudah di-set (setelah register)
   failedLoginAttempts Int      @default(0) // Jumlah percobaan login yang gagal
@@ -98,6 +101,9 @@ model Outlet {
   slug          String                @unique // URL: domain.com/outlet/[slug]
   address       String
   isPro         Boolean               @default(false)
+  // Owner relationship (1 OWNER bisa memiliki banyak outlet)
+  ownerId       String?
+  owner         User?                 @relation("OutletOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
   users         User[]
@@ -105,6 +111,8 @@ model Outlet {
   orders        Order[]
   bankAccounts  BankAccount[]         // Multiple rekening bank untuk transfer pelanggan
   paymentGatewayConfigs PaymentGatewayConfig[] // Konfigurasi payment gateway per outlet
+
+  @@index([ownerId])
 }
 
 model BankAccount {

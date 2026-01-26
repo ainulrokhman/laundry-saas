@@ -20,10 +20,9 @@ if (process.env.DEBUG) {
   });
 }
 
-import '@testing-library/jest-dom';
-import { vi } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 import { PrismaClient } from '../src/generated/prisma';
-import { getTestDatabaseUrl } from './utils/test-db';
+import { getTestDatabaseUrl, isDatabaseAvailable } from './utils/test-db';
 
 // Mock Next.js router (must be at top level, not inside beforeAll)
 vi.mock('next/navigation', () => ({
@@ -55,6 +54,26 @@ vi.mock('next/headers', () => ({
 // This ensures that code using prisma singleton (like account-lockout.ts)
 // uses the same test database as the test itself
 vi.mock('@/lib/prisma', async () => {
+  // IMPORTANT SAFETY:
+  // - Jika TEST_DATABASE_URL tidak diset, jangan pernah fallback ke DATABASE_URL.
+  // - Kembalikan stub yang akan melempar error saat dipakai.
+  if (!isDatabaseAvailable()) {
+    const stub = new Proxy(
+      {},
+      {
+        get() {
+          throw new Error(
+            'Database tests tidak aktif. Untuk mengaktifkan:\n' +
+              '- Set TEST_DATABASE_URL di .env.local (database test terpisah)\n' +
+              '- Jalankan `npm run prisma:push:test` untuk sync schema (jika diperlukan)'
+          );
+        },
+      }
+    ) as unknown as PrismaClient;
+
+    return { prisma: stub, default: stub };
+  }
+
   const testDbUrl = getTestDatabaseUrl();
   const testPrisma = new PrismaClient({
     datasources: {

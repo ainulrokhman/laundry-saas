@@ -1,6 +1,11 @@
 /**
- * Script to run Prisma migrations on test database
- * Reads TEST_DATABASE_URL from .env.local and runs migrations
+ * Script to sync Prisma schema to test database (db push)
+ *
+ * Kenapa db push (bukan migrate deploy)?
+ * - Repo ini saat ini tidak menyimpan folder `prisma/migrations/`.
+ * - Untuk TEST database, tujuan utama adalah schema selalu mengikuti `prisma/schema.prisma`.
+ *
+ * ⚠️ Jangan gunakan script ini untuk production.
  */
 
 const { config } = require('dotenv');
@@ -22,14 +27,14 @@ console.log('🔄 Running migrations on test database...');
 console.log(`   Database: ${testDbUrl.replace(/:[^:@]+@/, ':****@')}\n`);
 
 try {
-  // Set DATABASE_URL to TEST_DATABASE_URL and run migrate deploy
+  // Set DATABASE_URL to TEST_DATABASE_URL and run db push
   process.env.DATABASE_URL = testDbUrl;
-  execSync('npx prisma migrate deploy', {
+  execSync('npx prisma db push --skip-generate', {
     stdio: 'inherit',
     env: process.env,
   });
-  console.log('\n✅ Test database migrations completed successfully!');
+  console.log('\n✅ Test database schema synced successfully (db push)!');
 } catch (error) {
-  console.error('\n❌ Migration failed:', error.message);
+  console.error('\n❌ DB push failed:', error.message);
   process.exit(1);
 }

@@ -4,14 +4,15 @@
  * Tests for DashboardService business logic
  */
 
-import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { DashboardService } from '@/services/DashboardService';
-import { createTestPrismaClient, cleanupTestDatabase } from '../utils/test-db';
+import { createTestPrismaClient, cleanupTestDatabase, isDatabaseAvailable } from '../utils/test-db';
 import { createOutletData, createOrderData, createUserData } from '../utils/factories';
 import { OrderStatus, PaymentStatus, PaymentMethod } from '@/generated/prisma';
 import { startOfDay, endOfDay, subDays } from 'date-fns';
 
-describe('DashboardService', () => {
+const describeDb = isDatabaseAvailable() ? describe : describe.skip;
+
+describeDb('DashboardService', () => {
   const prisma = createTestPrismaClient();
   const service = new DashboardService();
 

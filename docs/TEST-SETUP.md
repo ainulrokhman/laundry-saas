@@ -25,16 +25,12 @@ For better isolation, create a separate test database:
    TEST_DATABASE_URL="postgresql://user:password@host:5432/test_database?sslmode=require"
    ```
 
-3. **Run migrations on test database:**
+3. **Sync schema ke test database (db push):**
    ```bash
-   DATABASE_URL=$TEST_DATABASE_URL npm run prisma:migrate
+   npm run prisma:push:test
    ```
 
-### Option 2: Use Development Database
-
-If you don't want a separate test database, tests will use `DATABASE_URL`:
-
-⚠️ **Warning:** Tests will clean up data, so make sure you're okay with test data being deleted.
+> Catatan: suite database tests di repo ini **tidak** akan memakai `DATABASE_URL` demi keamanan.
 
 ## 🧪 Running Tests
 
@@ -43,6 +39,10 @@ If you don't want a separate test database, tests will use `DATABASE_URL`:
 ```bash
 # Run all tests
 npm run test
+
+# Database tests akan auto-run jika TEST_DATABASE_URL diset
+# Pastikan schema test DB sudah di-push:
+# npm run prisma:push:test
 
 # Run tests in watch mode
 npm run test:watch
@@ -230,7 +230,8 @@ Coverage report will be generated in `coverage/` directory.
 ### Issue: Tests can't connect to database
 
 **Solution:**
-- Verify `DATABASE_URL` or `TEST_DATABASE_URL` is set correctly
+- Verify `TEST_DATABASE_URL` is set correctly
+- Pastikan menjalankan `npm run prisma:push:test` setelah perubahan schema
 - Check database connection string format
 - Ensure database is accessible from your network
 

@@ -5,12 +5,13 @@
  * Note: Outlets don't require outletId filtering (they are the tenant root).
  */
 
-import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { OutletRepository } from '@/repositories/OutletRepository';
-import { createTestPrismaClient, cleanupTestDatabase } from '../utils/test-db';
+import { createTestPrismaClient, cleanupTestDatabase, isDatabaseAvailable } from '../utils/test-db';
 import { createOutletData } from '../utils/factories';
 
-describe('OutletRepository', () => {
+const describeDb = isDatabaseAvailable() ? describe : describe.skip;
+
+describeDb('OutletRepository', () => {
   const prisma = createTestPrismaClient();
   const repo = new OutletRepository();
 

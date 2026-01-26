@@ -6,8 +6,7 @@
  * @vitest-environment node
  */
 
-import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest';
-import { createTestPrismaClient, cleanupTestDatabase } from '../utils/test-db';
+import { createTestPrismaClient, cleanupTestDatabase, isDatabaseAvailable } from '../utils/test-db';
 import { createUserData } from '../utils/factories';
 import bcrypt from 'bcryptjs';
 import { normalizePhoneNumber } from '@/lib/utils';
@@ -20,7 +19,9 @@ vi.spyOn(securityLogService, 'logEvent').mockResolvedValue();
 vi.spyOn(securityLogService, 'logLoginAttempt').mockResolvedValue();
 vi.spyOn(securityLogService, 'logAccountLocked').mockResolvedValue();
 
-describe('Login Security Integration', () => {
+const describeDb = isDatabaseAvailable() ? describe : describe.skip;
+
+describeDb('Login Security Integration', () => {
   const prisma = createTestPrismaClient();
   const LOGIN_RATE_LIMIT = {
     maxAttempts: 5,

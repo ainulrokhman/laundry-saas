@@ -4,7 +4,6 @@
  * Critical tests for outlet filtering utility functions (multi-tenancy)
  */
 
-import { describe, it, expect } from 'vitest';
 import {
   requireOutletIdFromSession,
   validateOutletId,

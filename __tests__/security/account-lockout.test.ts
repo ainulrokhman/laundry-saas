@@ -6,7 +6,6 @@
  * @vitest-environment node
  */
 
-import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 import {
   isAccountLocked,
   recordFailedAttempt,
@@ -14,11 +13,13 @@ import {
   getLockoutInfo,
   DEFAULT_LOCKOUT_CONFIG,
 } from '@/lib/security/account-lockout';
-import { createTestPrismaClient, cleanupTestDatabase } from '../utils/test-db';
+import { createTestPrismaClient, cleanupTestDatabase, isDatabaseAvailable } from '../utils/test-db';
 import { createUserData } from '../utils/factories';
 import bcrypt from 'bcryptjs';
 
-describe('Account Lockout', () => {
+const describeDb = isDatabaseAvailable() ? describe : describe.skip;
+
+describeDb('Account Lockout', () => {
   const prisma = createTestPrismaClient();
 
   beforeEach(async () => {

@@ -64,6 +64,26 @@ export class OutletRepository extends BaseRepository {
   }
 
   /**
+   * Find outlets owned by a specific OWNER
+   * Used for OWNER multi-outlet outlet switcher.
+   */
+  async findByOwnerId(ownerId: string): Promise<Outlet[]> {
+    return prisma.outlet.findMany({
+      where: { ownerId },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  /**
+   * Find a specific outlet owned by OWNER (authorization helper)
+   */
+  async findOwnedOutletById(ownerId: string, outletId: string): Promise<Outlet | null> {
+    return prisma.outlet.findFirst({
+      where: { id: outletId, ownerId },
+    });
+  }
+
+  /**
    * Create new outlet
    */
   async create(data: Prisma.OutletCreateInput): Promise<Outlet> {

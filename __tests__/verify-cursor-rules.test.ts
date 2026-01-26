@@ -5,7 +5,6 @@
  * Run tests ini setelah setup dependencies untuk memastikan compliance
  */
 
-import { describe, it, expect } from 'vitest';
 import { existsSync } from 'fs';
 import { join } from 'path';
 

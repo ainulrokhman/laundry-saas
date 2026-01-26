@@ -19,6 +19,7 @@
 
 import { auth, ExtendedSession } from '../auth';
 import { Role } from '../../generated/prisma';
+import { prisma } from '../prisma';
 
 /**
  * Options for route protection
@@ -166,6 +167,14 @@ export function withOwnerAuth<T = any>(
   return withAuth(handler, {
     roles: [Role.OWNER],
     requireOutlet: true,
+    authorize: async (session) => {
+      // Server-side validation: outlet aktif harus milik OWNER
+      if (!session.outletId) return false;
+      const owns = await prisma.outlet.count({
+        where: { id: session.outletId, ownerId: session.userId },
+      });
+      return owns > 0;
+    },
   });
 }
 

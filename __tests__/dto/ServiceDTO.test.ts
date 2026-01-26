@@ -7,7 +7,6 @@
  * - Array transformations work correctly
  */
 
-import { describe, it, expect } from 'vitest';
 import { ServiceDTO, ServiceWithRelations } from '@/dto/ServiceDTO';
 
 describe('ServiceDTO', () => {
