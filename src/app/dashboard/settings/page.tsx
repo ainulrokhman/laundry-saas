@@ -31,6 +31,14 @@ const settingsCards: SettingsCard[] = [
     roles: ['OWNER', 'STAFF'],
   },
   {
+    title: 'Manajemen Staff',
+    description: 'Kelola akun staff untuk outlet aktif Anda',
+    icon: 'fas fa-users',
+    href: '/dashboard/settings/staff',
+    color: 'warning',
+    roles: ['OWNER'],
+  },
+  {
     title: 'Bank Accounts',
     description: 'Kelola rekening bank untuk pembayaran transfer',
     icon: 'fas fa-university',

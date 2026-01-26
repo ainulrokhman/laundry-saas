@@ -385,18 +385,18 @@ Priority order: **Multi-outlet OWNER → Landing Page + Settings → Staff Manag
 - [ ] Option B: separate table `OutletLandingPage` (more flexible)
 
 ### Priority 3: Staff Management (Owner - Tenant) [Role: OWNER]
-- [ ] Create staff management page for OWNER (recommended under settings): `app/dashboard/settings/staff/page.tsx`
-- [ ] Implement staff list per outlet (session outlet only)
-- [ ] Implement create/update/deactivate staff (OWNER only)
-- [ ] Create STAFF (mandatory `outletId` = outlet session)
-- [ ] Update STAFF (name, phone, active status; role remains STAFF)
-- [ ] Deactivate STAFF (optional: cannot self-deactivate while logged in)
-- [ ] Implement strict guards & validation:
-- [ ] STAFF cannot be created/updated into OWNER/SUPERADMIN from the dashboard
-- [ ] Must not manage users across outlets (tenant isolation)
-- [ ] API routes (OWNER only, outlet scope):
-- [ ] `GET/POST /api/dashboard/settings/staff`
-- [ ] `GET/PUT /api/dashboard/settings/staff/[id]`
+- [x] Create staff management page for OWNER (recommended under settings): `app/dashboard/settings/staff/page.tsx`
+- [x] Implement staff list per outlet (session outlet only)
+- [x] Implement create/update/deactivate staff (OWNER only)
+- [x] Create STAFF (mandatory `outletId` = outlet session)
+- [x] Update STAFF (name, phone, active status; role remains STAFF)
+- [x] Deactivate STAFF (optional: cannot self-deactivate while logged in)
+- [x] Implement strict guards & validation:
+- [x] STAFF cannot be created/updated into OWNER/SUPERADMIN from the dashboard
+- [x] Must not manage users across outlets (tenant isolation)
+- [x] API routes (OWNER only, outlet scope):
+- [x] `GET/POST /api/dashboard/settings/staff`
+- [x] `GET/PUT /api/dashboard/settings/staff/[id]`
 
 ### Priority 4: POS (Owner/Staff) [Role: OWNER/STAFF]
 (Implementation details are in Phase 2 below.)
