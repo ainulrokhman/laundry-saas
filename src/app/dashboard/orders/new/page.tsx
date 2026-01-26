@@ -11,6 +11,7 @@ import { useSession } from 'next-auth/react';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import { formatCurrency } from '@/lib/utils';
+import { ResponsiveTableToCards } from '@/components/adminlte/ResponsiveTableToCards';
 
 type ServiceType = 'KILOAN' | 'SATUAN' | 'PAKET';
 
@@ -195,7 +196,7 @@ export default function NewOrderPage() {
         title: 'Order berhasil dibuat',
         html:
           trackingCode
-            ? `Tracking code: <code>${trackingCode}</code><br/>Simpan kode ini untuk pelanggan.`
+            ? `Kode tracking: <code>${trackingCode}</code><br/>Simpan kode ini untuk pelanggan.`
             : 'Order berhasil dibuat.',
         confirmButtonText: 'OK',
         confirmButtonColor: '#3085d6',
@@ -341,70 +342,150 @@ export default function NewOrderPage() {
                     Item Order
                   </h3>
                 </div>
-                <div className="card-body table-responsive p-0">
-                  <table className="table table-striped table-hover text-nowrap mb-0">
-                    <thead className="table-light">
-                      <tr>
-                        <th>Layanan</th>
-                        <th>Qty</th>
-                        <th>Harga</th>
-                        <th>Subtotal</th>
-                        <th>Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {totals.rows.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="text-center py-4 text-muted">
-                            Belum ada item. Tambahkan layanan di atas.
-                          </td>
-                        </tr>
-                      ) : (
-                        totals.rows.map((it) => (
-                          <tr key={it.key}>
-                            <td className="fw-semibold">
-                              {it.serviceName}
+                <div className="card-body p-0">
+                  <ResponsiveTableToCards
+                    items={totals.rows}
+                    getRowKey={(it) => it.key}
+                    emptyState={
+                      <div className="text-muted text-center py-4">
+                        Belum ada item. Tambahkan layanan di atas.
+                      </div>
+                    }
+                    mobileContainerClassName="p-3"
+                    columns={[
+                      {
+                        header: 'Layanan',
+                        render: (it) => (
+                          <div className="fw-semibold">
+                            {it.serviceName}
+                            <div className="text-muted small">
+                              {typeLabel(it.serviceType)} {it.serviceUnit ? `• ${it.serviceUnit}` : ''}
+                            </div>
+                          </div>
+                        ),
+                        tdClassName: 'align-middle',
+                      },
+                      {
+                        header: 'Qty',
+                        render: (it) => (
+                          <input
+                            type="number"
+                            className="form-control form-control-sm"
+                            value={it.quantity}
+                            min={allowDecimalQty(it.serviceType) ? 0.1 : 1}
+                            step={allowDecimalQty(it.serviceType) ? 0.1 : 1}
+                            onChange={(e) => {
+                              const v = Number(e.target.value);
+                              updateItem(it.key, { quantity: Number.isFinite(v) ? v : it.quantity });
+                            }}
+                          />
+                        ),
+                        thClassName: 'text-nowrap',
+                        tdClassName: 'align-middle',
+                      },
+                      {
+                        header: 'Harga',
+                        render: (it) => (
+                          <input
+                            type="number"
+                            className="form-control form-control-sm"
+                            value={it.unitPrice}
+                            min={0}
+                            step={1}
+                            onChange={(e) => {
+                              const v = Number(e.target.value);
+                              updateItem(it.key, { unitPrice: Number.isFinite(v) ? v : it.unitPrice });
+                            }}
+                          />
+                        ),
+                        thClassName: 'text-nowrap',
+                        tdClassName: 'align-middle',
+                      },
+                      {
+                        header: 'Subtotal',
+                        render: (it) => <span className="fw-semibold">{formatCurrency(it.subtotal)}</span>,
+                        thClassName: 'text-nowrap',
+                        tdClassName: 'align-middle',
+                      },
+                      {
+                        header: 'Aksi',
+                        render: (it) => (
+                          <button
+                            type="button"
+                            className="btn btn-danger btn-sm"
+                            onClick={() => removeItem(it.key)}
+                            title="Hapus"
+                          >
+                            <i className="fas fa-trash"></i>
+                          </button>
+                        ),
+                        thClassName: 'text-nowrap',
+                        tdClassName: 'align-middle',
+                      },
+                    ]}
+                    renderMobileCard={(it) => (
+                      <div className="card shadow-sm">
+                        <div className="card-body p-3">
+                          <div className="d-flex justify-content-between align-items-start gap-2">
+                            <div className="flex-grow-1">
+                              <div className="fw-semibold">{it.serviceName}</div>
                               <div className="text-muted small">
                                 {typeLabel(it.serviceType)} {it.serviceUnit ? `• ${it.serviceUnit}` : ''}
                               </div>
-                            </td>
-                            <td style={{ width: 140 }}>
+                            </div>
+                            <button
+                              type="button"
+                              className="btn btn-outline-danger btn-sm"
+                              onClick={() => removeItem(it.key)}
+                              aria-label="Hapus item"
+                              title="Hapus"
+                            >
+                              <i className="fas fa-trash"></i>
+                            </button>
+                          </div>
+
+                          <div className="row g-2 mt-2">
+                            <div className="col-6">
+                              <label className="form-label small mb-1">Qty</label>
                               <input
                                 type="number"
-                                className="form-control form-control-sm"
+                                className="form-control"
                                 value={it.quantity}
                                 min={allowDecimalQty(it.serviceType) ? 0.1 : 1}
                                 step={allowDecimalQty(it.serviceType) ? 0.1 : 1}
+                                inputMode="decimal"
                                 onChange={(e) => {
                                   const v = Number(e.target.value);
                                   updateItem(it.key, { quantity: Number.isFinite(v) ? v : it.quantity });
                                 }}
                               />
-                            </td>
-                            <td style={{ width: 180 }}>
+                            </div>
+                            <div className="col-6">
+                              <label className="form-label small mb-1">Harga</label>
                               <input
                                 type="number"
-                                className="form-control form-control-sm"
+                                className="form-control"
                                 value={it.unitPrice}
                                 min={0}
                                 step={1}
+                                inputMode="numeric"
                                 onChange={(e) => {
                                   const v = Number(e.target.value);
                                   updateItem(it.key, { unitPrice: Number.isFinite(v) ? v : it.unitPrice });
                                 }}
                               />
-                            </td>
-                            <td>{formatCurrency(it.subtotal)}</td>
-                            <td style={{ width: 80 }}>
-                              <button type="button" className="btn btn-danger btn-sm" onClick={() => removeItem(it.key)} title="Hapus">
-                                <i className="fas fa-trash"></i>
-                              </button>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                            </div>
+                            <div className="col-12">
+                              <div className="d-flex justify-content-between align-items-center bg-body-tertiary rounded px-2 py-2">
+                                <span className="text-muted small">Subtotal</span>
+                                <span className="fw-bold">{formatCurrency(it.subtotal)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  />
                 </div>
                 <div className="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
                   <div className="text-muted small">Total item: {items.length}</div>
@@ -422,7 +503,8 @@ export default function NewOrderPage() {
                   </h3>
                 </div>
                 <div className="card-body">
-                  <div className="mb-3">
+                  <div className="row g-3">
+                    <div className="col-12">
                     <label className="form-label" htmlFor="customerName">
                       Nama Pelanggan
                     </label>
@@ -433,8 +515,8 @@ export default function NewOrderPage() {
                       onChange={(e) => setCustomerName(e.target.value)}
                       placeholder="Nama pelanggan"
                     />
-                  </div>
-                  <div className="mb-3">
+                    </div>
+                    <div className="col-12">
                     <label className="form-label" htmlFor="customerPhone">
                       Nomor WhatsApp
                     </label>
@@ -447,8 +529,8 @@ export default function NewOrderPage() {
                       inputMode="numeric"
                     />
                     <div className="form-text">Format: 628xxxx (tanpa +, tanpa spasi).</div>
-                  </div>
-                  <div className="mb-3">
+                    </div>
+                    <div className="col-12">
                     <label className="form-label" htmlFor="notes">
                       Catatan Order (opsional)
                     </label>
@@ -460,6 +542,7 @@ export default function NewOrderPage() {
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="Catatan singkat..."
                     />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -472,6 +555,17 @@ export default function NewOrderPage() {
                   </h3>
                 </div>
                 <div className="card-body">
+                  <div className="border rounded p-2 bg-body-tertiary mb-3">
+                    <div className="d-flex justify-content-between small text-muted">
+                      <span>Total item</span>
+                      <span>{items.length}</span>
+                    </div>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <span className="fw-semibold">Total</span>
+                      <span className="fw-bold">{formatCurrency(totals.totalAmount)}</span>
+                    </div>
+                  </div>
+
                   <div className="form-check form-switch mb-2">
                     <input
                       className="form-check-input"
@@ -501,7 +595,7 @@ export default function NewOrderPage() {
                     />
                   </div>
                 </div>
-                <div className="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div className="card-footer d-grid gap-2 d-sm-flex justify-content-between align-items-center">
                   <Link href="/dashboard/orders" className="btn btn-outline-secondary">
                     <i className="fas fa-arrow-left me-2"></i>
                     Kembali

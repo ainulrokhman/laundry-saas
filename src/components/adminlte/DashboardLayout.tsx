@@ -86,12 +86,6 @@ const menuItems: MenuItem[] = [
     roles: [Role.OWNER, Role.STAFF],
     children: [
       {
-        label: 'Pengaturan',
-        icon: 'fas fa-cog',
-        href: '/dashboard/settings',
-        roles: [Role.OWNER, Role.STAFF],
-      },
-      {
         label: 'Ubah PIN',
         icon: 'fas fa-key',
         href: '/dashboard/settings/change-pin',
@@ -144,6 +138,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [ownedOutlets, setOwnedOutlets] = useState<OwnedOutlet[]>([]);
   const [outletsLoading, setOutletsLoading] = useState(false);
   const [switching, setSwitching] = useState(false);
+  const [openTreeview, setOpenTreeview] = useState<string | null>(null);
 
   // Filter menu items based on user role
   const filteredMenuItems = menuItems.filter((item) =>
@@ -177,6 +172,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const showOutletSwitcher = useMemo(() => {
     return userRole === Role.OWNER;
   }, [userRole]);
+
+  useEffect(() => {
+    // AdminLTE treeview kadang menambahkan inline style (display) saat toggle.
+    // Pada navigasi client-side, style inline itu bisa membuat submenu tidak mengikuti `menu-open`
+    // sampai halaman di-refresh. Sinkronkan dengan cara menghapus inline style pada treeview.
+    if (typeof window === 'undefined') return;
+
+    requestAnimationFrame(() => {
+      document
+        .querySelectorAll('.app-sidebar .nav-treeview')
+        .forEach((el) => el.removeAttribute('style'));
+    });
+  }, [pathname, openTreeview]);
 
   function closeSidebarIfMobileOpen() {
     if (typeof window === 'undefined') return;
@@ -352,7 +360,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               data-lte-toggle="treeview"
               role="navigation"
               aria-label="Main navigation"
-              data-accordion="false"
+              data-accordion="true"
               id="navigation"
             >
               {filteredMenuItems.map((item) => {
@@ -363,8 +371,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 const active = hasChildren
                   ? visibleChildren!.some((child) => isActive(child.href))
                   : isActive(item.href);
-                const shouldMenuOpen = hasChildren && active;
-                const shouldLinkActive = !hasChildren && active;
+                const shouldMenuOpen = hasChildren
+                  ? active || openTreeview === item.href
+                  : active;
                 return (
                   <li
                     key={item.href}
@@ -378,6 +387,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                           onClick={(e) => {
                             // Biarkan AdminLTE menangani toggle treeview; cegah jump ke atas.
                             e.preventDefault();
+                            // Hindari handler treeview AdminLTE agar state kita tidak "numpuk".
+                            e.stopPropagation();
+                            setOpenTreeview((prev) => (prev === item.href ? null : item.href));
                           }}
                         >
                           <i className={`nav-icon ${item.icon}`}></i>
@@ -407,7 +419,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     ) : (
                       <Link
                         href={item.href}
-                        className={`nav-link ${shouldLinkActive ? 'active' : ''}`}
+                        className="nav-link"
                         onClick={closeSidebarIfMobileOpen}
                       >
                         <i className={`nav-icon ${item.icon}`}></i>
