@@ -396,7 +396,13 @@ export default function OrdersPage() {
                     items.map((o) => (
                       <tr key={o.id}>
                         <td>
-                          <code>{o.trackingCode}</code>
+                          <Link
+                            href={`/dashboard/orders/${encodeURIComponent(o.id)}`}
+                            className="text-decoration-none"
+                            title="Buka detail order"
+                          >
+                            <code>{o.trackingCode}</code>
+                          </Link>
                         </td>
                         <td>{o.customerName || <span className="text-muted">-</span>}</td>
                         <td>
@@ -409,10 +415,20 @@ export default function OrdersPage() {
                         <td>{formatCurrency(o.totalAmount)}</td>
                         <td>{formatDateTime(o.createdAt)}</td>
                         <td>
-                          <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => void togglePaid(o)}>
-                            <i className="fas fa-money-check-alt me-1"></i>
-                            {o.paymentStatus === 'SETTLEMENT' ? 'Batalkan Lunas' : 'Tandai Lunas'}
-                          </button>
+                          <div className="d-flex gap-2 flex-wrap">
+                            <Link href={`/dashboard/orders/${encodeURIComponent(o.id)}`} className="btn btn-sm btn-outline-secondary">
+                              <i className="fas fa-eye me-1"></i>
+                              Detail
+                            </Link>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-primary"
+                              onClick={() => void togglePaid(o)}
+                            >
+                              <i className="fas fa-money-check-alt me-1"></i>
+                              {o.paymentStatus === 'SETTLEMENT' ? 'Batalkan Lunas' : 'Tandai Lunas'}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))

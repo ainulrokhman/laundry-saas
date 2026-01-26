@@ -15,6 +15,23 @@ type OrderWithItems = Prisma.OrderGetPayload<{
   };
 }>;
 
+type OrderWithItemsAndHistory = Prisma.OrderGetPayload<{
+  include: {
+    items: true;
+    statusHistory: {
+      include: {
+        changedByUser: {
+          select: {
+            id: true;
+            name: true;
+            phone: true;
+          };
+        };
+      };
+    };
+  };
+}>;
+
 export class OrderRepository extends BaseRepository {
   /**
    * Find order by ID (with outletId filter)
@@ -29,13 +46,25 @@ export class OrderRepository extends BaseRepository {
   /**
    * Find order by ID including items (with outletId filter)
    */
-  async findByIdWithItems(outletId: string, id: string): Promise<OrderWithItems | null> {
+  async findByIdWithItems(outletId: string, id: string): Promise<OrderWithItemsAndHistory | null> {
     this.ensureOutletId(outletId, 'Order');
     return prisma.order.findFirst({
       where: this.combineFilters(outletId, { id }),
       include: {
         items: {
           orderBy: { createdAt: 'asc' },
+        },
+        statusHistory: {
+          orderBy: { createdAt: 'desc' },
+          include: {
+            changedByUser: {
+              select: {
+                id: true,
+                name: true,
+                phone: true,
+              },
+            },
+          },
         },
       },
     });

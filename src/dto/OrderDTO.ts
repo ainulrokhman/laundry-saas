@@ -7,6 +7,7 @@
 
 import { Order, PaymentStatus, PaymentMethod, OrderItem } from '@/generated/prisma';
 import { OrderItemDTO } from './OrderItemDTO';
+import { OrderStatusHistoryDTO } from './OrderStatusHistoryDTO';
 
 export interface OrderWithRelations extends Order {
   outlet?: {
@@ -15,6 +16,7 @@ export interface OrderWithRelations extends Order {
     slug: string;
   };
   items?: OrderItem[];
+  statusHistory?: any[];
   transactions?: Array<{
     id: string;
     amount: number;
@@ -57,6 +59,9 @@ export class OrderDTO {
       }),
       ...(order.items && {
         items: OrderItemDTO.toResponseArray(order.items),
+      }),
+      ...(order.statusHistory && Array.isArray(order.statusHistory) && {
+        statusHistory: OrderStatusHistoryDTO.toResponseArray(order.statusHistory as any),
       }),
       // Include transaction summary if available
       ...(order.transactions && order.transactions.length > 0 && {

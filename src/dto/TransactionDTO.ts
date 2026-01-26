@@ -32,6 +32,13 @@ export class TransactionDTO {
    * Scrubs sensitive data and only includes necessary fields
    */
   static toResponse(transaction: TransactionWithRelations) {
+    // Backward/forward compatible: beberapa bagian kode/test masih memakai nama field `verifiedAt`.
+    // Di schema saat ini, field yang setara adalah `settledAt`.
+    const verifiedAt: Date | null =
+      ((transaction as any).verifiedAt as Date | null | undefined) ??
+      ((transaction as any).settledAt as Date | null | undefined) ??
+      null;
+
     return {
       id: transaction.id,
       type: transaction.type,
@@ -43,6 +50,7 @@ export class TransactionDTO {
       proofUrl: transaction.proofUrl || null,
       createdAt: transaction.createdAt.toISOString(),
       updatedAt: transaction.updatedAt.toISOString(),
+      verifiedAt: verifiedAt ? verifiedAt.toISOString() : null,
       // Include order info if available (minimal)
       ...(transaction.order && {
         order: {

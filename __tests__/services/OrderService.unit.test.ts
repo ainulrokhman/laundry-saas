@@ -2,8 +2,7 @@
  * Unit tests for OrderService (no DB).
  */
 
-import { describe, expect, it, vi } from 'vitest';
-import { Role, PaymentStatus } from '@/generated/prisma';
+import { OrderStatus, Role, PaymentStatus } from '@/generated/prisma';
 import { OrderService } from '@/services/OrderService';
 
 vi.mock('@/lib/utils', async () => {
@@ -134,6 +133,75 @@ describe('OrderService (unit)', () => {
         items: [{ serviceId: 'svc-1', quantity: 1.5 }],
       })
     ).rejects.toThrow('Qty untuk layanan satuan/paket harus bilangan bulat');
+  });
+
+  it('setOrderStatus: TAKEN -> completedAt terisi + history dibuat', async () => {
+    const orderRepo: any = {
+      findById: vi.fn(async () => ({
+        id: 'order-1',
+        status: OrderStatus.QUEUED,
+      })),
+      update: vi.fn(async (_outletId: string, _id: string, data: any) => ({
+        id: 'order-1',
+        status: data.status,
+        completedAt: data.completedAt ?? null,
+      })),
+    };
+    const serviceRepo: any = {};
+    const historyRepo: any = {
+      create: vi.fn(async () => ({})),
+    };
+
+    const svc = new OrderService(orderRepo, serviceRepo, historyRepo);
+    const updated = await svc.setOrderStatus(makeUser(Role.STAFF) as any, 'order-1', OrderStatus.TAKEN);
+
+    expect(orderRepo.update).toHaveBeenCalledTimes(1);
+    const updateData = orderRepo.update.mock.calls[0][2];
+    expect(updateData.status).toBe(OrderStatus.TAKEN);
+    expect(updateData.completedAt).toBeInstanceOf(Date);
+
+    expect(historyRepo.create).toHaveBeenCalledTimes(1);
+    const historyInput = historyRepo.create.mock.calls[0][1];
+    expect(historyInput.fromStatus).toBe(OrderStatus.QUEUED);
+    expect(historyInput.toStatus).toBe(OrderStatus.TAKEN);
+
+    expect(updated.status).toBe(OrderStatus.TAKEN);
+    expect(updated.completedAt).toBeInstanceOf(Date);
+  });
+
+  it('setOrderStatus: non-TAKEN -> completedAt null', async () => {
+    const orderRepo: any = {
+      findById: vi.fn(async () => ({
+        id: 'order-1',
+        status: OrderStatus.TAKEN,
+      })),
+      update: vi.fn(async (_outletId: string, _id: string, data: any) => ({
+        id: 'order-1',
+        status: data.status,
+        completedAt: data.completedAt ?? null,
+      })),
+    };
+    const svc = new OrderService(orderRepo, {} as any, { create: vi.fn(async () => ({})) } as any);
+    const updated = await svc.setOrderStatus(makeUser(Role.STAFF) as any, 'order-1', OrderStatus.WASHING);
+    expect(updated.completedAt).toBeNull();
+  });
+
+  it('setOrderStatus: jika status sama -> tidak update dan tidak buat history', async () => {
+    const orderRepo: any = {
+      findById: vi.fn(async () => ({
+        id: 'order-1',
+        status: OrderStatus.READY,
+      })),
+      update: vi.fn(),
+    };
+    const historyRepo: any = { create: vi.fn() };
+
+    const svc = new OrderService(orderRepo, {} as any, historyRepo);
+    const updated = await svc.setOrderStatus(makeUser(Role.STAFF) as any, 'order-1', OrderStatus.READY);
+
+    expect(orderRepo.update).not.toHaveBeenCalled();
+    expect(historyRepo.create).not.toHaveBeenCalled();
+    expect(updated.status).toBe(OrderStatus.READY);
   });
 });
 

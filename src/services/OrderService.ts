@@ -6,9 +6,10 @@
 
 import { BaseService } from './BaseService';
 import { SessionUser } from '@/lib/session';
-import { PaymentStatus, Prisma } from '@/generated/prisma';
+import { OrderStatus, PaymentStatus, Prisma } from '@/generated/prisma';
 import { generateTrackingCode, normalizePhoneNumber } from '@/lib/utils';
 import { OrderRepository } from '@/repositories/OrderRepository';
+import { OrderStatusHistoryRepository } from '@/repositories/OrderStatusHistoryRepository';
 import { ServiceRepository } from '@/repositories/ServiceRepository';
 
 export type CreateOrderItemInput = {
@@ -45,7 +46,8 @@ function roundIdr(value: number): number {
 export class OrderService extends BaseService {
   constructor(
     private orderRepository: OrderRepository = new OrderRepository(),
-    private serviceRepository: ServiceRepository = new ServiceRepository()
+    private serviceRepository: ServiceRepository = new ServiceRepository(),
+    private orderStatusHistoryRepository: OrderStatusHistoryRepository = new OrderStatusHistoryRepository()
   ) {
     super();
   }
@@ -164,6 +166,37 @@ export class OrderService extends BaseService {
       // Tetap bookkeeping: jangan set paymentMethod untuk order laundry
       paymentMethod: null,
     } as any);
+  }
+
+  async setOrderStatus(user: SessionUser | null, orderId: string, nextStatus: OrderStatus) {
+    this.requireRole(user, ['OWNER', 'STAFF']);
+    const outletId = this.getOutletId(user);
+
+    const order = await this.orderRepository.findById(outletId, orderId);
+    if (!order) {
+      throw new Error('Order tidak ditemukan');
+    }
+
+    const fromStatus = order.status as OrderStatus;
+    if (fromStatus === nextStatus) {
+      return order;
+    }
+
+    const completedAt = nextStatus === OrderStatus.TAKEN ? new Date() : null;
+
+    const updated = await this.orderRepository.update(outletId, orderId, {
+      status: nextStatus,
+      completedAt,
+    } as any);
+
+    await this.orderStatusHistoryRepository.create(outletId, {
+      orderId,
+      fromStatus,
+      toStatus: nextStatus,
+      changedByUserId: user?.userId ?? null,
+    });
+
+    return updated;
   }
 
   async listOrders(
