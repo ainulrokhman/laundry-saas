@@ -100,6 +100,14 @@ model Outlet {
   name          String
   slug          String                @unique // URL: domain.com/outlet/[slug]
   address       String
+  // Landing page fields (PUBLIC)
+  description   String?
+  contactPhone  String?               // Nomor WhatsApp untuk CTA (format: 628xxxx)
+  businessHours String?               // Teks jam operasional (bebas)
+  seoTitle      String?
+  seoDescription String?
+  logoUrl       String?
+  coverUrl      String?
   isPro         Boolean               @default(false)
   // Owner relationship (1 OWNER bisa memiliki banyak outlet)
   ownerId       String?

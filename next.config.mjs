@@ -43,7 +43,8 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'", // Allow unsafe-inline for AdminLTE
               "img-src 'self' data: https:",
               "font-src 'self' data:",
-              "connect-src 'self'",
+              // Allow Cloudinary direct upload from browser
+              "connect-src 'self' https://api.cloudinary.com",
               "frame-ancestors 'self'",
             ].join('; '),
           },

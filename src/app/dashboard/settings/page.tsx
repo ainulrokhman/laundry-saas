@@ -38,6 +38,14 @@ const settingsCards: SettingsCard[] = [
     color: 'success',
     roles: ['OWNER'],
   },
+  {
+    title: 'Landing Page Outlet',
+    description: 'Atur konten halaman publik outlet (tanpa klaim berlebihan)',
+    icon: 'fas fa-store',
+    href: '/dashboard/settings/landing-page',
+    color: 'info',
+    roles: ['OWNER'],
+  },
   // Future settings can be added here:
   // {
   //   title: 'Payment Gateways',

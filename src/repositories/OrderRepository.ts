@@ -34,6 +34,24 @@ export class OrderRepository extends BaseRepository {
   }
 
   /**
+   * Find order by tracking code for public tracking (minimal relation: outlet name)
+   */
+  async findByTrackingCodeForPublic(
+    outletId: string,
+    trackingCode: string
+  ) {
+    this.ensureOutletId(outletId, 'Order');
+    return prisma.order.findFirst({
+      where: this.combineFilters(outletId, { trackingCode }),
+      include: {
+        outlet: {
+          select: { name: true },
+        },
+      },
+    });
+  }
+
+  /**
    * Find all orders for an outlet
    */
   async findByOutletId(

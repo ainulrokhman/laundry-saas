@@ -44,6 +44,52 @@ export class OutletRepository extends BaseRepository {
   }
 
   /**
+   * Find outlet by slug for PUBLIC landing page.
+   * Returns minimal fields only (no relations / no sensitive fields).
+   */
+  async findPublicBySlug(slug: string) {
+    return prisma.outlet.findUnique({
+      where: { slug },
+      select: {
+        id: true, // internal usage (e.g., fetch services); do not expose in DTO
+        name: true,
+        slug: true,
+        address: true,
+        description: true,
+        contactPhone: true,
+        businessHours: true,
+        seoTitle: true,
+        seoDescription: true,
+        logoUrl: true,
+        coverUrl: true,
+      },
+    });
+  }
+
+  /**
+   * Find landing page settings by outlet ID (OWNER dashboard settings).
+   * Minimal fields only (no relations).
+   */
+  async findLandingPageById(id: string) {
+    return prisma.outlet.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        address: true,
+        description: true,
+        contactPhone: true,
+        businessHours: true,
+        seoTitle: true,
+        seoDescription: true,
+        logoUrl: true,
+        coverUrl: true,
+      },
+    });
+  }
+
+  /**
    * Find all outlets (SuperAdmin only)
    */
   async findAll(): Promise<Outlet[]> {

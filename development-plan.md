@@ -351,37 +351,37 @@ Role reference (high-level features): `docs/roles/`
 Priority order: **Multi-outlet OWNER → Landing Page + Settings → Staff Management → POS → Payment Verification/Subscription → the rest**.
 
 ### Priority 1: OWNER Multi-Outlet (Foundation) [Role: SYSTEM/OWNER]
-- [ ] (Roadmap) Change the outlet ownership model:
-- [ ] Add `Outlet.ownerId` (1 OWNER can have multiple outlets)
-- [ ] Add relation `User.ownedOutlets` (read-only via Prisma relation)
-- [ ] Evaluate migration from the old design `User.outletId` (for OWNER) → `Outlet.ownerId`
-- [ ] STAFF stays single-outlet: `User.outletId` is required for STAFF
-- [ ] (Roadmap) Outlet context for OWNER:
-- [ ] Add an “outlet switcher” in the dashboard (OWNER selects the active outlet)
-- [ ] `session.outletId` = active outlet (selected) for all tenant queries
-- [ ] (Roadmap) Security rules:
-- [ ] Server-side validation: active outlet must be one of the outlets owned by the OWNER
-- [ ] Do not accept `outletId` from the client as the source of truth (always from session)
+- [x] (Roadmap) Change the outlet ownership model:
+- [x] Add `Outlet.ownerId` (1 OWNER can have multiple outlets)
+- [x] Add relation `User.ownedOutlets` (read-only via Prisma relation)
+- [x] Evaluate migration from the old design `User.outletId` (for OWNER) → `Outlet.ownerId`
+- [x] STAFF stays single-outlet: `User.outletId` is required for STAFF
+- [x] (Roadmap) Outlet context for OWNER:
+- [x] Add an “outlet switcher” in the dashboard (OWNER selects the active outlet)
+- [x] `session.outletId` = active outlet (selected) for all tenant queries
+- [x] (Roadmap) Security rules:
+- [x] Server-side validation: active outlet must be one of the outlets owned by the OWNER
+- [x] Do not accept `outletId` from the client as the source of truth (always from session)
 
 ### Priority 2: Outlet Landing Page + Settings [Role: PUBLIC/OWNER]
-- [ ] Create a public **Outlet Landing Page** per outlet (`/outlet/[slug]`) [Role: PUBLIC]
-- [ ] **No overclaim** principle (REQUIRED) [Role: PUBLIC]
-- [ ] Only show data that actually exists (name, address, description, etc.)
-- [ ] If data is missing, show a neutral empty state (no feature claims)
-- [ ] Content shown (conditional) [Role: PUBLIC]
-- [ ] Outlet info (name, address, description)
-- [ ] Services **if available**
-- [ ] Active bank accounts **if available** (for transfer info)
-- [ ] Per-outlet SEO metadata (title/description) [Role: PUBLIC]
-- [ ] Simple CTA (optional): WhatsApp/contact button (no complex order flow) [Role: PUBLIC]
-- [ ] OWNER can configure landing page content per outlet [Role: OWNER]
-- [ ] Outlet description
-- [ ] Contact/WhatsApp (optional)
-- [ ] Business hours (optional)
-- [ ] (Optional) Photo/cover/logo
-- [ ] Bank account selection for landing page display (active accounts only) [Role: OWNER]
-- [ ] (Roadmap) Data model for landing page content storage [Role: SYSTEM]
-- [ ] Option A: fields on `Outlet` (e.g., `description`, `contactPhone`, `businessHours`, `coverUrl`)
+- [x] Create a public **Outlet Landing Page** per outlet (`/outlet/[slug]`) [Role: PUBLIC]
+- [x] **No overclaim** principle (REQUIRED) [Role: PUBLIC]
+- [x] Only show data that actually exists (name, address, description, etc.)
+- [x] If data is missing, show a neutral empty state (no feature claims)
+- [x] Content shown (conditional) [Role: PUBLIC]
+- [x] Outlet info (name, address, description)
+- [x] Services **if available**
+- [x] Active bank accounts **if available** (for transfer info) — tidak ditampilkan (rekening bank hanya untuk pembukuan)
+- [x] Per-outlet SEO metadata (title/description) [Role: PUBLIC]
+- [x] Simple CTA (optional): WhatsApp/contact button (no complex order flow) [Role: PUBLIC]
+- [x] OWNER can configure landing page content per outlet [Role: OWNER]
+- [x] Outlet description
+- [x] Contact/WhatsApp (optional)
+- [x] Business hours (optional)
+- [x] (Optional) Photo/cover/logo
+- [x] Bank account selection for landing page display (active accounts only) [Role: OWNER] — tidak diperlukan (rekening bank hanya untuk pembukuan)
+- [x] (Roadmap) Data model for landing page content storage [Role: SYSTEM]
+- [x] Option A: fields on `Outlet` (e.g., `description`, `contactPhone`, `businessHours`, `coverUrl`)
 - [ ] Option B: separate table `OutletLandingPage` (more flexible)
 
 ### Priority 3: Staff Management (Owner - Tenant) [Role: OWNER]
