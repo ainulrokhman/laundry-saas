@@ -24,11 +24,19 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
+interface MenuChildItem {
+  label: string;
+  icon: string;
+  href: string;
+  roles: Role[];
+}
+
 interface MenuItem {
   label: string;
   icon: string;
   href: string;
   roles: Role[];
+  children?: MenuChildItem[];
 }
 
 /**
@@ -76,6 +84,38 @@ const menuItems: MenuItem[] = [
     icon: 'fas fa-cog',
     href: '/dashboard/settings',
     roles: [Role.OWNER, Role.STAFF],
+    children: [
+      {
+        label: 'Pengaturan',
+        icon: 'fas fa-cog',
+        href: '/dashboard/settings',
+        roles: [Role.OWNER, Role.STAFF],
+      },
+      {
+        label: 'Ubah PIN',
+        icon: 'fas fa-key',
+        href: '/dashboard/settings/change-pin',
+        roles: [Role.OWNER, Role.STAFF],
+      },
+      {
+        label: 'Manajemen Staff',
+        icon: 'fas fa-users',
+        href: '/dashboard/settings/staff',
+        roles: [Role.OWNER],
+      },
+      {
+        label: 'Rekening Bank',
+        icon: 'fas fa-university',
+        href: '/dashboard/settings/bank-accounts',
+        roles: [Role.OWNER],
+      },
+      {
+        label: 'Landing Page Outlet',
+        icon: 'fas fa-store',
+        href: '/dashboard/settings/landing-page',
+        roles: [Role.OWNER],
+      },
+    ],
   },
   {
     label: 'Outlets',
@@ -110,17 +150,94 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     userRole ? item.roles.includes(userRole) : false
   );
 
+  const normalizePath = (path: string | null | undefined) => {
+    const raw = (path ?? '').split('?')[0]?.split('#')[0] ?? '';
+    if (!raw) return '';
+    if (raw.length > 1 && raw.endsWith('/')) {
+      return raw.slice(0, -1);
+    }
+    return raw;
+  };
+
   // Check if a menu item is active
   const isActive = (href: string) => {
-    if (href === '/dashboard') {
-      return pathname === '/dashboard';
+    const current = normalizePath(pathname);
+    const target = normalizePath(href);
+
+    if (!current || !target) return false;
+
+    // Special-case: Dashboard should be active only on exact match
+    if (target === '/dashboard') {
+      return current === '/dashboard';
     }
-    return pathname?.startsWith(href);
+
+    return current === target || current.startsWith(`${target}/`);
   };
 
   const showOutletSwitcher = useMemo(() => {
     return userRole === Role.OWNER;
   }, [userRole]);
+
+  function closeSidebarIfMobileOpen() {
+    if (typeof window === 'undefined') return;
+
+    // AdminLTE sidebar is mainly relevant for mobile overlay behavior.
+    const isMobile = window.innerWidth <= 992;
+    if (!isMobile) return;
+
+    const body = document.body;
+    const appWrapper = document.querySelector('.app-wrapper');
+    const hasOverlay = Boolean(document.querySelector('.sidebar-overlay'));
+    const isOpen =
+      body.classList.contains('sidebar-open') ||
+      body.classList.contains('sidebar-show') ||
+      appWrapper?.classList.contains('sidebar-open') ||
+      appWrapper?.classList.contains('sidebar-show') ||
+      hasOverlay;
+
+    if (!isOpen) return;
+
+    const adminLTE = (window as any).AdminLTE as any;
+    const sidebarApi = adminLTE?.Sidebar ?? adminLTE?.sidebar;
+
+    // Prefer official API if available (version-dependent).
+    try {
+      if (sidebarApi) {
+        if (typeof sidebarApi.collapse === 'function') {
+          sidebarApi.collapse();
+          return;
+        }
+        if (typeof sidebarApi.hide === 'function') {
+          sidebarApi.hide();
+          return;
+        }
+        if (typeof sidebarApi.close === 'function') {
+          sidebarApi.close();
+          return;
+        }
+        if (typeof sidebarApi.toggle === 'function') {
+          sidebarApi.toggle();
+          return;
+        }
+      }
+    } catch {
+      // Fallback below
+    }
+
+    // Fallback: click the existing toggler (only when we know sidebar is open).
+    const toggler = document.querySelector('[data-lte-toggle="sidebar"]') as
+      | HTMLElement
+      | null;
+    if (toggler) {
+      toggler.click();
+      return;
+    }
+
+    // Last resort: remove common classes/overlay.
+    body.classList.remove('sidebar-open', 'sidebar-show');
+    appWrapper?.classList.remove('sidebar-open', 'sidebar-show');
+    document.querySelector('.sidebar-overlay')?.remove();
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -213,7 +330,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Sidebar Brand */}
         <div className="sidebar-brand">
           {/* Brand Link */}
-          <Link href="/dashboard" className="brand-link">
+          <Link
+            href="/dashboard"
+            className="brand-link"
+            onClick={closeSidebarIfMobileOpen}
+          >
             {/* Brand Text */}
             <span className="brand-text fw-light">Ainul Laundry</span>
             {/* End Brand Text */}
@@ -235,16 +356,64 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               id="navigation"
             >
               {filteredMenuItems.map((item) => {
-                const active = isActive(item.href);
+                const visibleChildren = item.children?.filter((child) =>
+                  userRole ? child.roles.includes(userRole) : false
+                );
+                const hasChildren = Boolean(visibleChildren && visibleChildren.length > 0);
+                const active = hasChildren
+                  ? visibleChildren!.some((child) => isActive(child.href))
+                  : isActive(item.href);
+                const shouldMenuOpen = hasChildren && active;
+                const shouldLinkActive = !hasChildren && active;
                 return (
-                  <li key={item.href} className="nav-item">
-                    <Link
-                      href={item.href}
-                      className={`nav-link ${active ? 'active' : ''}`}
-                    >
-                      <i className={`nav-icon ${item.icon}`}></i>
-                      <p>{item.label}</p>
-                    </Link>
+                  <li
+                    key={item.href}
+                    className={`nav-item ${shouldMenuOpen ? 'menu-open' : ''}`}
+                  >
+                    {hasChildren ? (
+                      <>
+                        <a
+                          href="#"
+                          className="nav-link"
+                          onClick={(e) => {
+                            // Biarkan AdminLTE menangani toggle treeview; cegah jump ke atas.
+                            e.preventDefault();
+                          }}
+                        >
+                          <i className={`nav-icon ${item.icon}`}></i>
+                          <p>
+                            {item.label}
+                            <i className="nav-arrow fas fa-angle-right"></i>
+                          </p>
+                        </a>
+                        <ul className="nav nav-treeview">
+                          {visibleChildren!.map((child) => {
+                            const childActive = isActive(child.href);
+                            return (
+                              <li key={child.href} className="nav-item">
+                                <Link
+                                  href={child.href}
+                                  className={`nav-link ${childActive ? 'active' : ''}`}
+                                  onClick={closeSidebarIfMobileOpen}
+                                >
+                                  <i className={`nav-icon ${child.icon}`}></i>
+                                  <p>{child.label}</p>
+                                </Link>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </>
+                    ) : (
+                      <Link
+                        href={item.href}
+                        className={`nav-link ${shouldLinkActive ? 'active' : ''}`}
+                        onClick={closeSidebarIfMobileOpen}
+                      >
+                        <i className={`nav-icon ${item.icon}`}></i>
+                        <p>{item.label}</p>
+                      </Link>
+                    )}
                   </li>
                 );
               })}

@@ -12,6 +12,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
+import { ResponsiveTableToCards } from '@/components/adminlte/ResponsiveTableToCards';
 
 interface DashboardStats {
   ordersToday: number;
@@ -251,74 +252,108 @@ export default function DashboardPage() {
                   </Link>
                 </div>
               </div>
-              <div className="card-body table-responsive p-0">
-                <table className="table table-hover text-nowrap">
-                  <thead>
-                    <tr>
-                      <th>Tracking Code</th>
-                      <th>Pelanggan</th>
-                      <th>Status</th>
-                      <th>Pembayaran</th>
-                      <th>Total</th>
-                      <th>Tanggal</th>
-                      <th>Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentOrders.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="text-center py-4">
-                          <p className="text-muted mb-0">
-                            Belum ada order. Mulai dengan membuat order baru.
-                          </p>
+              <div className="card-body p-0">
+                <div className="d-md-none px-3 pt-3 pb-0">
+                  <div className="text-muted small">
+                    Total: <span className="fw-semibold">{recentOrders.length}</span> order
+                  </div>
+                </div>
+                <ResponsiveTableToCards
+                  items={recentOrders}
+                  getRowKey={(o) => o.id}
+                  mobileContainerClassName="px-3 pt-2 pb-3"
+                  columns={[
+                    {
+                      header: 'Tracking Code',
+                      render: (order) => <code>{order.trackingCode}</code>,
+                    },
+                    { header: 'Pelanggan', render: (order) => order.customerName },
+                    {
+                      header: 'Status',
+                      render: (order) => (
+                        <span className={`badge ${getStatusBadgeClass(order.status)}`}>
+                          {order.status}
+                        </span>
+                      ),
+                    },
+                    {
+                      header: 'Pembayaran',
+                      render: (order) => (
+                        <span className={`badge ${getPaymentStatusBadgeClass(order.paymentStatus)}`}>
+                          {order.paymentStatus}
+                        </span>
+                      ),
+                    },
+                    { header: 'Total', render: (order) => formatCurrency(order.totalAmount) },
+                    { header: 'Tanggal', render: (order) => formatDateTime(order.createdAt) },
+                    {
+                      header: 'Aksi',
+                      render: (order) => (
+                        <Link href={`/dashboard/orders/${order.id}`} className="btn btn-sm btn-info">
+                          <i className="fas fa-eye"></i> Detail
+                        </Link>
+                      ),
+                    },
+                  ]}
+                  emptyState={
+                    <div className="text-center py-4">
+                      <p className="text-muted mb-0">
+                        Belum ada order. Mulai dengan membuat order baru.
+                      </p>
+                      <Link href="/dashboard/orders/new" className="btn btn-primary btn-sm mt-2">
+                        Buat Order Baru
+                      </Link>
+                    </div>
+                  }
+                  renderMobileCard={(order) => (
+                    <div key={order.id} className="card shadow-sm">
+                      <div className="card-body">
+                        <div className="d-flex justify-content-between align-items-start gap-2">
+                          <div>
+                            <div className="text-muted small">Tracking code</div>
+                            <div className="fw-semibold">
+                              <code>{order.trackingCode}</code>
+                            </div>
+                          </div>
                           <Link
-                            href="/dashboard/orders/new"
-                            className="btn btn-primary btn-sm mt-2"
+                            href={`/dashboard/orders/${order.id}`}
+                            className="btn btn-outline-primary btn-sm"
                           >
-                            Buat Order Baru
+                            <i className="fas fa-eye me-1"></i>
+                            Detail
                           </Link>
-                        </td>
-                      </tr>
-                    ) : (
-                      recentOrders.map((order) => (
-                        <tr key={order.id}>
-                          <td>
-                            <code>{order.trackingCode}</code>
-                          </td>
-                          <td>{order.customerName}</td>
-                          <td>
-                            <span
-                              className={`badge ${getStatusBadgeClass(
-                                order.status
-                              )}`}
-                            >
-                              {order.status}
-                            </span>
-                          </td>
-                          <td>
-                            <span
-                              className={`badge ${getPaymentStatusBadgeClass(
-                                order.paymentStatus
-                              )}`}
-                            >
-                              {order.paymentStatus}
-                            </span>
-                          </td>
-                          <td>{formatCurrency(order.totalAmount)}</td>
-                          <td>{formatDateTime(order.createdAt)}</td>
-                          <td>
-                            <Link
-                              href={`/dashboard/orders/${order.id}`}
-                              className="btn btn-sm btn-info"
-                            >
-                              <i className="fas fa-eye"></i> Detail
-                            </Link>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                        </div>
+
+                        <div className="mt-2">
+                          <div className="text-muted small">Pelanggan</div>
+                          <div className="fw-semibold">{order.customerName || '—'}</div>
+                        </div>
+
+                        <div className="d-flex flex-wrap gap-2 mt-3">
+                          <span className={`badge ${getStatusBadgeClass(order.status)}`}>
+                            {order.status}
+                          </span>
+                          <span className={`badge ${getPaymentStatusBadgeClass(order.paymentStatus)}`}>
+                            {order.paymentStatus}
+                          </span>
+                        </div>
+
+                        <hr className="my-3" />
+
+                        <div className="d-flex justify-content-between align-items-center">
+                          <div>
+                            <div className="text-muted small">Total</div>
+                            <div className="fw-semibold">{formatCurrency(order.totalAmount)}</div>
+                          </div>
+                          <div className="text-end">
+                            <div className="text-muted small">Tanggal</div>
+                            <div className="fw-semibold">{formatDateTime(order.createdAt)}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                />
               </div>
             </div>
           </div>

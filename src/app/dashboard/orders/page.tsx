@@ -13,6 +13,7 @@ import { useSession } from 'next-auth/react';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
+import { ResponsiveTableToCards } from '@/components/adminlte/ResponsiveTableToCards';
 
 type OrderStatus = 'QUEUED' | 'WASHING' | 'DRYING' | 'IRONING' | 'READY' | 'TAKEN';
 type PaymentStatus = 'UNPAID' | 'PENDING' | 'SETTLEMENT' | 'FAILURE';
@@ -96,27 +97,24 @@ export default function OrdersPage() {
 
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // Guard: auth/role/outlet
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
       return;
     }
+    if (status !== 'authenticated') return;
 
-    if (status === 'authenticated') {
-      if (role !== 'OWNER' && role !== 'STAFF') {
-        router.push('/dashboard');
-        return;
-      }
-      if (!user?.outletId) {
-        setError('Outlet context required. Silakan hubungi admin.');
-        setLoading(false);
-        return;
-      }
-
-      void fetchOrders();
+    if (role !== 'OWNER' && role !== 'STAFF') {
+      router.push('/dashboard');
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, session, refreshKey]);
+    if (!user?.outletId) {
+      setError('Outlet context required. Silakan hubungi admin.');
+      setLoading(false);
+      return;
+    }
+  }, [status, router, role, user?.outletId]);
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
@@ -128,9 +126,14 @@ export default function OrdersPage() {
     return params.toString();
   }, [query, filterStatus, filterPayment, page, limit]);
 
+  const canFetch = status === 'authenticated' && (role === 'OWNER' || role === 'STAFF') && !!user?.outletId;
+
+  // Fetch when page/filter/query/limit changes, or manual refresh
   useEffect(() => {
-    setPage(1);
-  }, [query, filterStatus, filterPayment, limit]);
+    if (!canFetch) return;
+    void fetchOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canFetch, queryString, refreshKey]);
 
   async function fetchOrders() {
     try {
@@ -144,7 +147,12 @@ export default function OrdersPage() {
       }
 
       setItems(Array.isArray(json.data?.items) ? json.data!.items : []);
-      setPagination(json.data?.pagination || { total: 0, page: 1, limit, totalPages: 1 });
+      const nextPagination = json.data?.pagination || { total: 0, page: 1, limit, totalPages: 1 };
+      setPagination(nextPagination);
+      // Sinkronkan state page jika backend mengoreksi (mis. out-of-range)
+      if (Number.isFinite(nextPagination.page) && nextPagination.page !== page) {
+        setPage(nextPagination.page);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Gagal memuat daftar order');
     } finally {
@@ -297,10 +305,20 @@ export default function OrdersPage() {
                   className="form-control"
                   placeholder="Cari tracking code / nama / telepon..."
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setPage(1);
+                  }}
                 />
                 {query.trim().length > 0 && (
-                  <button className="btn btn-outline-secondary" type="button" onClick={() => setQuery('')}>
+                  <button
+                    className="btn btn-outline-secondary"
+                    type="button"
+                    onClick={() => {
+                      setQuery('');
+                      setPage(1);
+                    }}
+                  >
                     <i className="fas fa-times"></i>
                   </button>
                 )}
@@ -314,7 +332,10 @@ export default function OrdersPage() {
                 id="status"
                 className="form-select form-select-sm"
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as any)}
+                onChange={(e) => {
+                  setFilterStatus(e.target.value as any);
+                  setPage(1);
+                }}
               >
                 <option value="ALL">Semua</option>
                 <option value="QUEUED">QUEUED</option>
@@ -333,7 +354,10 @@ export default function OrdersPage() {
                 id="payment"
                 className="form-select form-select-sm"
                 value={filterPayment}
-                onChange={(e) => setFilterPayment(e.target.value as any)}
+                onChange={(e) => {
+                  setFilterPayment(e.target.value as any);
+                  setPage(1);
+                }}
               >
                 <option value="ALL">Semua</option>
                 <option value="UNPAID">Belum dibayar</option>
@@ -348,7 +372,10 @@ export default function OrdersPage() {
                 id="limit"
                 className="form-select form-select-sm"
                 value={limit}
-                onChange={(e) => setLimit(Number(e.target.value))}
+                onChange={(e) => {
+                  setLimit(Number(e.target.value));
+                  setPage(1);
+                }}
               >
                 <option value={10}>10</option>
                 <option value={20}>20</option>
@@ -369,72 +396,132 @@ export default function OrdersPage() {
                 </button>
               </div>
             </div>
-            <div className="card-body table-responsive p-0">
-              <table className="table table-striped table-hover text-nowrap mb-0">
-                <thead className="table-light">
-                  <tr>
-                    <th>Tracking</th>
-                    <th>Pelanggan</th>
-                    <th>Status</th>
-                    <th>Pembayaran</th>
-                    <th>Total</th>
-                    <th>Dibuat</th>
-                    <th>Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="text-center py-5">
-                        <div className="text-muted">Tidak ada order.</div>
-                        <Link href="/dashboard/orders/new" className="btn btn-primary btn-sm mt-2">
-                          Buat Order Baru
+            <div className="card-body p-0">
+              <div className="d-md-none px-3 pt-3 pb-0">
+                <div className="text-muted small">
+                  Menampilkan <span className="fw-semibold">{items.length}</span> dari{' '}
+                  <span className="fw-semibold">{pagination.total}</span> • Hal{' '}
+                  <span className="fw-semibold">{pagination.page}</span>/
+                  <span className="fw-semibold">{pagination.totalPages}</span>
+                </div>
+              </div>
+              <ResponsiveTableToCards
+                items={items}
+                getRowKey={(o) => o.id}
+                mobileContainerClassName="px-3 pt-2 pb-3"
+                columns={[
+                  {
+                    header: 'Tracking',
+                    render: (o) => (
+                      <Link
+                        href={`/dashboard/orders/${encodeURIComponent(o.id)}`}
+                        className="text-decoration-none"
+                        title="Buka detail order"
+                      >
+                        <code>{o.trackingCode}</code>
+                      </Link>
+                    ),
+                  },
+                  {
+                    header: 'Pelanggan',
+                    render: (o) => o.customerName || <span className="text-muted">-</span>,
+                  },
+                  {
+                    header: 'Status',
+                    render: (o) => <span className={`badge ${statusBadge(o.status)}`}>{labelStatus(o.status)}</span>,
+                  },
+                  {
+                    header: 'Pembayaran',
+                    render: (o) => (
+                      <>
+                        <span className={`badge ${paymentBadge(o.paymentStatus)}`}>{labelPayment(o.paymentStatus)}</span>
+                        {o.paidAt ? <div className="text-muted small">{formatDateTime(o.paidAt)}</div> : null}
+                      </>
+                    ),
+                  },
+                  { header: 'Total', render: (o) => formatCurrency(o.totalAmount) },
+                  { header: 'Dibuat', render: (o) => formatDateTime(o.createdAt) },
+                  {
+                    header: 'Aksi',
+                    render: (o) => (
+                      <div className="d-flex gap-2 flex-wrap">
+                        <Link href={`/dashboard/orders/${encodeURIComponent(o.id)}`} className="btn btn-sm btn-outline-secondary">
+                          <i className="fas fa-eye me-1"></i>
+                          Detail
                         </Link>
-                      </td>
-                    </tr>
-                  ) : (
-                    items.map((o) => (
-                      <tr key={o.id}>
-                        <td>
-                          <Link
-                            href={`/dashboard/orders/${encodeURIComponent(o.id)}`}
-                            className="text-decoration-none"
-                            title="Buka detail order"
-                          >
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-primary"
+                          onClick={() => void togglePaid(o)}
+                        >
+                          <i className="fas fa-money-check-alt me-1"></i>
+                          {o.paymentStatus === 'SETTLEMENT' ? 'Batalkan Lunas' : 'Tandai Lunas'}
+                        </button>
+                      </div>
+                    ),
+                  },
+                ]}
+                emptyState={
+                  <div className="text-center py-4">
+                    <div className="text-muted">Tidak ada order.</div>
+                    <Link href="/dashboard/orders/new" className="btn btn-primary btn-sm mt-2">
+                      Buat Order Baru
+                    </Link>
+                  </div>
+                }
+                renderMobileCard={(o) => (
+                  <div key={o.id} className="card shadow-sm">
+                    <div className="card-body">
+                      <div className="d-flex justify-content-between align-items-start gap-2">
+                        <div>
+                          <div className="text-muted small">Tracking</div>
+                          <div className="fw-semibold">
                             <code>{o.trackingCode}</code>
-                          </Link>
-                        </td>
-                        <td>{o.customerName || <span className="text-muted">-</span>}</td>
-                        <td>
-                          <span className={`badge ${statusBadge(o.status)}`}>{labelStatus(o.status)}</span>
-                        </td>
-                        <td>
-                          <span className={`badge ${paymentBadge(o.paymentStatus)}`}>{labelPayment(o.paymentStatus)}</span>
-                          {o.paidAt ? <div className="text-muted small">{formatDateTime(o.paidAt)}</div> : null}
-                        </td>
-                        <td>{formatCurrency(o.totalAmount)}</td>
-                        <td>{formatDateTime(o.createdAt)}</td>
-                        <td>
-                          <div className="d-flex gap-2 flex-wrap">
-                            <Link href={`/dashboard/orders/${encodeURIComponent(o.id)}`} className="btn btn-sm btn-outline-secondary">
-                              <i className="fas fa-eye me-1"></i>
-                              Detail
-                            </Link>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-primary"
-                              onClick={() => void togglePaid(o)}
-                            >
-                              <i className="fas fa-money-check-alt me-1"></i>
-                              {o.paymentStatus === 'SETTLEMENT' ? 'Batalkan Lunas' : 'Tandai Lunas'}
-                            </button>
                           </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                        </div>
+                        <span className={`badge ${statusBadge(o.status)}`}>{labelStatus(o.status)}</span>
+                      </div>
+
+                      <div className="mt-2">
+                        <div className="text-muted small">Pelanggan</div>
+                        <div className="fw-semibold">{o.customerName || '—'}</div>
+                      </div>
+
+                      <div className="d-flex flex-wrap gap-2 mt-3">
+                        <span className={`badge ${paymentBadge(o.paymentStatus)}`}>{labelPayment(o.paymentStatus)}</span>
+                        {o.paidAt ? <span className="text-muted small">{formatDateTime(o.paidAt)}</span> : null}
+                      </div>
+
+                      <hr className="my-3" />
+
+                      <div className="d-flex justify-content-between align-items-center">
+                        <div>
+                          <div className="text-muted small">Total</div>
+                          <div className="fw-semibold">{formatCurrency(o.totalAmount)}</div>
+                        </div>
+                        <div className="text-end">
+                          <div className="text-muted small">Dibuat</div>
+                          <div className="fw-semibold">{formatDateTime(o.createdAt)}</div>
+                        </div>
+                      </div>
+
+                      <div className="d-grid gap-2 mt-3">
+                        <Link
+                          href={`/dashboard/orders/${encodeURIComponent(o.id)}`}
+                          className="btn btn-outline-secondary btn-sm"
+                        >
+                          <i className="fas fa-eye me-1"></i>
+                          Detail
+                        </Link>
+                        <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => void togglePaid(o)}>
+                          <i className="fas fa-money-check-alt me-1"></i>
+                          {o.paymentStatus === 'SETTLEMENT' ? 'Batalkan Lunas' : 'Tandai Lunas'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              />
             </div>
             <div className="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
               <div className="text-muted small">
@@ -449,14 +536,14 @@ export default function OrdersPage() {
                 <button
                   className="btn btn-outline-secondary"
                   disabled={pagination.page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  onClick={() => setPage(Math.max(1, pagination.page - 1))}
                 >
                   <i className="fas fa-angle-left"></i>
                 </button>
                 <button
                   className="btn btn-outline-secondary"
                   disabled={pagination.page >= pagination.totalPages}
-                  onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+                  onClick={() => setPage(Math.min(pagination.totalPages, pagination.page + 1))}
                 >
                   <i className="fas fa-angle-right"></i>
                 </button>

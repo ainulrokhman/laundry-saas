@@ -14,6 +14,7 @@ import { useSession } from 'next-auth/react';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
+import { ResponsiveTableToCards } from '@/components/adminlte/ResponsiveTableToCards';
 
 type ServiceType = 'KILOAN' | 'SATUAN' | 'PAKET';
 
@@ -178,6 +179,13 @@ export default function ServiceManagementPage() {
       items: list.slice(start, end),
     };
   }, [services, query, filterType, filterActive, sortKey, sortDir, page, pageSize]);
+
+  useEffect(() => {
+    // sinkronkan state page dengan safePage (menghindari page out-of-range yang bikin pagination terasa tidak berubah)
+    if (page !== processed.page) {
+      setPage(processed.page);
+    }
+  }, [page, processed.page]);
 
   useEffect(() => {
     // reset page when filters change
@@ -628,75 +636,137 @@ export default function ServiceManagementPage() {
                   </div>
                 </div>
 
-                <div className="card-body table-responsive p-0">
-                  <table className="table table-striped table-hover text-nowrap mb-0">
-                    <thead className="table-light">
-                      <tr>
-                        <th>Nama</th>
-                        <th>Kategori</th>
-                        <th>Harga</th>
-                        <th>Unit</th>
-                        <th>Status</th>
-                        <th>Dibuat</th>
-                        <th>Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {processed.items.length === 0 ? (
-                        <tr>
-                          <td colSpan={7} className="text-center py-5">
-                            <div className="empty-state">
-                              <i className="fas fa-concierge-bell fa-3x text-muted mb-3"></i>
-                              <p className="text-muted mb-2">Belum ada layanan</p>
-                              <p className="text-muted small mb-0">Klik tombol "Tambah Layanan" untuk menambahkan layanan baru</p>
-                            </div>
-                          </td>
-                        </tr>
-                      ) : (
-                        processed.items.map((s) => (
-                          <tr key={s.id}>
-                            <td className="fw-semibold">
-                              {s.name}
+                <div className="card-body p-0">
+                  <div className="d-md-none px-3 pt-3 pb-0">
+                    <div className="text-muted small">
+                      Menampilkan <span className="fw-semibold">{processed.items.length}</span> dari{' '}
+                      <span className="fw-semibold">{processed.total}</span> • Hal{' '}
+                      <span className="fw-semibold">{processed.page}</span>/
+                      <span className="fw-semibold">{processed.totalPages}</span>
+                    </div>
+                  </div>
+                  <ResponsiveTableToCards
+                    items={processed.items}
+                    getRowKey={(s) => s.id}
+                    mobileContainerClassName="px-3 pt-2 pb-3"
+                    columns={[
+                      {
+                        header: 'Nama',
+                        render: (s) => (
+                          <div className="fw-semibold">
+                            {s.name}
+                            {s.description ? (
+                              <div className="text-muted small text-wrap mt-1">{s.description}</div>
+                            ) : null}
+                          </div>
+                        ),
+                      },
+                      {
+                        header: 'Kategori',
+                        render: (s) => <span className={`badge ${typeBadgeClass(s.type)}`}>{typeLabel(s.type)}</span>,
+                      },
+                      { header: 'Harga', render: (s) => formatCurrency(s.price) },
+                      {
+                        header: 'Unit',
+                        render: (s) => (s.unit ? <code>{s.unit}</code> : <span className="text-muted">-</span>),
+                      },
+                      {
+                        header: 'Status',
+                        render: (s) => (
+                          <span className={`badge ${s.isActive ? 'bg-success' : 'bg-secondary'}`}>
+                            {s.isActive ? 'Aktif' : 'Nonaktif'}
+                          </span>
+                        ),
+                      },
+                      { header: 'Dibuat', render: (s) => formatDateTime(s.createdAt) },
+                      {
+                        header: 'Aksi',
+                        render: (s) => (
+                          <div className="btn-group btn-group-sm" role="group">
+                            <button type="button" className="btn btn-warning" onClick={() => openEdit(s)} title="Edit">
+                              <i className="fas fa-edit"></i>
+                            </button>
+                            <button
+                              type="button"
+                              className={`btn ${s.isActive ? 'btn-secondary' : 'btn-success'}`}
+                              onClick={() => void toggleActive(s)}
+                              title={s.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                            >
+                              <i className={`fas ${s.isActive ? 'fa-toggle-on' : 'fa-toggle-off'}`}></i>
+                            </button>
+                            <button type="button" className="btn btn-danger" onClick={() => void handleDelete(s)} title="Hapus">
+                              <i className="fas fa-trash"></i>
+                            </button>
+                          </div>
+                        ),
+                      },
+                    ]}
+                    emptyState={
+                      <div className="text-center py-4">
+                        <div className="empty-state">
+                          <i className="fas fa-concierge-bell fa-3x text-muted mb-3"></i>
+                          <p className="text-muted mb-2">Belum ada layanan</p>
+                          <p className="text-muted small mb-0">
+                            Klik tombol "Tambah Layanan" untuk menambahkan layanan baru
+                          </p>
+                        </div>
+                      </div>
+                    }
+                    renderMobileCard={(s) => (
+                      <div key={s.id} className="card shadow-sm">
+                        <div className="card-body">
+                          <div className="d-flex justify-content-between align-items-start gap-2">
+                            <div>
+                              <div className="fw-semibold">{s.name}</div>
                               {s.description ? (
-                                <div className="text-muted small text-wrap" style={{ maxWidth: 520 }}>
-                                  {s.description}
-                                </div>
+                                <div className="text-muted small mt-1 text-truncate">{s.description}</div>
                               ) : null}
-                            </td>
-                            <td>
-                              <span className={`badge ${typeBadgeClass(s.type)}`}>{typeLabel(s.type)}</span>
-                            </td>
-                            <td>{formatCurrency(s.price)}</td>
-                            <td>{s.unit ? <code>{s.unit}</code> : <span className="text-muted">-</span>}</td>
-                            <td>
-                              <span className={`badge ${s.isActive ? 'bg-success' : 'bg-secondary'}`}>
-                                {s.isActive ? 'Aktif' : 'Nonaktif'}
-                              </span>
-                            </td>
-                            <td>{formatDateTime(s.createdAt)}</td>
-                            <td>
-                              <div className="btn-group btn-group-sm" role="group">
-                                <button type="button" className="btn btn-warning" onClick={() => openEdit(s)} title="Edit">
-                                  <i className="fas fa-edit"></i>
-                                </button>
-                                <button
-                                  type="button"
-                                  className={`btn ${s.isActive ? 'btn-secondary' : 'btn-success'}`}
-                                  onClick={() => void toggleActive(s)}
-                                  title={s.isActive ? 'Nonaktifkan' : 'Aktifkan'}
-                                >
-                                  <i className={`fas ${s.isActive ? 'fa-toggle-on' : 'fa-toggle-off'}`}></i>
-                                </button>
-                                <button type="button" className="btn btn-danger" onClick={() => void handleDelete(s)} title="Hapus">
-                                  <i className="fas fa-trash"></i>
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                            </div>
+                            <span className={`badge ${s.isActive ? 'bg-success' : 'bg-secondary'}`}>
+                              {s.isActive ? 'Aktif' : 'Nonaktif'}
+                            </span>
+                          </div>
+
+                          <div className="d-flex flex-wrap gap-2 mt-3">
+                            <span className={`badge ${typeBadgeClass(s.type)}`}>{typeLabel(s.type)}</span>
+                            {s.unit ? <span className="badge bg-light text-dark">{s.unit}</span> : null}
+                          </div>
+
+                          <hr className="my-3" />
+
+                          <div className="d-flex justify-content-between align-items-center">
+                            <div>
+                              <div className="text-muted small">Harga</div>
+                              <div className="fw-semibold">{formatCurrency(s.price)}</div>
+                            </div>
+                            <div className="text-end">
+                              <div className="text-muted small">Dibuat</div>
+                              <div className="fw-semibold">{formatDateTime(s.createdAt)}</div>
+                            </div>
+                          </div>
+
+                          <div className="d-grid gap-2 mt-3">
+                            <button type="button" className="btn btn-warning btn-sm" onClick={() => openEdit(s)}>
+                              <i className="fas fa-edit me-1"></i>
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className={`btn btn-sm ${s.isActive ? 'btn-secondary' : 'btn-success'}`}
+                              onClick={() => void toggleActive(s)}
+                            >
+                              <i className={`fas ${s.isActive ? 'fa-toggle-on' : 'fa-toggle-off'} me-1`}></i>
+                              {s.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                            </button>
+                            <button type="button" className="btn btn-danger btn-sm" onClick={() => void handleDelete(s)}>
+                              <i className="fas fa-trash me-1"></i>
+                              Hapus
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  />
                 </div>
 
                 <div className="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -712,14 +782,14 @@ export default function ServiceManagementPage() {
                       <button
                         className="btn btn-outline-secondary"
                         disabled={processed.page <= 1}
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        onClick={() => setPage(Math.max(1, processed.page - 1))}
                       >
                         <i className="fas fa-angle-left"></i>
                       </button>
                       <button
                         className="btn btn-outline-secondary"
                         disabled={processed.page >= processed.totalPages}
-                        onClick={() => setPage((p) => Math.min(processed.totalPages, p + 1))}
+                        onClick={() => setPage(Math.min(processed.totalPages, processed.page + 1))}
                       >
                         <i className="fas fa-angle-right"></i>
                       </button>
@@ -739,8 +809,7 @@ export default function ServiceManagementPage() {
                     </label>
                     <select
                       id="pageSize"
-                      className="form-select form-select-sm"
-                      style={{ width: 110 }}
+                      className="form-select form-select-sm w-auto"
                       value={pageSize}
                       onChange={(e) => setPageSize(Number(e.target.value))}
                     >

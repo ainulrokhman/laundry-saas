@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { formatDateTime } from '@/lib/utils';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
+import { ResponsiveTableToCards } from '@/components/adminlte/ResponsiveTableToCards';
 
 interface BankAccount {
   id: string;
@@ -497,92 +498,108 @@ export default function BankAccountsPage() {
                     </button>
                   </div>
                 </div>
-                <div className="card-body table-responsive p-0">
-                  <table className="table table-striped table-hover text-nowrap">
-                    <thead className="table-light">
-                      <tr>
-                        <th>Nama Bank</th>
-                        <th>Nama Pemilik</th>
-                        <th>Nomor Rekening</th>
-                        <th>Status</th>
-                        <th>Dibuat</th>
-                        <th>Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bankAccounts.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="text-center py-5">
-                            <div className="empty-state">
-                              <i className="fas fa-university fa-3x text-muted mb-3"></i>
-                              <p className="text-muted mb-2">
-                                Belum ada rekening bank
-                              </p>
-                              <p className="text-muted small mb-0">
-                                Klik tombol "Tambah Rekening Bank" untuk menambahkan rekening bank baru
-                              </p>
-                            </div>
-                          </td>
-                        </tr>
-                      ) : (
-                        bankAccounts.map((bankAccount) => (
-                          <tr key={bankAccount.id}>
-                            <td>
-                              <strong>{bankAccount.bankName}</strong>
-                            </td>
-                            <td>{bankAccount.accountName}</td>
-                            <td>
-                              <code>{bankAccount.accountNumber}</code>
-                            </td>
-                            <td>
-                              <span
-                                className={`badge ${
-                                  bankAccount.isActive ? 'bg-success' : 'bg-secondary'
-                                }`}
-                              >
-                                {bankAccount.isActive ? 'Aktif' : 'Nonaktif'}
-                              </span>
-                            </td>
-                            <td>{formatDateTime(bankAccount.createdAt)}</td>
-                            <td>
-                              <div className="btn-group btn-group-sm" role="group">
-                                <button
-                                  type="button"
-                                  className="btn btn-warning"
-                                  onClick={() => handleEdit(bankAccount)}
-                                  title="Edit"
-                                >
-                                  <i className="fas fa-edit"></i>
-                                </button>
-                                <button
-                                  type="button"
-                                  className={`btn ${
-                                    bankAccount.isActive ? 'btn-secondary' : 'btn-success'
-                                  }`}
-                                  onClick={() => handleToggleActive(bankAccount)}
-                                  title={bankAccount.isActive ? 'Nonaktifkan' : 'Aktifkan'}
-                                >
-                                  <i
-                                    className={`fas ${
-                                      bankAccount.isActive ? 'fa-toggle-on' : 'fa-toggle-off'
-                                    }`}
-                                  ></i>
-                                </button>
-                                <button
-                                  type="button"
-                                  className="btn btn-danger"
-                                  onClick={() => handleDelete(bankAccount.id)}
-                                  title="Hapus"
-                                >
-                                  <i className="fas fa-trash"></i>
-                                </button>
+                <div className="card-body p-0">
+                  <div className="d-md-none px-3 pt-3 pb-0">
+                    <div className="text-muted small">
+                      Total: <span className="fw-semibold">{bankAccounts.length}</span> rekening
+                    </div>
+                  </div>
+                  <ResponsiveTableToCards
+                    items={bankAccounts}
+                    getRowKey={(b) => b.id}
+                    mobileContainerClassName="px-3 pt-2 pb-3"
+                    columns={[
+                      { header: 'Nama Bank', render: (b) => <strong>{b.bankName}</strong> },
+                      { header: 'Nama Pemilik', render: (b) => b.accountName },
+                      { header: 'Nomor Rekening', render: (b) => <code>{b.accountNumber}</code> },
+                      {
+                        header: 'Status',
+                        render: (b) => (
+                          <span className={`badge ${b.isActive ? 'bg-success' : 'bg-secondary'}`}>
+                            {b.isActive ? 'Aktif' : 'Nonaktif'}
+                          </span>
+                        ),
+                      },
+                      { header: 'Dibuat', render: (b) => formatDateTime(b.createdAt) },
+                      {
+                        header: 'Aksi',
+                        render: (b) => (
+                          <div className="btn-group btn-group-sm" role="group">
+                            <button type="button" className="btn btn-warning" onClick={() => handleEdit(b)} title="Edit">
+                              <i className="fas fa-edit"></i>
+                            </button>
+                            <button
+                              type="button"
+                              className={`btn ${b.isActive ? 'btn-secondary' : 'btn-success'}`}
+                              onClick={() => handleToggleActive(b)}
+                              title={b.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                            >
+                              <i className={`fas ${b.isActive ? 'fa-toggle-on' : 'fa-toggle-off'}`}></i>
+                            </button>
+                            <button type="button" className="btn btn-danger" onClick={() => handleDelete(b.id)} title="Hapus">
+                              <i className="fas fa-trash"></i>
+                            </button>
+                          </div>
+                        ),
+                      },
+                    ]}
+                    emptyState={
+                      <div className="text-center py-4">
+                        <div className="empty-state">
+                          <i className="fas fa-university fa-3x text-muted mb-3"></i>
+                          <p className="text-muted mb-2">Belum ada rekening bank</p>
+                          <p className="text-muted small mb-0">
+                            Klik tombol "Tambah Rekening Bank" untuk menambahkan rekening bank baru
+                          </p>
+                        </div>
+                      </div>
+                    }
+                    renderMobileCard={(b) => (
+                      <div key={b.id} className="card shadow-sm">
+                        <div className="card-body">
+                          <div className="d-flex justify-content-between align-items-start gap-2">
+                            <div>
+                              <div className="fw-semibold">{b.bankName}</div>
+                              <div className="text-muted small mt-1">{b.accountName}</div>
+                              <div className="text-muted small mt-1">
+                                <i className="fas fa-hashtag me-1"></i>
+                                <code>{b.accountNumber}</code>
                               </div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                            </div>
+                            <span className={`badge ${b.isActive ? 'bg-success' : 'bg-secondary'}`}>
+                              {b.isActive ? 'Aktif' : 'Nonaktif'}
+                            </span>
+                          </div>
+
+                          <hr className="my-3" />
+
+                          <div className="d-flex justify-content-between align-items-center">
+                            <div className="text-muted small">Dibuat</div>
+                            <div className="fw-semibold">{formatDateTime(b.createdAt)}</div>
+                          </div>
+
+                          <div className="d-grid gap-2 mt-3">
+                            <button type="button" className="btn btn-warning btn-sm" onClick={() => handleEdit(b)}>
+                              <i className="fas fa-edit me-1"></i>
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className={`btn btn-sm ${b.isActive ? 'btn-secondary' : 'btn-success'}`}
+                              onClick={() => handleToggleActive(b)}
+                            >
+                              <i className={`fas ${b.isActive ? 'fa-toggle-on' : 'fa-toggle-off'} me-1`}></i>
+                              {b.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                            </button>
+                            <button type="button" className="btn btn-danger btn-sm" onClick={() => handleDelete(b.id)}>
+                              <i className="fas fa-trash me-1"></i>
+                              Hapus
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  />
                 </div>
               </div>
             </div>
@@ -592,48 +609,42 @@ export default function BankAccountsPage() {
 
       {/* Create/Edit Modal - Bootstrap 5 Modal */}
       {showCreateModal && (
-        <div
-          className="modal fade show"
-          style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}
-          tabIndex={-1}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="bankAccountModalLabel"
-        >
-          <div className="modal-dialog modal-lg modal-dialog-centered" role="document">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title" id="bankAccountModalLabel">
-                  <i className={`fas ${editingBankAccount ? 'fa-edit' : 'fa-plus'} me-2`}></i>
-                  {editingBankAccount ? 'Edit Rekening Bank' : 'Tambah Rekening Bank Baru'}
-                </h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => {
-                    setShowCreateModal(false);
-                    setEditingBankAccount(null);
-                    setFormError(null);
-                    setFieldErrors({});
-                  }}
-                  aria-label="Close"
-                  disabled={formLoading}
-                ></button>
-              </div>
-              <form onSubmit={handleSubmit} noValidate>
-                <div className="modal-body">
-                  {formError && (
-                    <div className="alert alert-danger alert-dismissible fade show" role="alert">
-                      <i className="fas fa-exclamation-circle me-2"></i>
-                      {formError}
-                      <button
-                        type="button"
-                        className="btn-close"
-                        onClick={() => setFormError(null)}
-                        aria-label="Close"
-                      ></button>
-                    </div>
-                  )}
+        <>
+          <div className="modal fade show d-block" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="bankAccountModalLabel">
+            <div className="modal-dialog modal-lg modal-dialog-centered" role="document">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title" id="bankAccountModalLabel">
+                    <i className={`fas ${editingBankAccount ? 'fa-edit' : 'fa-plus'} me-2`}></i>
+                    {editingBankAccount ? 'Edit Rekening Bank' : 'Tambah Rekening Bank Baru'}
+                  </h5>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    onClick={() => {
+                      setShowCreateModal(false);
+                      setEditingBankAccount(null);
+                      setFormError(null);
+                      setFieldErrors({});
+                    }}
+                    aria-label="Close"
+                    disabled={formLoading}
+                  ></button>
+                </div>
+                <form onSubmit={handleSubmit} noValidate>
+                  <div className="modal-body">
+                    {formError && (
+                      <div className="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i className="fas fa-exclamation-circle me-2"></i>
+                        {formError}
+                        <button
+                          type="button"
+                          className="btn-close"
+                          onClick={() => setFormError(null)}
+                          aria-label="Close"
+                        ></button>
+                      </div>
+                    )}
 
                   <div className="mb-3">
                     <label htmlFor="bankName" className="form-label">
@@ -784,7 +795,9 @@ export default function BankAccountsPage() {
               </form>
             </div>
           </div>
-        </div>
+          </div>
+          <div className="modal-backdrop fade show"></div>
+        </>
       )}
     </div>
   );

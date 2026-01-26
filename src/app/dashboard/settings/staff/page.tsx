@@ -13,6 +13,7 @@ import { useSession } from 'next-auth/react';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import { formatDateTime } from '@/lib/utils';
+import { ResponsiveTableToCards } from '@/components/adminlte/ResponsiveTableToCards';
 
 type Staff = {
   id: string;
@@ -407,70 +408,112 @@ export default function StaffManagementPage() {
                     Daftar Staff
                   </h3>
                 </div>
-                <div className="card-body table-responsive p-0">
-                  <table className="table table-striped table-hover text-nowrap">
-                    <thead className="table-light">
-                      <tr>
-                        <th>Nama</th>
-                        <th>WhatsApp</th>
-                        <th>Status</th>
-                        <th>Login Terakhir</th>
-                        <th>Dibuat</th>
-                        <th>Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {staff.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="text-center py-5">
-                            <div className="empty-state">
-                              <i className="fas fa-users fa-3x text-muted mb-3"></i>
-                              <p className="text-muted mb-2">Belum ada staff</p>
-                              <p className="text-muted small mb-0">
-                                Klik tombol "Tambah Staff" untuk membuat akun staff baru
-                              </p>
-                            </div>
-                          </td>
-                        </tr>
-                      ) : (
-                        staff.map((s) => (
-                          <tr key={s.id}>
-                            <td className="fw-semibold">{s.name}</td>
-                            <td>
-                              <code>{s.phone}</code>
-                            </td>
-                            <td>
-                              <span className={`badge ${s.isActive ? 'bg-success' : 'bg-secondary'}`}>
-                                {s.isActive ? 'Aktif' : 'Nonaktif'}
-                              </span>
-                            </td>
-                            <td>{s.lastLoginAt ? formatDateTime(s.lastLoginAt) : <span className="text-muted">-</span>}</td>
-                            <td>{formatDateTime(s.createdAt)}</td>
-                            <td>
-                              <div className="btn-group btn-group-sm" role="group">
-                                <button
-                                  type="button"
-                                  className="btn btn-warning"
-                                  onClick={() => openEdit(s)}
-                                  title="Edit"
-                                >
-                                  <i className="fas fa-edit"></i>
-                                </button>
-                                <button
-                                  type="button"
-                                  className={`btn ${s.isActive ? 'btn-secondary' : 'btn-success'}`}
-                                  onClick={() => void toggleActive(s)}
-                                  title={s.isActive ? 'Nonaktifkan' : 'Aktifkan'}
-                                >
-                                  <i className={`fas ${s.isActive ? 'fa-toggle-on' : 'fa-toggle-off'}`}></i>
-                                </button>
+                <div className="card-body p-0">
+                  <div className="d-md-none px-3 pt-3 pb-0">
+                    <div className="text-muted small">
+                      Total: <span className="fw-semibold">{staff.length}</span> staff
+                    </div>
+                  </div>
+                  <ResponsiveTableToCards
+                    items={staff}
+                    getRowKey={(s) => s.id}
+                    mobileContainerClassName="px-3 pt-2 pb-3"
+                    columns={[
+                      { header: 'Nama', render: (s) => <span className="fw-semibold">{s.name}</span> },
+                      { header: 'WhatsApp', render: (s) => <code>{s.phone}</code> },
+                      {
+                        header: 'Status',
+                        render: (s) => (
+                          <span className={`badge ${s.isActive ? 'bg-success' : 'bg-secondary'}`}>
+                            {s.isActive ? 'Aktif' : 'Nonaktif'}
+                          </span>
+                        ),
+                      },
+                      {
+                        header: 'Login Terakhir',
+                        render: (s) =>
+                          s.lastLoginAt ? formatDateTime(s.lastLoginAt) : <span className="text-muted">-</span>,
+                      },
+                      { header: 'Dibuat', render: (s) => formatDateTime(s.createdAt) },
+                      {
+                        header: 'Aksi',
+                        render: (s) => (
+                          <div className="btn-group btn-group-sm" role="group">
+                            <button type="button" className="btn btn-warning" onClick={() => openEdit(s)} title="Edit">
+                              <i className="fas fa-edit"></i>
+                            </button>
+                            <button
+                              type="button"
+                              className={`btn ${s.isActive ? 'btn-secondary' : 'btn-success'}`}
+                              onClick={() => void toggleActive(s)}
+                              title={s.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                            >
+                              <i className={`fas ${s.isActive ? 'fa-toggle-on' : 'fa-toggle-off'}`}></i>
+                            </button>
+                          </div>
+                        ),
+                      },
+                    ]}
+                    emptyState={
+                      <div className="text-center py-4">
+                        <div className="empty-state">
+                          <i className="fas fa-users fa-3x text-muted mb-3"></i>
+                          <p className="text-muted mb-2">Belum ada staff</p>
+                          <p className="text-muted small mb-0">
+                            Klik tombol "Tambah Staff" untuk membuat akun staff baru
+                          </p>
+                        </div>
+                      </div>
+                    }
+                    renderMobileCard={(s) => (
+                      <div key={s.id} className="card shadow-sm">
+                        <div className="card-body">
+                          <div className="d-flex justify-content-between align-items-start gap-2">
+                            <div>
+                              <div className="fw-semibold">{s.name}</div>
+                              <div className="text-muted small mt-1">
+                                <i className="fas fa-phone me-1"></i>
+                                <code>{s.phone}</code>
                               </div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                            </div>
+                            <span className={`badge ${s.isActive ? 'bg-success' : 'bg-secondary'}`}>
+                              {s.isActive ? 'Aktif' : 'Nonaktif'}
+                            </span>
+                          </div>
+
+                          <hr className="my-3" />
+
+                          <div className="d-flex justify-content-between align-items-center">
+                            <div>
+                              <div className="text-muted small">Login terakhir</div>
+                              <div className="fw-semibold">
+                                {s.lastLoginAt ? formatDateTime(s.lastLoginAt) : '—'}
+                              </div>
+                            </div>
+                            <div className="text-end">
+                              <div className="text-muted small">Dibuat</div>
+                              <div className="fw-semibold">{formatDateTime(s.createdAt)}</div>
+                            </div>
+                          </div>
+
+                          <div className="d-grid gap-2 mt-3">
+                            <button type="button" className="btn btn-warning btn-sm" onClick={() => openEdit(s)}>
+                              <i className="fas fa-edit me-1"></i>
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className={`btn btn-sm ${s.isActive ? 'btn-secondary' : 'btn-success'}`}
+                              onClick={() => void toggleActive(s)}
+                            >
+                              <i className={`fas ${s.isActive ? 'fa-toggle-on' : 'fa-toggle-off'} me-1`}></i>
+                              {s.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  />
                 </div>
                 <div className="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
                   <Link href="/dashboard/settings" className="btn btn-outline-secondary btn-sm">
