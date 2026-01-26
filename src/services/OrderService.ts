@@ -34,6 +34,12 @@ export type UpdateOrderPaymentInput = {
   paymentNote?: string;
 };
 
+export type UpdateOrderDpInput = {
+  dpAmount: number;
+  dpPaidAt?: string; // ISO
+  dpNote?: string;
+};
+
 function isIntegerLike(n: number): boolean {
   return Number.isInteger(n);
 }
@@ -156,13 +162,83 @@ export class OrderService extends BaseService {
     const paidAt = input.paid
       ? (input.paidAt ? new Date(input.paidAt) : new Date())
       : null;
-    const paymentStatus = input.paid ? PaymentStatus.SETTLEMENT : PaymentStatus.UNPAID;
+
+    const existing = await this.orderRepository.findById(outletId, orderId);
+    if (!existing) {
+      throw new Error('Order tidak ditemukan');
+    }
+    const existingDpAmount = roundIdr(Number((existing as any).dpAmount ?? 0));
+
+    const paymentStatus = input.paid
+      ? PaymentStatus.SETTLEMENT
+      : existingDpAmount > 0
+        ? PaymentStatus.PENDING
+        : PaymentStatus.UNPAID;
     const paymentNote = input.paymentNote?.trim() || null;
 
     return await this.orderRepository.update(outletId, orderId, {
       paymentStatus,
       paidAt,
       paymentNote,
+      // Tetap bookkeeping: jangan set paymentMethod untuk order laundry
+      paymentMethod: null,
+    } as any);
+  }
+
+  async setDownPayment(user: SessionUser | null, orderId: string, input: UpdateOrderDpInput) {
+    this.requireRole(user, ['OWNER', 'STAFF']);
+    const outletId = this.getOutletId(user);
+
+    const order = await this.orderRepository.findById(outletId, orderId);
+    if (!order) {
+      throw new Error('Order tidak ditemukan');
+    }
+
+    const totalAmount = roundIdr(Number(order.totalAmount));
+    const dpAmount = roundIdr(Number(input.dpAmount));
+    if (!Number.isFinite(dpAmount) || dpAmount < 0) {
+      throw new Error('Nominal DP tidak valid');
+    }
+    if (dpAmount > totalAmount) {
+      throw new Error('DP tidak boleh melebihi total');
+    }
+
+    const dpNote = input.dpNote?.trim() ? input.dpNote.trim() : null;
+
+    const existingDpPaidAt = ((order as any).dpPaidAt as Date | null | undefined) ?? null;
+    const dpPaidAt =
+      dpAmount > 0
+        ? input.dpPaidAt
+          ? new Date(input.dpPaidAt)
+          : existingDpPaidAt ?? new Date()
+        : null;
+
+    // Aturan paymentStatus:
+    // - Jika sudah lunas: tetap SETTLEMENT
+    // - Jika dpAmount == 0: UNPAID
+    // - Jika dpAmount > 0 dan belum lunas: PENDING
+    // - Jika dpAmount == total (membayar penuh via DP): otomatis SETTLEMENT
+    let nextPaymentStatus = order.paymentStatus as PaymentStatus;
+    let nextPaidAt: Date | null = ((order as any).paidAt as Date | null | undefined) ?? null;
+
+    if (dpAmount > 0 && dpAmount >= totalAmount && totalAmount > 0) {
+      nextPaymentStatus = PaymentStatus.SETTLEMENT;
+      nextPaidAt = nextPaidAt ?? new Date();
+    } else if (order.paymentStatus === PaymentStatus.SETTLEMENT) {
+      nextPaymentStatus = PaymentStatus.SETTLEMENT;
+    } else if (dpAmount > 0) {
+      nextPaymentStatus = PaymentStatus.PENDING;
+    } else {
+      nextPaymentStatus = PaymentStatus.UNPAID;
+      nextPaidAt = null;
+    }
+
+    return await this.orderRepository.update(outletId, orderId, {
+      dpAmount,
+      dpPaidAt,
+      dpNote,
+      paymentStatus: nextPaymentStatus,
+      paidAt: nextPaidAt,
       // Tetap bookkeeping: jangan set paymentMethod untuk order laundry
       paymentMethod: null,
     } as any);

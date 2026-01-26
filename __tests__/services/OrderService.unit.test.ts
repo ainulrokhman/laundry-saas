@@ -203,5 +203,68 @@ describe('OrderService (unit)', () => {
     expect(historyRepo.create).not.toHaveBeenCalled();
     expect(updated.status).toBe(OrderStatus.READY);
   });
+
+  it('setPaymentStatus: paid=false + ada DP -> paymentStatus jadi PENDING', async () => {
+    const orderRepo: any = {
+      findById: vi.fn(async () => ({
+        id: 'order-1',
+        totalAmount: 50000,
+        dpAmount: 10000,
+      })),
+      update: vi.fn(async (_outletId: string, _id: string, data: any) => ({
+        id: 'order-1',
+        ...data,
+      })),
+    };
+    const svc = new OrderService(orderRepo, {} as any, {} as any);
+
+    await svc.setPaymentStatus(makeUser(Role.STAFF) as any, 'order-1', { paid: false, paymentNote: 'ada DP' });
+
+    expect(orderRepo.update).toHaveBeenCalledTimes(1);
+    const updateData = orderRepo.update.mock.calls[0][2];
+    expect(updateData.paymentStatus).toBe(PaymentStatus.PENDING);
+    expect(updateData.paidAt).toBeNull();
+  });
+
+  it('setDownPayment: dpAmount > 0 (belum lunas) -> paymentStatus PENDING + dpPaidAt terisi', async () => {
+    const orderRepo: any = {
+      findById: vi.fn(async () => ({
+        id: 'order-1',
+        totalAmount: 50000,
+        paymentStatus: PaymentStatus.UNPAID,
+        dpPaidAt: null,
+        paidAt: null,
+      })),
+      update: vi.fn(async (_outletId: string, _id: string, data: any) => ({
+        id: 'order-1',
+        ...data,
+      })),
+    };
+    const svc = new OrderService(orderRepo, {} as any, {} as any);
+
+    await svc.setDownPayment(makeUser(Role.STAFF) as any, 'order-1', { dpAmount: 20000, dpNote: 'DP tunai' });
+
+    expect(orderRepo.update).toHaveBeenCalledTimes(1);
+    const updateData = orderRepo.update.mock.calls[0][2];
+    expect(updateData.dpAmount).toBe(20000);
+    expect(updateData.dpPaidAt).toBeInstanceOf(Date);
+    expect(updateData.paymentStatus).toBe(PaymentStatus.PENDING);
+  });
+
+  it('setDownPayment: dpAmount melebihi total -> error', async () => {
+    const orderRepo: any = {
+      findById: vi.fn(async () => ({
+        id: 'order-1',
+        totalAmount: 50000,
+        paymentStatus: PaymentStatus.UNPAID,
+      })),
+      update: vi.fn(),
+    };
+    const svc = new OrderService(orderRepo, {} as any, {} as any);
+
+    await expect(
+      svc.setDownPayment(makeUser(Role.STAFF) as any, 'order-1', { dpAmount: 60000 })
+    ).rejects.toThrow('DP tidak boleh melebihi total');
+  });
 });
 

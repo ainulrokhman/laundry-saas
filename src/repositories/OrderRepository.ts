@@ -32,6 +32,21 @@ type OrderWithItemsAndHistory = Prisma.OrderGetPayload<{
   };
 }>;
 
+type OrderForInvoice = Prisma.OrderGetPayload<{
+  include: {
+    items: true;
+    outlet: {
+      select: {
+        id: true;
+        name: true;
+        slug: true;
+        address: true;
+        contactPhone: true;
+      };
+    };
+  };
+}>;
+
 export class OrderRepository extends BaseRepository {
   /**
    * Find order by ID (with outletId filter)
@@ -64,6 +79,30 @@ export class OrderRepository extends BaseRepository {
                 phone: true,
               },
             },
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * Find order by ID for invoice/receipt (include items + outlet info)
+   */
+  async findByIdForInvoice(outletId: string, id: string): Promise<OrderForInvoice | null> {
+    this.ensureOutletId(outletId, 'Order');
+    return prisma.order.findFirst({
+      where: this.combineFilters(outletId, { id }),
+      include: {
+        items: {
+          orderBy: { createdAt: 'asc' },
+        },
+        outlet: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            address: true,
+            contactPhone: true,
           },
         },
       },

@@ -1,0 +1,75 @@
+.noPrint {
+  display: block;
+}
+
+.printArea {
+  display: none;
+}
+
+.printReceipt {
+  display: block;
+}
+
+.printInvoice {
+  display: none;
+}
+
+.receipt {
+  max-width: 100%;
+}
+
+.invoicePaper {
+  max-width: 100%;
+}
+
+@page {
+  margin: 0;
+}
+
+@media print {
+  .noPrint {
+    display: none !important;
+  }
+
+  .printArea {
+    display: block !important;
+  }
+
+  :global(body) {
+    margin: 0 !important;
+    background: #fff !important;
+  }
+
+  :global(.content-wrapper),
+  :global(.content-header),
+  :global(.content) {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Tampilkan area print sesuai mode */
+  :global(body[data-print-mode='invoice-a4']) .printReceipt {
+    display: none !important;
+  }
+
+  :global(body[data-print-mode='invoice-a4']) .printInvoice {
+    display: block !important;
+  }
+
+  /* Print mode: struk */
+  :global(body[data-print-mode='receipt-80']) .receipt {
+    width: 80mm;
+    padding: 8px;
+  }
+
+  :global(body[data-print-mode='receipt-58']) .receipt {
+    width: 58mm;
+    padding: 8px;
+  }
+
+  /* Print mode: invoice (A4) */
+  :global(body[data-print-mode='invoice-a4']) .invoicePaper {
+    padding: 16px;
+  }
+}
+

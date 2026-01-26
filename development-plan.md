@@ -437,27 +437,30 @@ Priority order: **Multi-outlet OWNER → Landing Page + Settings → Staff Manag
 - [x] (Optional) Display simple payment status (UNPAID/SETTLEMENT) in the order list
 
 ### 2.3 Order Workflow Visualization [Role: OWNER/STAFF]
-- [ ] Create order detail page (`app/dashboard/orders/[id]/page.tsx`)
-- [ ] Implement AdminLTE Steps/Timeline for workflow
-- [ ] Status visualization: QUEUED → WASHING → DRYING → IRONING → READY → TAKEN
-- [ ] Implement status update buttons
-- [ ] Create history log for status changes
-- [ ] Implement real-time status updates (optional)
+- [x] Create order detail page (`app/dashboard/orders/[id]/page.tsx`)
+- [x] Implement AdminLTE Steps/Timeline for workflow
+- [x] Status visualization: QUEUED → WASHING → DRYING → IRONING → READY → TAKEN
+- [x] Implement status update buttons
+- [x] Create history log for status changes
+- [x] Implement real-time status updates (optional)
 
 ### 2.4 Order Tracking (Public) [Role: PUBLIC]
-- [ ] Create public tracking page (`app/track/[code]/page.tsx`)
-- [ ] Implement tracking code lookup
-- [ ] Display minimal order information (privacy-focused)
-- [ ] Implement status visualization for public
-- [ ] Create form for tracking code input
-- [ ] Implement rate limiting for the tracking page
+- [x] Create public tracking page (`app/track/[code]/page.tsx`)
+- [x] Implement tracking code lookup
+- [x] Display minimal order information (privacy-focused)
+- [x] Implement status visualization for public
+- [x] Create form for tracking code input
+- [x] Implement rate limiting for the tracking page
 
 ### 2.5 Digital Invoice/Receipt [Role: OWNER/STAFF]
-- [ ] Create invoice page (`app/dashboard/orders/[id]/invoice/page.tsx`)
-- [ ] Implement invoice template with AdminLTE styling
-- [ ] Display order details, customer info, services
-- [ ] Implement print functionality
-- [ ] Create share to WhatsApp functionality
+- [x] Create invoice page (`src/app/dashboard/orders/[id]/invoice/page.tsx`)
+- [x] Implement invoice template with AdminLTE styling (Invoice A4 + Struk thermal)
+- [x] Display order details, customer info, services
+- [x] Fitur DP (uang muka) + pelunasan (single DP)
+- [x] Hitung kembalian (DP & pelunasan)
+- [x] Print thermal via browser print (58mm & 80mm)
+- [x] Share ke WhatsApp (wa.me + Web Share API fallback)
+- [x] (Opsional/advanced) ESC/POS raw untuk desktop (WebSerial/WebUSB)
 - [ ] Implement PDF download (optional)
 
 ### 2.6 Customer Management [Role: OWNER/STAFF]

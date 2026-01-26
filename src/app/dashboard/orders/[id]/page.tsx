@@ -336,6 +336,10 @@ export default function OrderDetailPage() {
                 <i className="fas fa-arrow-left me-1"></i>
                 Kembali
               </Link>
+              <Link href={`/dashboard/orders/${encodeURIComponent(detail.id)}/invoice`} className="btn btn-primary btn-sm">
+                <i className="fas fa-receipt me-1"></i>
+                Invoice / Struk
+              </Link>
               <button className="btn btn-outline-secondary btn-sm" onClick={() => setRefreshKey((k) => k + 1)} title="Refresh">
                 <i className="fas fa-sync-alt me-1"></i>
                 Refresh

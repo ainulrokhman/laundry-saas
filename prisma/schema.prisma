@@ -164,6 +164,10 @@ model Order {
   paymentMethod PaymentMethod? // Metode pembayaran: CASH, TRANSFER, MIDTRANS, atau XENDIT (null jika belum dibayar)
   paidAt       DateTime?      // Timestamp ketika order ditandai LUNAS (bookkeeping)
   paymentNote  String?        // Catatan internal terkait pembayaran (opsional)
+  // DP (uang muka) untuk order laundry (single DP)
+  dpAmount     Float         @default(0) // Nominal DP (rupiah, tanpa desimal)
+  dpPaidAt     DateTime?      // Timestamp DP dicatat
+  dpNote       String?        // Catatan DP (opsional)
   totalAmount  Float
   outletId     String
   outlet       Outlet        @relation(fields: [outletId], references: [id], onDelete: Cascade)
