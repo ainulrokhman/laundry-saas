@@ -73,7 +73,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  return withAdminAuth(async (req: NextRequest, session) => {
+  return withAdminAuth(async (_req: Request, session) => {
     try {
       const { id } = await params;
       if (!isValidUuid(id)) {
@@ -209,13 +209,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       console.error('Error updating user:', error);
 
       if (error instanceof z.ZodError) {
-        const errorMessages = error.errors.map((e) => `${e.path.join('.')}: ${e.message}`);
+        const errorMessages = error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
         return Response.json(
           {
             success: false,
             error: 'Validation error',
             message: errorMessages.join(', '),
-            errors: error.errors.map((e) => ({ field: e.path.join('.'), message: e.message })),
+            errors: error.issues.map((i) => ({ field: i.path.join('.'), message: i.message })),
           },
           { status: 400 }
         );

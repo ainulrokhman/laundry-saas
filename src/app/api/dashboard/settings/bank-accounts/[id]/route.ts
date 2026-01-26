@@ -34,7 +34,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withOwnerAuth(async (req: NextRequest, session: ExtendedSession) => {
+  return withOwnerAuth(async (_req: Request, session: ExtendedSession) => {
     try {
       if (!session.outletId) {
         return Response.json(
@@ -88,7 +88,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withOwnerAuth(async (req: NextRequest, session: ExtendedSession) => {
+  return withOwnerAuth(async (req: Request, session: ExtendedSession) => {
     try {
       if (!session.outletId) {
         return Response.json(
@@ -150,9 +150,9 @@ export async function PUT(
       console.error('Error updating bank account:', error);
 
       if (error instanceof z.ZodError) {
-        const errorMessages = error.errors.map((e) => {
-          const field = e.path.join('.');
-          return `${field}: ${e.message}`;
+        const errorMessages = error.issues.map((i) => {
+          const field = i.path.join('.');
+          return `${field}: ${i.message}`;
         });
 
         return Response.json(
@@ -160,9 +160,9 @@ export async function PUT(
             success: false,
             error: 'Validation error',
             message: errorMessages.join(', '),
-            errors: error.errors.map((e) => ({
-              field: e.path.join('.'),
-              message: e.message,
+            errors: error.issues.map((i) => ({
+              field: i.path.join('.'),
+              message: i.message,
             })),
           },
           { status: 400 }
@@ -196,7 +196,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withOwnerAuth(async (req: NextRequest, session: ExtendedSession) => {
+  return withOwnerAuth(async (_req: Request, session: ExtendedSession) => {
     try {
       if (!session.outletId) {
         return Response.json(
@@ -260,7 +260,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withOwnerAuth(async (req: NextRequest, session: ExtendedSession) => {
+  return withOwnerAuth(async (_req: Request, session: ExtendedSession) => {
     try {
       if (!session.outletId) {
         return Response.json(

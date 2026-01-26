@@ -7,7 +7,6 @@
  *   (token/session akan diupdate lewat NextAuth session update yang juga divalidasi di server)
  */
 
-import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { withAuth } from '@/lib/proxy/route-proxy';
 import { Role } from '@/generated/prisma';
@@ -20,7 +19,7 @@ const schema = z.object({
 const outletRepository = new OutletRepository();
 
 export const POST = withAuth(
-  async (request: NextRequest, session) => {
+  async (request: Request, session) => {
     try {
       const body: unknown = await request.json();
       const { outletId } = schema.parse(body);

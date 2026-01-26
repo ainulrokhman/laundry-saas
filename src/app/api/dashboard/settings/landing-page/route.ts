@@ -7,7 +7,6 @@
  * Mengelola konten landing page per outlet aktif (session.outletId).
  */
 
-import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { withOwnerAuth } from '@/lib/proxy/route-proxy';
 import { ExtendedSession } from '@/lib/auth';
@@ -54,7 +53,7 @@ function normalizeDigits(value: string | undefined): string | null | undefined {
   return digits;
 }
 
-export const GET = withOwnerAuth(async (_request: NextRequest, session: ExtendedSession) => {
+export const GET = withOwnerAuth(async (_request: Request, session: ExtendedSession) => {
   try {
     if (!session.outletId) {
       return Response.json(
@@ -88,7 +87,7 @@ export const GET = withOwnerAuth(async (_request: NextRequest, session: Extended
   }
 });
 
-export const PUT = withOwnerAuth(async (request: NextRequest, session: ExtendedSession) => {
+export const PUT = withOwnerAuth(async (request: Request, session: ExtendedSession) => {
   try {
     if (!session.outletId) {
       return Response.json(

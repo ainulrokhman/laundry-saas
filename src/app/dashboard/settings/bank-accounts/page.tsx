@@ -506,7 +506,7 @@ export default function BankAccountsPage() {
                         <th>Nomor Rekening</th>
                         <th>Status</th>
                         <th>Dibuat</th>
-                        <th width="150">Aksi</th>
+                        <th>Aksi</th>
                       </tr>
                     </thead>
                     <tbody>

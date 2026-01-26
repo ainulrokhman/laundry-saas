@@ -569,7 +569,7 @@ export default function OutletsPage() {
                         <th>Status</th>
                         <th>Pengguna</th>
                         <th>Dibuat</th>
-                        <th width="150">Aksi</th>
+                        <th>Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -648,7 +648,7 @@ export default function OutletsPage() {
                                   className="btn btn-danger"
                                   onClick={() => handleDelete(outlet.id)}
                                   title="Hapus"
-                                  disabled={outlet.userCount && outlet.userCount > 0}
+                                  disabled={(outlet.userCount ?? 0) > 0}
                                 >
                                   <i className="fas fa-trash"></i>
                                 </button>

@@ -15,17 +15,13 @@ const outletRepository = new OutletRepository();
 
 const updateOutletSchema = z.object({
   name: z
-    .string({
-      invalid_type_error: 'Nama outlet harus berupa teks',
-    })
+    .string()
     .trim()
     .min(1, 'Nama outlet harus diisi')
     .max(255, 'Nama outlet maksimal 255 karakter')
     .optional(),
   address: z
-    .string({
-      invalid_type_error: 'Alamat harus berupa teks',
-    })
+    .string()
     .trim()
     .min(1, 'Alamat harus diisi')
     .max(500, 'Alamat maksimal 500 karakter')
@@ -48,7 +44,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAdminAuth(async (req: NextRequest) => {
+  return withAdminAuth(async (req: Request, _session) => {
     try {
       const { id } = await params;
       
@@ -104,7 +100,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAdminAuth(async (req: NextRequest) => {
+  return withAdminAuth(async (req: Request, _session) => {
     try {
       const { id } = await params;
       
@@ -242,7 +238,7 @@ export async function PUT(
       console.error('Error updating outlet:', error);
       
       if (error instanceof z.ZodError) {
-        const errorMessages = error.errors.map((e) => {
+        const errorMessages = error.issues.map((e) => {
           const field = e.path.join('.');
           return `${field}: ${e.message}`;
         });
@@ -252,7 +248,7 @@ export async function PUT(
             success: false,
             error: 'Validation error',
             message: errorMessages.join(', '),
-            errors: error.errors.map((e) => ({
+            errors: error.issues.map((e) => ({
               field: e.path.join('.'),
               message: e.message,
             })),
@@ -281,7 +277,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAdminAuth(async (req: NextRequest) => {
+  return withAdminAuth(async (_req: Request, _session) => {
     try {
       const { id } = await params;
       

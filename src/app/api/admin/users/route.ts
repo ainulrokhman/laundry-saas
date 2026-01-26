@@ -6,7 +6,6 @@
  * - POST: create user (OWNER/STAFF/SUPERADMIN)
  */
 
-import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { withAdminAuth } from '@/lib/proxy/route-proxy';
@@ -103,7 +102,7 @@ const createUserSchema = z
 /**
  * GET /api/admin/users
  */
-export const GET = withAdminAuth(async (request: NextRequest, session) => {
+export const GET = withAdminAuth(async (request: Request, _session) => {
   try {
     const { searchParams } = new URL(request.url);
     const parsed = listQuerySchema.parse({
@@ -153,7 +152,7 @@ export const GET = withAdminAuth(async (request: NextRequest, session) => {
 /**
  * POST /api/admin/users
  */
-export const POST = withAdminAuth(async (request: NextRequest, session) => {
+export const POST = withAdminAuth(async (request: Request, session) => {
   try {
     const body = await request.json();
     const validated = createUserSchema.parse(body);
@@ -260,9 +259,9 @@ export const POST = withAdminAuth(async (request: NextRequest, session) => {
     console.error('Error creating user:', error);
 
     if (error instanceof z.ZodError) {
-      const errorMessages = error.errors.map((e) => {
-        const field = e.path.join('.');
-        return `${field}: ${e.message}`;
+      const errorMessages = error.issues.map((i) => {
+        const field = i.path.join('.');
+        return `${field}: ${i.message}`;
       });
 
       return Response.json(
@@ -270,9 +269,9 @@ export const POST = withAdminAuth(async (request: NextRequest, session) => {
           success: false,
           error: 'Validation error',
           message: errorMessages.join(', '),
-          errors: error.errors.map((e) => ({
-            field: e.path.join('.'),
-            message: e.message,
+          errors: error.issues.map((i) => ({
+            field: i.path.join('.'),
+            message: i.message,
           })),
         },
         { status: 400 }

@@ -25,7 +25,7 @@ function generateTempPin(): string {
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  return withAdminAuth(async (req: NextRequest, session) => {
+  return withAdminAuth(async (_req: Request, session) => {
     try {
       const { id } = await params;
       if (!isValidUuid(id)) {

@@ -43,7 +43,6 @@ export class TransactionDTO {
       proofUrl: transaction.proofUrl || null,
       createdAt: transaction.createdAt.toISOString(),
       updatedAt: transaction.updatedAt.toISOString(),
-      verifiedAt: transaction.verifiedAt?.toISOString() || null,
       // Include order info if available (minimal)
       ...(transaction.order && {
         order: {

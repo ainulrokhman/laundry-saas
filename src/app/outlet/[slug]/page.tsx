@@ -97,6 +97,12 @@ export default async function OutletLandingPage({ params }: PageProps) {
   const hasBusinessHours = Boolean(outletPublic.businessHours && outletPublic.businessHours.trim().length > 0);
   const hasServices = publicServices.length > 0;
 
+  const seoTitleRaw = typeof outletPublic.seoTitle === 'string' ? outletPublic.seoTitle.trim() : '';
+  const seoDescriptionRaw =
+    typeof outletPublic.seoDescription === 'string' ? outletPublic.seoDescription.trim() : '';
+  const heroTagline = seoTitleRaw && seoTitleRaw !== outletPublic.name ? seoTitleRaw : null;
+  const heroLead = seoDescriptionRaw || null;
+
   const servicesByType = publicServices.reduce<Record<string, any[]>>((acc, svc: any) => {
     const key = String(svc.type || 'LAINNYA').toUpperCase();
     if (!acc[key]) acc[key] = [];
@@ -172,10 +178,16 @@ export default async function OutletLandingPage({ params }: PageProps) {
 
                           <div className="text-white">
                             <h1 className="h4 mb-1">{outletPublic.name}</h1>
+                            {heroTagline && (
+                              <div className="small text-white-50">{heroTagline}</div>
+                            )}
                             <div className="text-white-50">
                               <i className="fas fa-map-marker-alt me-2"></i>
                               {outletPublic.address}
                             </div>
+                            {heroLead && (
+                              <div className="mt-2 text-white-50">{heroLead}</div>
+                            )}
                           </div>
                         </div>
 
@@ -231,10 +243,16 @@ export default async function OutletLandingPage({ params }: PageProps) {
                       )}
                       <div>
                         <h1 className="h4 mb-1">{outletPublic.name}</h1>
+                        {heroTagline && (
+                          <div className="small text-muted">{heroTagline}</div>
+                        )}
                         <div className="text-muted">
                           <i className="fas fa-map-marker-alt me-2"></i>
                           {outletPublic.address}
                         </div>
+                        {heroLead && (
+                          <div className="text-muted small mt-2">{heroLead}</div>
+                        )}
                       </div>
                     </div>
 

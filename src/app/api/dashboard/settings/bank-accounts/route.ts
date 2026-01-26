@@ -4,7 +4,6 @@
  * CRUD operations for bank accounts (Owner only)
  */
 
-import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { withOwnerAuth } from '@/lib/proxy/route-proxy';
 import { ExtendedSession } from '@/lib/auth';
@@ -16,26 +15,17 @@ const bankAccountRepository = new BankAccountRepository();
 // Validation schemas
 const createBankAccountSchema = z.object({
   bankName: z
-    .string({
-      required_error: 'Nama bank harus diisi',
-      invalid_type_error: 'Nama bank harus berupa teks',
-    })
+    .string()
     .trim()
     .min(1, 'Nama bank harus diisi')
     .max(100, 'Nama bank maksimal 100 karakter'),
   accountName: z
-    .string({
-      required_error: 'Nama pemilik rekening harus diisi',
-      invalid_type_error: 'Nama pemilik rekening harus berupa teks',
-    })
+    .string()
     .trim()
     .min(1, 'Nama pemilik rekening harus diisi')
     .max(255, 'Nama pemilik rekening maksimal 255 karakter'),
   accountNumber: z
-    .string({
-      required_error: 'Nomor rekening harus diisi',
-      invalid_type_error: 'Nomor rekening harus berupa teks',
-    })
+    .string()
     .trim()
     .min(1, 'Nomor rekening harus diisi')
     .max(50, 'Nomor rekening maksimal 50 karakter')
@@ -55,7 +45,7 @@ const updateBankAccountSchema = z.object({
  * Get all bank accounts for the authenticated outlet (Owner only)
  */
 export const GET = withOwnerAuth(async (
-  request: NextRequest,
+  _request: Request,
   session: ExtendedSession
 ) => {
   try {
@@ -95,7 +85,7 @@ export const GET = withOwnerAuth(async (
  * Create new bank account (Owner only)
  */
 export const POST = withOwnerAuth(async (
-  request: NextRequest,
+  request: Request,
   session: ExtendedSession
 ) => {
   try {
@@ -141,9 +131,9 @@ export const POST = withOwnerAuth(async (
     console.error('Error creating bank account:', error);
 
     if (error instanceof z.ZodError) {
-      const errorMessages = error.errors.map((e) => {
-        const field = e.path.join('.');
-        return `${field}: ${e.message}`;
+      const errorMessages = error.issues.map((i) => {
+        const field = i.path.join('.');
+        return `${field}: ${i.message}`;
       });
 
       return Response.json(
@@ -151,9 +141,9 @@ export const POST = withOwnerAuth(async (
           success: false,
           error: 'Validation error',
           message: errorMessages.join(', '),
-          errors: error.errors.map((e) => ({
-            field: e.path.join('.'),
-            message: e.message,
+          errors: error.issues.map((i) => ({
+            field: i.path.join('.'),
+            message: i.message,
           })),
         },
         { status: 400 }

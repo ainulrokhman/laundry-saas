@@ -29,6 +29,8 @@ export class OutletPublicDTO {
       description: outlet.description ?? null,
       contactPhone: outlet.contactPhone ?? null,
       businessHours: outlet.businessHours ?? null,
+      seoTitle: outlet.seoTitle ?? null,
+      seoDescription: outlet.seoDescription ?? null,
       logoUrl: outlet.logoUrl ?? null,
       coverUrl: outlet.coverUrl ?? null,
     };

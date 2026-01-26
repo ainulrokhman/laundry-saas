@@ -6,7 +6,6 @@
  * - Tidak membutuhkan outlet context aktif (karena dipakai untuk memilih outlet)
  */
 
-import { NextRequest } from 'next/server';
 import { withAuth } from '@/lib/proxy/route-proxy';
 import { Role } from '@/generated/prisma';
 import { OutletRepository } from '@/repositories/OutletRepository';
@@ -15,7 +14,7 @@ import { OutletDTO } from '@/dto/OutletDTO';
 const outletRepository = new OutletRepository();
 
 export const GET = withAuth(
-  async (_request: NextRequest, session) => {
+  async (_request: Request, session) => {
     try {
       const outlets = await outletRepository.findByOwnerId(session.userId);
 

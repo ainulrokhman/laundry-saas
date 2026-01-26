@@ -9,12 +9,20 @@ import { prisma } from '@/lib/prisma';
 import { Outlet, Prisma } from '@/generated/prisma';
 import { BaseRepository } from './BaseRepository';
 
+type OutletWithRelations = Prisma.OutletGetPayload<{
+  include: {
+    users: true;
+    bankAccounts: true;
+    paymentGatewayConfigs: true;
+  };
+}>;
+
 export class OutletRepository extends BaseRepository {
   /**
    * Find outlet by ID
    * Note: Outlets don't require outletId filtering (they are the tenant root)
    */
-  async findById(id: string): Promise<Outlet | null> {
+  async findById(id: string): Promise<OutletWithRelations | null> {
     return prisma.outlet.findUnique({
       where: { id },
       include: {

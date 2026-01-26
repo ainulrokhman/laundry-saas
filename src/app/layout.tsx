@@ -20,8 +20,26 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Ainul Laundry - Laundry Management System",
-  description: "Multi-tenant laundry management system",
+  metadataBase: new URL(process.env.NEXTAUTH_URL ?? "http://localhost:3000"),
+  title: {
+    default: "Ainul Laundry",
+    template: "%s | Ainul Laundry",
+  },
+  description:
+    "Cari outlet laundry, lihat layanan & harga (jika tersedia), dan lacak pesanan Anda dengan tracking code.",
+  openGraph: {
+    title: "Ainul Laundry",
+    description:
+      "Cari outlet laundry, lihat layanan & harga (jika tersedia), dan lacak pesanan Anda dengan tracking code.",
+    url: "/",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Ainul Laundry",
+    description:
+      "Cari outlet laundry, lihat layanan & harga (jika tersedia), dan lacak pesanan Anda dengan tracking code.",
+  },
 };
 
 export default function RootLayout({
@@ -30,7 +48,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-scroll-behavior="smooth">
+    <html lang="id" data-scroll-behavior="smooth">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased layout-fixed sidebar-expand-lg`}
       >

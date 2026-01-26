@@ -5,7 +5,6 @@
  * Body: { kind: 'logo' | 'cover' }
  */
 
-import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { withOwnerAuth } from '@/lib/proxy/route-proxy';
@@ -29,7 +28,7 @@ function randomId(): string {
   return crypto.randomBytes(8).toString('hex');
 }
 
-export const POST = withOwnerAuth(async (request: NextRequest, session: ExtendedSession) => {
+export const POST = withOwnerAuth(async (request: Request, session: ExtendedSession) => {
   try {
     const body: unknown = await request.json();
     const { kind } = schema.parse(body);

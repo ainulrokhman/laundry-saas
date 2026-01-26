@@ -4,7 +4,6 @@
  * CRUD operations for outlets (SuperAdmin only)
  */
 
-import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { withAdminAuth } from '@/lib/proxy/route-proxy';
 import { OutletRepository } from '@/repositories/OutletRepository';
@@ -16,18 +15,12 @@ const outletRepository = new OutletRepository();
 // Validation schemas
 const createOutletSchema = z.object({
   name: z
-    .string({
-      required_error: 'Nama outlet harus diisi',
-      invalid_type_error: 'Nama outlet harus berupa teks',
-    })
+    .string()
     .trim()
     .min(1, 'Nama outlet harus diisi')
     .max(255, 'Nama outlet maksimal 255 karakter'),
   address: z
-    .string({
-      required_error: 'Alamat harus diisi',
-      invalid_type_error: 'Alamat harus berupa teks',
-    })
+    .string()
     .trim()
     .min(1, 'Alamat harus diisi')
     .max(500, 'Alamat maksimal 500 karakter'),
@@ -53,7 +46,7 @@ const updateOutletSchema = z.object({
  * Get all outlets (SuperAdmin only)
  * Query params: checkSlug? - Check if slug exists (returns { exists: boolean })
  */
-export const GET = withAdminAuth(async (request: NextRequest) => {
+export const GET = withAdminAuth(async (request: Request) => {
   try {
     const { searchParams } = new URL(request.url);
     const checkSlug = searchParams.get('checkSlug');
@@ -96,7 +89,7 @@ export const GET = withAdminAuth(async (request: NextRequest) => {
  * POST /api/admin/outlets
  * Create new outlet (SuperAdmin only)
  */
-export const POST = withAdminAuth(async (request: NextRequest) => {
+export const POST = withAdminAuth(async (request: Request) => {
   try {
     const body = await request.json();
     
@@ -190,9 +183,9 @@ export const POST = withAdminAuth(async (request: NextRequest) => {
     console.error('Error creating outlet:', error);
     
     if (error instanceof z.ZodError) {
-      const errorMessages = error.errors.map((e) => {
-        const field = e.path.join('.');
-        return `${field}: ${e.message}`;
+      const errorMessages = error.issues.map((i) => {
+        const field = i.path.join('.');
+        return `${field}: ${i.message}`;
       });
       
       return Response.json(
@@ -200,9 +193,9 @@ export const POST = withAdminAuth(async (request: NextRequest) => {
           success: false,
           error: 'Validation error',
           message: errorMessages.join(', '),
-          errors: error.errors.map((e) => ({
-            field: e.path.join('.'),
-            message: e.message,
+          errors: error.issues.map((i) => ({
+            field: i.path.join('.'),
+            message: i.message,
           })),
         },
         { status: 400 }

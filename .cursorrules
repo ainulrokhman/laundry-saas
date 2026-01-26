@@ -38,6 +38,13 @@ Laundry SaaS Platform - Multi-tenant laundry management system optimized for Ver
 - **Rate Limiting**: Vercel Edge for public endpoints
 - **DTO Pattern**: Always use for API responses
 
+### TypeScript Types Policy (Required)
+- Saat install dependency baru, **selalu cek types**:
+  - Jika package **sudah include types** (punya `types`/`typings`), **jangan** install `@types/*`.
+  - Jika package **belum include types**, **coba** install `@types/*` (DefinitelyTyped) jika tersedia.
+  - Jika tidak ada `@types/*`, buat deklarasi minimal di `src/types/*.d.ts` atau pilih library alternatif yang typed.
+- Hindari memasang `@types/*` yang **stub/deprecated** jika package sudah typed (contoh umum: `bcryptjs`, `uuid`).
+
 ## 🏗️ Architecture Principles (SOLID)
 
 ### Single Responsibility Principle
