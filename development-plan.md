@@ -423,18 +423,18 @@ Priority order: **Multi-outlet OWNER → Landing Page + Settings → Staff Manag
 - [x] Create datatable (tanpa plugin: search/filter/sort/pagination)
 
 ### 2.2 Order Management (POS) [Role: OWNER/STAFF]
-- [ ] Create POS page (`app/dashboard/orders/new/page.tsx`)
-- [ ] Implement order creation form
-- [ ] Create service selection interface
-- [ ] Implement quantity & price calculation
-- [ ] Create order summary component
-- [ ] Order payment is **bookkeeping only** (no paymentMethod, no proof upload, no approval):
-- [ ] Simple status: **PAID / UNPAID**
-- [ ] Timestamp `paidAt` (optional) + internal note (optional)
-- [ ] Implement order status workflow
-- [ ] Create order list page with datatable
-- [ ] Implement order filters and search
-- [ ] (Optional) Display simple payment status (PAID/UNPAID) in the order list
+- [x] Create POS page (`app/dashboard/orders/new/page.tsx`)
+- [x] Implement order creation form
+- [x] Create service selection interface
+- [x] Implement quantity & price calculation
+- [x] Create order summary component
+- [x] Order payment is **bookkeeping only** (no paymentMethod, no proof upload, no approval):
+- [x] Simple status: **UNPAID / SETTLEMENT (Lunas)**
+- [x] Timestamp `paidAt` (optional) + internal note `paymentNote` (optional)
+- [x] Implement order status workflow (minimal: default QUEUED + tampil badge status; detail workflow di 2.3)
+- [x] Create order list page with datatable (tanpa plugin: search/filter/pagination)
+- [x] Implement order filters and search
+- [x] (Optional) Display simple payment status (UNPAID/SETTLEMENT) in the order list
 
 ### 2.3 Order Workflow Visualization [Role: OWNER/STAFF]
 - [ ] Create order detail page (`app/dashboard/orders/[id]/page.tsx`)

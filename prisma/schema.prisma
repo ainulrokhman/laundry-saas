@@ -150,6 +150,7 @@ model Service {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  orderItems  OrderItem[]
 
   @@index([outletId])
 }
@@ -160,6 +161,8 @@ model Order {
   status       OrderStatus   @default(QUEUED)
   paymentStatus PaymentStatus @default(UNPAID)
   paymentMethod PaymentMethod? // Metode pembayaran: CASH, TRANSFER, MIDTRANS, atau XENDIT (null jika belum dibayar)
+  paidAt       DateTime?      // Timestamp ketika order ditandai LUNAS (bookkeeping)
+  paymentNote  String?        // Catatan internal terkait pembayaran (opsional)
   totalAmount  Float
   outletId     String
   outlet       Outlet        @relation(fields: [outletId], references: [id], onDelete: Cascade)
@@ -170,11 +173,32 @@ model Order {
   updatedAt    DateTime      @updatedAt
   completedAt  DateTime?    // Timestamp ketika order selesai (status = TAKEN)
   transactions Transaction[]
+  items        OrderItem[]
 
   @@index([outletId])
   @@index([trackingCode])
   @@index([status])
   @@index([paymentStatus])
+}
+
+model OrderItem {
+  id          String   @id @default(uuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  serviceId   String?
+  service     Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  // Snapshot layanan saat order dibuat (untuk invoice/riwayat meski service berubah/hilang)
+  serviceName String
+  serviceType String
+  serviceUnit String?
+  quantity    Float
+  unitPrice   Float
+  subtotal    Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([serviceId])
 }
 
 model PaymentGatewayConfig {

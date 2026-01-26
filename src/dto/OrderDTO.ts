@@ -5,7 +5,8 @@
  * Ensures sensitive data is scrubbed before sending to client.
  */
 
-import { Order, OrderStatus, PaymentStatus, PaymentMethod } from '@/generated/prisma';
+import { Order, PaymentStatus, PaymentMethod, OrderItem } from '@/generated/prisma';
+import { OrderItemDTO } from './OrderItemDTO';
 
 export interface OrderWithRelations extends Order {
   outlet?: {
@@ -13,6 +14,7 @@ export interface OrderWithRelations extends Order {
     name: string;
     slug: string;
   };
+  items?: OrderItem[];
   transactions?: Array<{
     id: string;
     amount: number;
@@ -27,12 +29,17 @@ export class OrderDTO {
    * Scrubs sensitive data and only includes necessary fields
    */
   static toResponse(order: OrderWithRelations) {
+    const paidAt = (order as any).paidAt as Date | null | undefined;
+    const paymentNote = (order as any).paymentNote as string | null | undefined;
+
     return {
       id: order.id,
       trackingCode: order.trackingCode,
       status: order.status,
       paymentStatus: order.paymentStatus,
       paymentMethod: order.paymentMethod,
+      paidAt: paidAt ? paidAt.toISOString() : null,
+      paymentNote: paymentNote || null,
       totalAmount: order.totalAmount,
       customerName: order.customerName || null,
       customerPhone: order.customerPhone ? this.maskPhone(order.customerPhone) : null, // Mask phone for privacy
@@ -47,6 +54,9 @@ export class OrderDTO {
           name: order.outlet.name,
           slug: order.outlet.slug,
         },
+      }),
+      ...(order.items && {
+        items: OrderItemDTO.toResponseArray(order.items),
       }),
       // Include transaction summary if available
       ...(order.transactions && order.transactions.length > 0 && {

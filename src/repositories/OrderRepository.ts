@@ -9,6 +9,12 @@ import { prisma } from '@/lib/prisma';
 import { Order, OrderStatus, PaymentStatus, Prisma } from '@/generated/prisma';
 import { BaseRepository } from './BaseRepository';
 
+type OrderWithItems = Prisma.OrderGetPayload<{
+  include: {
+    items: true;
+  };
+}>;
+
 export class OrderRepository extends BaseRepository {
   /**
    * Find order by ID (with outletId filter)
@@ -17,6 +23,21 @@ export class OrderRepository extends BaseRepository {
     this.ensureOutletId(outletId, 'Order');
     return prisma.order.findFirst({
       where: this.combineFilters(outletId, { id }),
+    });
+  }
+
+  /**
+   * Find order by ID including items (with outletId filter)
+   */
+  async findByIdWithItems(outletId: string, id: string): Promise<OrderWithItems | null> {
+    this.ensureOutletId(outletId, 'Order');
+    return prisma.order.findFirst({
+      where: this.combineFilters(outletId, { id }),
+      include: {
+        items: {
+          orderBy: { createdAt: 'asc' },
+        },
+      },
     });
   }
 
@@ -49,6 +70,60 @@ export class OrderRepository extends BaseRepository {
         },
       },
     });
+  }
+
+  /**
+   * Find paged orders for an outlet (search + filters)
+   */
+  async findPagedByOutletId(
+    outletId: string,
+    options: {
+      q?: string;
+      status?: OrderStatus;
+      paymentStatus?: PaymentStatus;
+      dateFrom?: Date;
+      dateTo?: Date;
+      page?: number;
+      limit?: number;
+      orderBy?: Prisma.OrderOrderByWithRelationInput;
+    } = {}
+  ): Promise<{ data: Order[]; total: number; page: number; limit: number }> {
+    this.ensureOutletId(outletId, 'Order');
+    const page = options.page && options.page > 0 ? options.page : 1;
+    const limit = options.limit && options.limit > 0 ? Math.min(options.limit, 200) : 20;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.OrderWhereInput = this.getOutletFilter(outletId);
+
+    if (options.status) where.status = options.status;
+    if (options.paymentStatus) where.paymentStatus = options.paymentStatus;
+
+    if (options.dateFrom || options.dateTo) {
+      where.createdAt = {};
+      if (options.dateFrom) where.createdAt.gte = options.dateFrom;
+      if (options.dateTo) where.createdAt.lte = options.dateTo;
+    }
+
+    if (options.q && options.q.trim().length > 0) {
+      const q = options.q.trim();
+      where.OR = [
+        { trackingCode: { contains: q, mode: 'insensitive' } },
+        { customerName: { contains: q, mode: 'insensitive' } },
+        { customerPhone: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+
+    const [total, orders] = await Promise.all([
+      prisma.order.count({ where }),
+      prisma.order.findMany({
+        where,
+        orderBy: options.orderBy || { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+    ]);
+
+    return { data: orders, total, page, limit };
   }
 
   /**
@@ -208,6 +283,33 @@ export class OrderRepository extends BaseRepository {
         ...data,
         outlet: {
           connect: { id: outletId },
+        },
+      },
+    });
+  }
+
+  /**
+   * Create new order with items in a single transaction
+   */
+  async createWithItems(
+    outletId: string,
+    data: Omit<Prisma.OrderCreateInput, 'outlet' | 'items'>,
+    items: Prisma.OrderItemCreateWithoutOrderInput[]
+  ): Promise<OrderWithItems> {
+    this.ensureOutletId(outletId, 'Order');
+    return prisma.order.create({
+      data: {
+        ...data,
+        outlet: {
+          connect: { id: outletId },
+        },
+        items: {
+          create: items,
+        },
+      },
+      include: {
+        items: {
+          orderBy: { createdAt: 'asc' },
         },
       },
     });

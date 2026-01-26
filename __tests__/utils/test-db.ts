@@ -101,6 +101,9 @@ export async function cleanupTestDatabase(prisma: PrismaClient): Promise<void> {
   // Transactions reference Orders, BankAccounts, PaymentGatewayConfigs
   await prisma.transaction.deleteMany();
   
+  // OrderItems reference Orders and Services
+  await prisma.orderItem.deleteMany();
+  
   // Orders reference Outlets
   await prisma.order.deleteMany();
   
