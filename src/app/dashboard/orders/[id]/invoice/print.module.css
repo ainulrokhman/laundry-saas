@@ -35,8 +35,22 @@
     display: block !important;
   }
 
+  /* Hide AdminLTE layout elements */
+  :global(.app-header),
+  :global(.app-sidebar),
+  :global(.app-footer),
+  :global(.sidebar-overlay) {
+    display: none !important;
+  }
+
+  /* Reset layout structure */
+  :global(.app-wrapper),
+  :global(.app-main),
   :global(body) {
     margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
     background: #fff !important;
   }
 
@@ -45,6 +59,7 @@
   :global(.content) {
     margin: 0 !important;
     padding: 0 !important;
+    background: transparent !important;
   }
 
   /* Tampilkan area print sesuai mode */

@@ -321,7 +321,6 @@ export default function OrderInvoicePage() {
   const [data, setData] = useState<InvoiceData | null>(null);
 
   const [activeTab, setActiveTab] = useState<'invoice' | 'receipt'>('receipt');
-  const [printMode, setPrintMode] = useState<'receipt-80' | 'receipt-58' | 'invoice-a4' | null>(null);
   const [receiptContext, setReceiptContext] = useState<'settle' | 'dp'>('settle');
 
   const [dpAmountDigits, setDpAmountDigits] = useState<string>('0');
@@ -333,6 +332,8 @@ export default function OrderInvoicePage() {
   const [busy, setBusy] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [escposBusy, setEscposBusy] = useState<'serial' | 'usb' | null>(null);
+
+  const [isDpOpen, setIsDpOpen] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -362,7 +363,6 @@ export default function OrderInvoicePage() {
   useEffect(() => {
     function afterPrint() {
       document.body.removeAttribute('data-print-mode');
-      setPrintMode(null);
     }
     window.addEventListener('afterprint', afterPrint);
     return () => window.removeEventListener('afterprint', afterPrint);
@@ -406,7 +406,7 @@ export default function OrderInvoicePage() {
     if (!data) return null;
     if (typeof window === 'undefined') return null;
     return `${window.location.origin}/track/${encodeURIComponent(data.trackingCode)}`;
-  }, [data?.trackingCode]);
+  }, [data]);
 
   const waTextForDp = useMemo(() => {
     if (!data) return '';
@@ -620,7 +620,6 @@ export default function OrderInvoicePage() {
 
   function doPrint(mode: 'receipt-80' | 'receipt-58' | 'invoice-a4') {
     document.body.setAttribute('data-print-mode', mode);
-    setPrintMode(mode);
     // beri waktu render untuk apply mode sebelum print
     setTimeout(() => window.print(), 100);
   }
@@ -634,6 +633,7 @@ export default function OrderInvoicePage() {
   const supportsWebUsb = typeof navigator !== 'undefined' && !!(navigator as any).usb;
 
   function buildEscposBytes(context: 'settle' | 'dp'): Uint8Array {
+    if (!data) return new Uint8Array();
     const payAmount = context === 'dp' ? dpAmount : data.paymentStatus === 'SETTLEMENT' ? data.totalAmount : settleAmount;
     const cashReceived = context === 'dp' ? dpCashReceived : settleCashReceived;
     const changeDue = context === 'dp' ? dpChangeDue : settleChangeDue;
@@ -720,6 +720,63 @@ export default function OrderInvoicePage() {
     }
   }
 
+  async function updateStatus(next: OrderStatus) {
+    if (!data) return;
+    if (data.status === next) return;
+
+    // Optional: Konfirmasi jika status lompat jauh atau krusial?
+    // Untuk UX cepat, kita pakai konfirmasi sederhana atau langsung update.
+    // Di sini kita pakai konfirmasi untuk keamanan.
+    const result = await Swal.fire({
+      icon: 'question',
+      title: 'Ubah Status?',
+      text: `Ubah status menjadi ${next}?`,
+      showCancelButton: true,
+      confirmButtonText: 'Ya',
+      cancelButtonText: 'Batal',
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      setBusy(true);
+      const res = await fetch(`/api/dashboard/orders/${encodeURIComponent(data.id)}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: next }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.message || json?.error || 'Gagal update status');
+      }
+      // Refresh data
+      await fetchInvoice();
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'Status Diperbarui',
+        timer: 1000,
+        showConfirmButton: false,
+      });
+    } catch (e) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: e instanceof Error ? e.message : 'Gagal update status',
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const steps: Array<{ key: OrderStatus; label: string; icon: string; color: string }> = [
+    { key: 'QUEUED', label: 'Antri', icon: 'fas fa-receipt', color: 'btn-outline-info' },
+    { key: 'WASHING', label: 'Cuci', icon: 'fas fa-soap', color: 'btn-outline-warning' },
+    { key: 'DRYING', label: 'Kering', icon: 'fas fa-wind', color: 'btn-outline-primary' },
+    { key: 'IRONING', label: 'Setrika', icon: 'fas fa-tshirt', color: 'btn-outline-secondary' },
+    { key: 'READY', label: 'Siap', icon: 'fas fa-box-open', color: 'btn-outline-success' },
+  ];
+
   if (status === 'loading' || loading) {
     return (
       <div className="content-wrapper">
@@ -747,25 +804,11 @@ export default function OrderInvoicePage() {
       <div className="content-wrapper">
         <div className={cn('content-header pt-3', styles.noPrint)}>
           <div className="container-fluid">
-            <h1 className="m-0">Invoice / Struk</h1>
-          </div>
-        </div>
-        <div className={cn('content', styles.noPrint)}>
-          <div className="container-fluid">
-            <div className="alert alert-danger" role="alert">
-              <div className="d-flex align-items-center">
-                <i className="fas fa-exclamation-triangle me-2"></i>
-                <div>{error || 'Data tidak ditemukan'}</div>
-              </div>
-              <div className="mt-3 d-flex gap-2 flex-wrap">
-                <Link href="/dashboard/orders" className="btn btn-outline-secondary btn-sm">
-                  <i className="fas fa-arrow-left me-1"></i>
-                  Kembali
-                </Link>
-                <button className="btn btn-primary btn-sm" onClick={() => setRefreshKey((k) => k + 1)}>
-                  <i className="fas fa-redo me-1"></i>
-                  Coba Lagi
-                </button>
+            <div className="alert alert-danger">
+              {error || 'Data tidak ditemukan'}
+              <div className="mt-2">
+                <Link href="/dashboard/orders" className="btn btn-outline-dark btn-sm me-2">Kembali</Link>
+                <button onClick={() => setRefreshKey(k => k + 1)} className="btn btn-dark btn-sm">Coba Lagi</button>
               </div>
             </div>
           </div>
@@ -773,6 +816,9 @@ export default function OrderInvoicePage() {
       </div>
     );
   }
+
+  // Determine active payment section
+  const showDpForm = data.paymentStatus === 'UNPAID' || data.paymentStatus === 'PENDING';
 
   return (
     <div className="content-wrapper">
@@ -799,17 +845,19 @@ export default function OrderInvoicePage() {
             <div>
               <h1 className="m-0">Invoice / Struk</h1>
               <div className="text-muted small">
-                Kode: <span className="fw-semibold">{data.trackingCode}</span>
+                Kode: <span className="fw-semibold select-all">{data.trackingCode}</span>
+                <span className="mx-2">•</span>
+                <span className={cn("badge", paymentBadge(data.paymentStatus))}>{paymentLabel(data.paymentStatus)}</span>
               </div>
             </div>
             <div className="d-flex gap-2 flex-wrap">
               <Link href={`/dashboard/orders/${encodeURIComponent(data.id)}`} className="btn btn-outline-secondary">
                 <i className="fas fa-arrow-left me-2"></i>
-                Detail Order
+                Detail
               </Link>
               <Link href="/dashboard/orders" className="btn btn-outline-secondary">
                 <i className="fas fa-list me-2"></i>
-                Daftar Order
+                List
               </Link>
             </div>
           </div>
@@ -819,53 +867,49 @@ export default function OrderInvoicePage() {
       <div className={cn('content', styles.noPrint)}>
         <div className="container-fluid">
           <div className="row g-3">
+            {/* LEFT COLUMN: PREVIEW */}
             <div className="col-lg-7">
-              <div className="card shadow-sm">
-                <div className="card-header">
-                  <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div className="d-flex align-items-center gap-2">
-                      <i className="fas fa-receipt"></i>
-                      <span className="fw-semibold">Preview</span>
-                      <span className={cn('badge', paymentBadge(data.paymentStatus))}>{paymentLabel(data.paymentStatus)}</span>
-                    </div>
-                    <ul className="nav nav-pills">
-                      <li className="nav-item">
-                        <button
-                          type="button"
-                          className={cn('nav-link', activeTab === 'receipt' ? 'active' : '')}
-                          onClick={() => setActiveTab('receipt')}
-                        >
-                          Struk
-                        </button>
-                      </li>
-                      <li className="nav-item">
-                        <button
-                          type="button"
-                          className={cn('nav-link', activeTab === 'invoice' ? 'active' : '')}
-                          onClick={() => setActiveTab('invoice')}
-                        >
-                          Invoice (A4)
-                        </button>
-                      </li>
-                    </ul>
+              <div className="card shadow-sm h-100">
+                <div className="card-header d-flex justify-content-between align-items-center">
+                  <div className="fw-bold">
+                    <i className="fas fa-eye me-2"></i>
+                    Preview
                   </div>
+                  <ul className="nav nav-pills card-header-pills">
+                    <li className="nav-item">
+                      <button
+                        type="button"
+                        className={cn('nav-link btn-sm py-1 px-3', activeTab === 'receipt' ? 'active' : '')}
+                        onClick={() => setActiveTab('receipt')}
+                      >
+                        Struk
+                      </button>
+                    </li>
+                    <li className="nav-item">
+                      <button
+                        type="button"
+                        className={cn('nav-link btn-sm py-1 px-3', activeTab === 'invoice' ? 'active' : '')}
+                        onClick={() => setActiveTab('invoice')}
+                      >
+                        Invoice (A4)
+                      </button>
+                    </li>
+                  </ul>
                 </div>
-                <div className="card-body">
+                <div className="card-body bg-light d-flex justify-content-center overflow-auto">
                   {activeTab === 'receipt' ? (
-                    <div className="d-flex justify-content-center">
-                      <div className="border rounded p-2 bg-white">
-                        <ReceiptBlock
-                          data={data}
-                          title={data.paymentStatus === 'SETTLEMENT' ? 'Pembayaran' : 'Pelunasan'}
-                          payAmount={data.paymentStatus === 'SETTLEMENT' ? data.totalAmount : settleAmount}
-                          cashReceived={settleCashReceived}
-                          changeDue={settleChangeDue}
-                          shortfall={settleShortfall}
-                        />
-                      </div>
+                    <div className="border rounded p-2 bg-white shadow-sm" style={{ minWidth: '300px' }}>
+                      <ReceiptBlock
+                        data={data}
+                        title={data.paymentStatus === 'SETTLEMENT' ? 'Pembayaran' : 'Pelunasan'}
+                        payAmount={data.paymentStatus === 'SETTLEMENT' ? data.totalAmount : settleAmount}
+                        cashReceived={settleCashReceived}
+                        changeDue={settleChangeDue}
+                        shortfall={settleShortfall}
+                      />
                     </div>
                   ) : (
-                    <div className="border rounded p-3 bg-white">
+                    <div className="border rounded p-3 bg-white shadow-sm w-100">
                       <InvoiceBlock data={data} />
                     </div>
                   )}
@@ -873,237 +917,239 @@ export default function OrderInvoicePage() {
               </div>
             </div>
 
+            {/* RIGHT COLUMN: ACTIONS */}
             <div className="col-lg-5">
-              <div className="card shadow-sm mb-3">
-                <div className="card-header">
-                  <h3 className="card-title mb-0">
-                    <i className="fas fa-print me-2"></i>
-                    Cetak & Bagikan
-                  </h3>
-                </div>
-                <div className="card-body">
-                  <div className="d-flex gap-2 flex-wrap">
-                    <button className="btn btn-primary" onClick={() => doPrintReceipt('receipt-80', 'settle')}>
-                      <i className="fas fa-print me-2"></i>
-                      Cetak Struk 80mm
-                    </button>
-                    <button className="btn btn-outline-primary" onClick={() => doPrintReceipt('receipt-58', 'settle')}>
-                      <i className="fas fa-print me-2"></i>
-                      Cetak Struk 58mm
-                    </button>
-                    <button className="btn btn-outline-secondary" onClick={() => doPrint('invoice-a4')}>
-                      <i className="fas fa-file-invoice me-2"></i>
-                      Cetak Invoice A4
-                    </button>
-                  </div>
-                  <hr />
-                  <div className="d-flex gap-2 flex-wrap">
-                    <button className="btn btn-success" onClick={() => void shareWhatsApp(waTextForSettle)}>
-                      <i className="fab fa-whatsapp me-2"></i>
-                      Bagikan (Pelunasan)
-                    </button>
-                    <button className="btn btn-outline-success" onClick={() => void shareWhatsApp(waTextForDp)}>
-                      <i className="fab fa-whatsapp me-2"></i>
-                      Bagikan (DP)
-                    </button>
-                    <button className="btn btn-outline-secondary" onClick={() => void copyText(waTextForSettle)}>
-                      <i className="fas fa-copy me-2"></i>
-                      Salin (Pelunasan)
-                    </button>
-                    <button className="btn btn-outline-secondary" onClick={() => void copyText(waTextForDp)}>
-                      <i className="fas fa-copy me-2"></i>
-                      Salin (DP)
-                    </button>
-                  </div>
-                  {trackUrl ? <div className="text-muted small mt-2">Link tracking: {trackUrl}</div> : null}
 
-                  <hr />
-                  <div className="small text-muted mb-2">
-                    Cetak ESC/POS raw (khusus PC Chrome/Edge). Di HP biasanya tidak didukung.
+              {/* 1. ORDER STATUS ACTIONS */}
+              <div className="card shadow-sm mb-3 border-primary border-top-0 border-end-0 border-bottom-0 border-4">
+                <div className="card-body">
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h5 className="card-title m-0">
+                      <i className="fas fa-tasks me-2 text-primary"></i>
+                      Status Order
+                    </h5>
+                    <div className="badge bg-dark">{data.status}</div>
                   </div>
-                  {supportsWebSerial || supportsWebUsb ? (
-                    <div className="d-flex gap-2 flex-wrap">
-                      {supportsWebSerial ? (
-                        <>
-                          <button
-                            className="btn btn-outline-dark"
-                            onClick={() => void escposPrintSerial('settle')}
-                            disabled={escposBusy !== null}
-                          >
-                            <i className="fas fa-plug me-2"></i>
-                            ESC/POS Pelunasan (Serial)
-                          </button>
-                          <button
-                            className="btn btn-outline-dark"
-                            onClick={() => void escposPrintSerial('dp')}
-                            disabled={escposBusy !== null}
-                          >
-                            <i className="fas fa-plug me-2"></i>
-                            ESC/POS DP (Serial)
-                          </button>
-                        </>
-                      ) : null}
-                      {supportsWebUsb ? (
-                        <>
-                          <button
-                            className="btn btn-outline-dark"
-                            onClick={() => void escposPrintUsb('settle')}
-                            disabled={escposBusy !== null}
-                          >
-                            <i className="fas fa-usb me-2"></i>
-                            ESC/POS Pelunasan (USB)
-                          </button>
-                          <button
-                            className="btn btn-outline-dark"
-                            onClick={() => void escposPrintUsb('dp')}
-                            disabled={escposBusy !== null}
-                          >
-                            <i className="fas fa-usb me-2"></i>
-                            ESC/POS DP (USB)
-                          </button>
-                        </>
-                      ) : null}
+
+                  <div className="d-flex flex-wrap gap-2 mb-2">
+                    {steps.map(s => {
+                      const isActive = data.status === s.key;
+                      const isPassed = steps.findIndex(x => x.key === data.status) > steps.findIndex(x => x.key === s.key);
+                      return (
+                        <button
+                          key={s.key}
+                          className={cn("btn btn-sm flex-fill", isActive ? 'btn-primary' : isPassed ? 'btn-secondary opacity-50' : s.color)}
+                          onClick={() => void updateStatus(s.key)}
+                          disabled={busy || isActive}
+                        >
+                          <i className={cn(s.icon, "me-1")}></i>
+                          {s.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* SHORTCUT: MARK AS TAKEN */}
+                  {data.status === 'READY' && (
+                    <div className="d-grid mt-2">
+                      <button
+                        className="btn btn-success"
+                        onClick={() => void updateStatus('TAKEN')}
+                        disabled={busy}
+                      >
+                        <i className="fas fa-check-circle me-2"></i>
+                        Sudah Diambil (Selesai)
+                      </button>
                     </div>
-                  ) : (
-                    <div className="alert alert-light py-2 mb-0" role="alert">
-                      Browser ini tidak mendukung WebSerial/WebUSB.
+                  )}
+                  {data.status === 'TAKEN' && (
+                    <div className="alert alert-success py-2 mb-0 mt-2 text-center small">
+                      <i className="fas fa-check-circle me-1"></i> Order sudah selesai/diambil.
                     </div>
                   )}
                 </div>
               </div>
 
+              {/* 2. PAYMENT ACTIONS */}
               <div className="card shadow-sm mb-3">
-                <div className="card-header">
-                  <h3 className="card-title mb-0">
-                    <i className="fas fa-hand-holding-usd me-2"></i>
-                    DP (Uang Muka)
-                  </h3>
+                <div className="card-header bg-white">
+                  <h5 className="card-title m-0">
+                    <i className="fas fa-cash-register me-2 text-success"></i>
+                    Pembayaran & Cetak
+                  </h5>
                 </div>
-                <div className="card-body">
+
+                {/* DP FORM (Only if not fully paid) */}
+                {showDpForm && (
+                  <div className="card-body border-bottom">
+                    <div
+                      className="d-flex justify-content-between align-items-center mb-2 cursor-pointer"
+                      onClick={() => setIsDpOpen(!isDpOpen)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setIsDpOpen(!isDpOpen);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <h6 className="m-0 fw-bold text-muted"> <i className="fas fa-hand-holding-usd me-1"></i> Input DP (Opsional)</h6>
+                      <i className={cn("fas small transition-all", isDpOpen ? "fa-chevron-up" : "fa-chevron-down")}></i>
+                    </div>
+
+                    {isDpOpen && (
+                      <div className="mt-2">
+                        <div className="row g-2">
+                          <div className="col-md-6">
+                            <label className="form-label small">Nominal DP</label>
+                            <input
+                              className="form-control form-control-sm"
+                              inputMode="numeric"
+                              value={dpAmountDigits}
+                              onChange={(e) => setDpAmountDigits(toDigitsOnly(e.target.value))}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                          <div className="col-md-6">
+                            <label className="form-label small">Uang Cash</label>
+                            <input
+                              className="form-control form-control-sm"
+                              inputMode="numeric"
+                              value={dpCashDigits}
+                              onChange={(e) => setDpCashDigits(toDigitsOnly(e.target.value))}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                        </div>
+                        <div className="d-flex justify-content-between small text-muted mt-1">
+                          <span>Kembali: {formatCurrency(dpChangeDue)}</span>
+                          <span className={dpShortfall > 0 ? 'text-danger' : ''}>Kurang: {formatCurrency(dpShortfall)}</span>
+                        </div>
+                        <div className="d-flex gap-2 mt-2">
+                          <button className="btn btn-sm btn-outline-primary flex-fill" onClick={(e) => { e.stopPropagation(); void saveDp(); }} disabled={busy}>
+                            <i className="fas fa-save me-1"></i> Simpan DP
+                          </button>
+                          {data.dpAmount > 0 && (
+                            <div className="d-flex flex-column gap-2 w-100 mt-2">
+                              <div className="btn-group w-100">
+                                <button className="btn btn-sm btn-outline-secondary" onClick={(e) => { e.stopPropagation(); doPrintReceipt('receipt-80', 'dp'); }} title="Struk 80mm"><i className="fas fa-print"></i></button>
+                                <button className="btn btn-sm btn-outline-secondary" onClick={(e) => { e.stopPropagation(); doPrintReceipt('receipt-58', 'dp'); }} title="Struk 58mm"><i className="fas fa-print small"></i></button>
+                                <button className="btn btn-sm btn-outline-success" onClick={(e) => { e.stopPropagation(); void shareWhatsApp(waTextForDp); }} title="Bagikan WA"><i className="fab fa-whatsapp"></i></button>
+                              </div>
+                              {/* ESC/POS for DP */}
+                              {(supportsWebSerial || supportsWebUsb) && (
+                                <div className="pt-2 border-top">
+                                  <div className="d-flex gap-2">
+                                    {supportsWebSerial && (
+                                      <button className="btn btn-xs btn-outline-dark flex-fill" onClick={(e) => { e.stopPropagation(); escposPrintSerial('dp') }} disabled={!!escposBusy} title="Print Serial">
+                                        <i className="fas fa-plug small"></i> Ser
+                                      </button>
+                                    )}
+                                    {supportsWebUsb && (
+                                      <button className="btn btn-xs btn-outline-dark flex-fill" onClick={(e) => { e.stopPropagation(); escposPrintUsb('dp') }} disabled={!!escposBusy} title="Print USB">
+                                        <i className="fab fa-usb small"></i> USB
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* SETTLEMENT / PELUNASAN */}
+                <div className="card-body bg-light">
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                      <div className="small text-muted">Sisa Tagihan</div>
+                      <div className="h4 m-0 fw-bold text-primary">{formatCurrency(settleAmount)}</div>
+                    </div>
+                    <div className="text-end">
+                      <span className={cn('badge', paymentBadge(data.paymentStatus))}>{paymentLabel(data.paymentStatus)}</span>
+                    </div>
+                  </div>
+
+                  {data.paymentStatus !== 'SETTLEMENT' && (
+                    <div className="mb-3 p-2 bg-white border rounded">
+                      <label className="form-label small fw-bold">Bayar Lunas (Tunai)</label>
+                      <div className="input-group input-group-sm mb-2">
+                        <span className="input-group-text">Rp</span>
+                        <input
+                          className="form-control"
+                          placeholder="Uang Diterima"
+                          inputMode="numeric"
+                          value={settleCashDigits}
+                          onChange={(e) => setSettleCashDigits(toDigitsOnly(e.target.value))}
+                        />
+                      </div>
+                      <div className="d-flex justify-content-between small mb-2">
+                        <span>Kembali: <b>{formatCurrency(settleChangeDue)}</b></span>
+                        <span className={settleShortfall > 0 ? 'text-danger fw-bold' : ''}>Kurang: {formatCurrency(settleShortfall)}</span>
+                      </div>
+                      <button className="btn btn-success btn-sm w-100" onClick={() => void setLunas()} disabled={busy}>
+                        <i className="fas fa-check-double me-2"></i>
+                        Bayar Lunas & Simpan
+                      </button>
+                    </div>
+                  )}
+
+                  <hr className="my-2" />
+
+                  <label className="form-label small fw-bold text-muted mb-2">Menu Cetak</label>
                   <div className="row g-2">
-                    <div className="col-12">
-                      <label className="form-label" htmlFor="dpAmount">
-                        Nominal DP
-                      </label>
-                      <input
-                        id="dpAmount"
-                        className="form-control"
-                        inputMode="numeric"
-                        value={dpAmountDigits}
-                        onChange={(e) => setDpAmountDigits(toDigitsOnly(e.target.value))}
-                        placeholder="0"
-                      />
-                      <div className="form-text">DP saat ini: {formatCurrency(data.dpAmount || 0)}</div>
+                    <div className="col-12 d-flex gap-2">
+                      <button className="btn btn-outline-dark btn-sm flex-fill" onClick={() => doPrintReceipt('receipt-80', 'settle')}>
+                        <i className="fas fa-print me-1"></i> Struk 80mm
+                      </button>
+                      <button className="btn btn-outline-dark btn-sm flex-fill" onClick={() => doPrintReceipt('receipt-58', 'settle')}>
+                        <i className="fas fa-print me-1"></i> Struk 58mm
+                      </button>
                     </div>
                     <div className="col-12">
-                      <label className="form-label" htmlFor="dpNote">
-                        Catatan DP (opsional)
-                      </label>
-                      <textarea
-                        id="dpNote"
-                        className="form-control"
-                        rows={2}
-                        value={dpNote}
-                        onChange={(e) => setDpNote(e.target.value)}
-                        placeholder="Contoh: DP tunai"
-                      />
-                    </div>
-                    <div className="col-12">
-                      <label className="form-label" htmlFor="dpCash">
-                        Uang diterima (tunai) — untuk hitung kembalian DP
-                      </label>
-                      <input
-                        id="dpCash"
-                        className="form-control"
-                        inputMode="numeric"
-                        value={dpCashDigits}
-                        onChange={(e) => setDpCashDigits(toDigitsOnly(e.target.value))}
-                        placeholder="0"
-                      />
-                      <div className="small text-muted mt-1">
-                        Kembalian: <span className="fw-semibold">{formatCurrency(dpChangeDue)}</span> · Kurang:{' '}
-                        <span className={cn('fw-semibold', dpShortfall > 0 ? 'text-danger' : '')}>
-                          {formatCurrency(dpShortfall)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="card-footer">
-                  <div className="d-grid mb-2">
-                    <button className="btn btn-primary" onClick={() => void saveDp()} disabled={busy}>
-                      {busy ? (
-                        <>
-                          <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                          Menyimpan...
-                        </>
-                      ) : (
-                        <>
-                          <i className="fas fa-save me-2"></i>
-                          Simpan DP
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  <div className="d-flex gap-2 flex-wrap">
-                    <button className="btn btn-outline-primary" onClick={() => doPrintReceipt('receipt-80', 'dp')}>
-                      <i className="fas fa-print me-2"></i>
-                      Cetak DP 80mm
-                    </button>
-                    <button className="btn btn-outline-primary" onClick={() => doPrintReceipt('receipt-58', 'dp')}>
-                      <i className="fas fa-print me-2"></i>
-                      Cetak DP 58mm
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="card shadow-sm">
-                <div className="card-header">
-                  <h3 className="card-title mb-0">
-                    <i className="fas fa-money-bill-wave me-2"></i>
-                    Pelunasan
-                  </h3>
-                </div>
-                <div className="card-body">
-                  <div className="border rounded p-2 bg-body-tertiary mb-3">
-                    <div className="d-flex justify-content-between">
-                      <div className="text-muted">Sisa pembayaran</div>
-                      <div className="fw-bold">{formatCurrency(settleAmount)}</div>
-                    </div>
-                    <div className="d-flex justify-content-between">
-                      <div className="text-muted">Status</div>
-                      <div>
-                        <span className={cn('badge', paymentBadge(data.paymentStatus))}>{paymentLabel(data.paymentStatus)}</span>
-                      </div>
+                      <button className="btn btn-outline-secondary btn-sm w-100" onClick={() => doPrint('invoice-a4')}>
+                        <i className="fas fa-file-invoice me-1"></i> Invoice A4
+                      </button>
                     </div>
                   </div>
 
-                  <label className="form-label" htmlFor="settleCash">
-                    Uang diterima (tunai) — untuk hitung kembalian pelunasan
-                  </label>
-                  <input
-                    id="settleCash"
-                    className="form-control"
-                    inputMode="numeric"
-                    value={settleCashDigits}
-                    onChange={(e) => setSettleCashDigits(toDigitsOnly(e.target.value))}
-                    placeholder="0"
-                  />
-                  <div className="small text-muted mt-1">
-                    Kembalian: <span className="fw-semibold">{formatCurrency(settleChangeDue)}</span> · Kurang:{' '}
-                    <span className={cn('fw-semibold', settleShortfall > 0 ? 'text-danger' : '')}>
-                      {formatCurrency(settleShortfall)}
-                    </span>
+                  <hr className="my-2" />
+                  <label className="form-label small fw-bold text-muted mb-2">Bagikan ke Pelanggan</label>
+                  <div className="d-flex gap-2">
+                    <button className="btn btn-success btn-sm flex-fill" onClick={() => void shareWhatsApp(waTextForSettle)}>
+                      <i className="fab fa-whatsapp me-1"></i> WA
+                    </button>
+                    <button className="btn btn-outline-secondary btn-sm" onClick={() => void copyText(waTextForSettle)} title="Salin Teks">
+                      <i className="fas fa-copy"></i>
+                    </button>
                   </div>
-                </div>
-                <div className="card-footer d-grid gap-2">
-                  <button className="btn btn-success" onClick={() => void setLunas()} disabled={busy}>
-                    <i className="fas fa-check-circle me-2"></i>
-                    Tandai Lunas
-                  </button>
+                  {/* ESC/POS for Settlement */}
+                  {(supportsWebSerial || supportsWebUsb) && (
+                    <div className="mt-3 pt-2 border-top">
+                      <small className="d-block text-muted mb-1">ESC/POS (Raw Print):</small>
+                      <div className="d-flex gap-2">
+                        {supportsWebSerial && (
+                          <button className="btn btn-sm btn-outline-dark flex-fill" onClick={() => escposPrintSerial('settle')} disabled={!!escposBusy}>
+                            <i className="fas fa-plug me-1"></i> Serial
+                          </button>
+                        )}
+                        {supportsWebUsb && (
+                          <button className="btn btn-sm btn-outline-dark flex-fill" onClick={() => escposPrintUsb('settle')} disabled={!!escposBusy}>
+                            <i className="fab fa-usb me-1"></i> USB
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                 </div>
               </div>
+
             </div>
           </div>
         </div>
