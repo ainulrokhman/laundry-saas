@@ -468,9 +468,7 @@ export class OrderRepository extends BaseRepository {
           gte: startDate,
           lte: endDate,
         },
-        status: {
-          not: OrderStatus.CANCELLED,
-        },
+
       }),
       select: {
         createdAt: true,
@@ -504,5 +502,60 @@ export class OrderRepository extends BaseRepository {
       count: stats.count,
       revenue: stats.revenue,
     }));
+  }
+
+
+  async getPaymentMethodStats(
+    outletId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<Array<{ method: string; count: number; amount: number }>> {
+    this.ensureOutletId(outletId, 'Order');
+
+    const where = this.combineFilters(outletId, {
+      createdAt: { gte: startDate, lte: endDate },
+
+      paymentStatus: PaymentStatus.SETTLEMENT,
+    });
+
+    const result = await prisma.order.groupBy({
+      by: ['paymentMethod'],
+      where,
+      _count: { _all: true },
+      _sum: { totalAmount: true },
+    });
+
+    return result.map(r => ({
+      method: r.paymentMethod || 'UNKNOWN',
+      count: r._count._all,
+      amount: r._sum.totalAmount || 0,
+    }));
+  }
+
+  async getUnpaidOrders(outletId: string): Promise<any[]> {
+    this.ensureOutletId(outletId, 'Order');
+
+    return prisma.order.findMany({
+      where: this.combineFilters(outletId, {
+
+        OR: [
+          { paymentStatus: PaymentStatus.UNPAID },
+          { paymentStatus: PaymentStatus.PENDING },
+          // For DP, logic might be complex if we don't have separate flag. 
+          // Assuming simple UNPAID/PENDING check for now.
+        ]
+      }),
+      select: {
+        id: true,
+        trackingCode: true,
+        customerName: true,
+        totalAmount: true,
+        dpAmount: true,
+        paymentStatus: true,
+        status: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 }

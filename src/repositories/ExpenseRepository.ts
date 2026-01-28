@@ -1,0 +1,77 @@
+
+import prisma from '@/lib/prisma';
+import { Expense, Prisma } from '@/generated/prisma';
+
+export class ExpenseRepository {
+    async findAll({
+        outletId,
+        startDate,
+        endDate,
+        page = 1,
+        limit = 10,
+    }: {
+        outletId: string;
+        startDate?: Date;
+        endDate?: Date;
+        page?: number;
+        limit?: number;
+    }) {
+        const skip = (page - 1) * limit;
+        const where: Prisma.ExpenseWhereInput = {
+            outletId,
+            ...(startDate && endDate && {
+                date: {
+                    gte: startDate,
+                    lte: endDate,
+                },
+            }),
+        };
+
+        const [total, expenses] = await Promise.all([
+            prisma.expense.count({ where }),
+            prisma.expense.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: { date: 'desc' },
+            }),
+        ]);
+
+        return { total, expenses, page, limit, totalPages: Math.ceil(total / limit) };
+    }
+
+    async create(data: {
+        outletId: string;
+        amount: number;
+        description: string;
+        category?: string;
+        date: Date;
+    }) {
+        return prisma.expense.create({
+            data,
+        });
+    }
+
+    async getTotalExpenses(outletId: string, startDate: Date, endDate: Date): Promise<number> {
+        const aggregate = await prisma.expense.aggregate({
+            where: {
+                outletId,
+                date: {
+                    gte: startDate,
+                    lte: endDate,
+                },
+            },
+            _sum: {
+                amount: true,
+            },
+        });
+
+        return aggregate._sum.amount || 0;
+    }
+
+    async delete(outletId: string, id: string) {
+        return prisma.expense.deleteMany({
+            where: { id, outletId },
+        });
+    }
+}

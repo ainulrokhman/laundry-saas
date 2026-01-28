@@ -121,6 +121,7 @@ model Outlet {
   orders        Order[]
   bankAccounts  BankAccount[]         // Multiple rekening bank untuk transfer pelanggan
   paymentGatewayConfigs PaymentGatewayConfig[] // Konfigurasi payment gateway per outlet
+  expenses      Expense[]             // Pengeluaran operasional outlet
 
   @@index([ownerId])
 }
@@ -290,4 +291,19 @@ model Customer {
   @@index([outletId])
   @@index([name])
   @@index([phone])
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  outletId    String
+  outlet      Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  amount      Float    // Menggunakan Float agar konsisten dengan Order.totalAmount
+  description String
+  category    String?  // e.g. "Operasional", "Gaji", "Bahan Baku"
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([outletId])
+  @@index([date])
 }

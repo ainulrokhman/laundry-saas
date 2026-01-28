@@ -74,6 +74,12 @@ const menuItems: MenuItem[] = [
     roles: [Role.SUPERADMIN, Role.OWNER],
   },
   {
+    label: 'Pengeluaran',
+    icon: 'fas fa-file-invoice-dollar',
+    href: '/dashboard/expenses',
+    roles: [Role.OWNER, Role.SUPERADMIN],
+  },
+  {
     label: 'Reports',
     icon: 'fas fa-chart-bar',
     href: '/dashboard/reports',

@@ -96,14 +96,14 @@ async function main() {
   if (includeTransactions && !allowProdSeed) {
     throw new Error(
       'Seed demo dengan orders/transactions diblokir untuk keamanan.\n' +
-        'Set ALLOW_PROD_SEED=1 jika Anda benar-benar ingin membuat data demo (termasuk orders/transactions).'
+      'Set ALLOW_PROD_SEED=1 jika Anda benar-benar ingin membuat data demo (termasuk orders/transactions).'
     );
   }
 
   if (resolvedOwnerPhones === demoOwnerPhonesDefault && !useDemoPhones) {
     throw new Error(
       'Seed demo menggunakan default phone diblokir untuk keamanan.\n' +
-        'Set SEED_USE_DEMO_PHONES=1 atau set SEED_OWNER_PHONES/SEED_STAFF_PHONES sendiri.'
+      'Set SEED_USE_DEMO_PHONES=1 atau set SEED_OWNER_PHONES/SEED_STAFF_PHONES sendiri.'
     );
   }
 
@@ -270,7 +270,7 @@ async function main() {
     [resolvedStaffPhones[2], resolvedStaffPhones[3]],
     [resolvedStaffPhones[4], resolvedStaffPhones[5]],
   ];
-  
+
   for (let i = 0; i < createdOutlets.length; i++) {
     for (let j = 0; j < 2; j++) {
       const staff = await prisma.user.upsert({
@@ -370,6 +370,70 @@ async function main() {
       console.log(`   ⏭️  ${bankAccounts[i].bankName} already exists for ${createdOutlets[i].name}`);
     }
   }
+  // ============================================
+  // 6b. Create Customers for each Outlet
+  // ============================================
+  console.log('👥 Creating Customers...');
+  const customerData = [
+    { name: 'Budi Santoso', phone: '6281000000001', email: 'budi@example.com', address: 'Jl. Merdeka No. 1' },
+    { name: 'Siti Nurhaliza', phone: '6281000000002', email: 'siti@example.com', address: 'Jl. Kebon Jeruk No. 5' },
+    { name: 'Ahmad Dahlan', phone: '6281000000003', email: 'ahmad@example.com', address: 'Jl. Sudirman No. 10' },
+    { name: 'Dewi Sartika', phone: '6281000000004', email: 'dewi@example.com', address: 'Jl. Gatot Subroto No. 8' },
+    { name: 'Raden Ajeng Kartini', phone: '6281000000005', email: 'kartini@example.com', address: 'Jl. Diponegoro No. 21' },
+  ];
+
+  const createdCustomers: any[] = []; // Store created customers to link with orders
+
+  for (const outlet of createdOutlets) {
+    for (const cust of customerData) {
+      const customer = await prisma.customer.upsert({
+        where: {
+          outletId_phone: {
+            outletId: outlet.id,
+            phone: cust.phone,
+          },
+        },
+        update: {},
+        create: {
+          outletId: outlet.id,
+          name: cust.name,
+          phone: cust.phone,
+          email: cust.email,
+          address: cust.address,
+        },
+      });
+      createdCustomers.push(customer);
+    }
+    console.log(`   ✅ Created ${customerData.length} customers for ${outlet.name}`);
+  }
+  console.log('');
+
+  // ============================================
+  // 6c. Create Payment Gateway Configs (for Pro Outlets)
+  // ============================================
+  console.log('💳 Creating Payment Gateway Configs...');
+  for (const outlet of createdOutlets) {
+    if (outlet.isPro) {
+      // Add Midtrans config
+      await prisma.paymentGatewayConfig.upsert({
+        where: {
+          outletId_gatewayType: {
+            outletId: outlet.id,
+            gatewayType: PaymentMethod.MIDTRANS,
+          },
+        },
+        update: {},
+        create: {
+          outletId: outlet.id,
+          gatewayType: PaymentMethod.MIDTRANS,
+          isActive: true, // Enable for demo
+          apiKey: 'SB-Mid-server-DEMO_KEY-' + outlet.slug,
+          merchantId: 'M-' + outlet.slug,
+        },
+      });
+      console.log(`   ✅ Midtrans Config for ${outlet.name}`);
+    }
+  }
   console.log('');
 
   // ============================================
@@ -382,145 +446,223 @@ async function main() {
     console.log('⏭️  Skip sample orders/transactions (SEED_INCLUDE_TRANSACTIONS tidak diaktifkan)\n');
   } else {
     console.log('📦 Creating Sample Orders...');
-  const demoOutletIds = createdOutlets.map((o) => o.id);
-  const existingDemoOrders = await prisma.order.count({
-    where: { outletId: { in: demoOutletIds } },
-  });
+    const demoOutletIds = createdOutlets.map((o) => o.id);
+    const existingDemoOrders = await prisma.order.count({
+      where: { outletId: { in: demoOutletIds } },
+    });
 
-  if (existingDemoOrders > 0) {
-    console.log(`   ⏭️  Demo orders sudah ada (${existingDemoOrders}). Skip membuat orders baru.`);
-    orderCount = existingDemoOrders;
-  } else {
-  const customerNames = ['Budi Santoso', 'Siti Nurhaliza', 'Ahmad Dahlan', 'Dewi Sartika', 'Raden Ajeng Kartini'];
-  const customerPhones = ['6281000000001', '6281000000002', '6281000000003', '6281000000004', '6281000000005'];
-  
-  const orderStatuses: OrderStatus[] = [
-    OrderStatus.QUEUED,
-    OrderStatus.WASHING,
-    OrderStatus.DRYING,
-    OrderStatus.IRONING,
-    OrderStatus.READY,
-    OrderStatus.TAKEN,
-  ];
+    if (existingDemoOrders > 0) {
+      console.log(`   ⏭️  Demo orders sudah ada (${existingDemoOrders}). Skip membuat orders baru.`);
+      orderCount = existingDemoOrders;
+    } else {
 
-  const paymentStatuses: PaymentStatus[] = [
-    PaymentStatus.UNPAID,
-    PaymentStatus.PENDING,
-    PaymentStatus.SETTLEMENT,
-  ];
 
-  const paymentMethods: PaymentMethod[] = [
-    PaymentMethod.CASH,
-    PaymentMethod.TRANSFER,
-  ];
+      const orderStatuses: OrderStatus[] = [
+        OrderStatus.QUEUED,
+        OrderStatus.WASHING,
+        OrderStatus.DRYING,
+        OrderStatus.IRONING,
+        OrderStatus.READY,
+        OrderStatus.TAKEN,
+      ];
 
-  orderCount = 0;
-  for (const outlet of createdOutlets) {
-    // Create 10-15 orders per outlet
-    const numOrders = 10 + Math.floor(Math.random() * 6);
-    
-    for (let i = 0; i < numOrders; i++) {
-      const status = orderStatuses[Math.floor(Math.random() * orderStatuses.length)];
-      const paymentStatus = paymentStatuses[Math.floor(Math.random() * paymentStatuses.length)];
-      const paymentMethod = paymentStatus === PaymentStatus.SETTLEMENT 
-        ? paymentMethods[Math.floor(Math.random() * paymentMethods.length)]
-        : null;
-      
-      const customerIndex = Math.floor(Math.random() * customerNames.length);
-      const totalAmount = 20000 + Math.floor(Math.random() * 100000);
-      const createdAt = randomDate(30); // Random date within last 30 days
-      
-      // Generate unique tracking code
-      let trackingCode = generateTrackingCode();
-      let exists = true;
-      while (exists) {
-        const existing = await prisma.order.findUnique({
-          where: { trackingCode },
-        });
-        if (!existing) {
-          exists = false;
-        } else {
-          trackingCode = generateTrackingCode();
+      const paymentStatuses: PaymentStatus[] = [
+        PaymentStatus.UNPAID,
+        PaymentStatus.PENDING,
+        PaymentStatus.SETTLEMENT,
+      ];
+
+      const paymentMethods: PaymentMethod[] = [
+        PaymentMethod.CASH,
+        PaymentMethod.TRANSFER,
+      ];
+
+      orderCount = 0;
+      for (const outlet of createdOutlets) {
+        // Create 10-15 orders per outlet
+        const numOrders = 10 + Math.floor(Math.random() * 6);
+
+        for (let i = 0; i < numOrders; i++) {
+          const status = orderStatuses[Math.floor(Math.random() * orderStatuses.length)];
+          const paymentStatus = paymentStatuses[Math.floor(Math.random() * paymentStatuses.length)];
+          const paymentMethod = paymentStatus === PaymentStatus.SETTLEMENT
+            ? paymentMethods[Math.floor(Math.random() * paymentMethods.length)]
+            : null;
+
+          const customerIndex = Math.floor(Math.random() * customerData.length); // Use customerData from above
+          const selectedCustomer = createdCustomers.find(c => c.outletId === outlet.id && c.phone === customerData[customerIndex].phone); // Fix: use customerIndex
+
+          const createdAt = randomDate(30); // Random date within last 30 days
+
+          // Generate unique tracking code
+          let trackingCode = generateTrackingCode();
+          let exists = true;
+          while (exists) {
+            const existing = await prisma.order.findUnique({
+              where: { trackingCode },
+            });
+            if (!existing) {
+              exists = false;
+            } else {
+              trackingCode = generateTrackingCode();
+            }
+          }
+
+          // Fetch services for this outlet to create order items
+          const services = await prisma.service.findMany({
+            where: { outletId: outlet.id },
+          });
+
+          // Create 1-3 items per order
+          const numItems = 1 + Math.floor(Math.random() * 3);
+          const orderItemsData = [];
+          let calculatedTotal = 0;
+
+          for (let k = 0; k < numItems; k++) {
+            const service = services[Math.floor(Math.random() * services.length)];
+            const quantity = service.unit === 'kg' ? 1 + Math.floor(Math.random() * 5) : 1 + Math.floor(Math.random() * 3);
+            const subtotal = service.price * quantity;
+            calculatedTotal += subtotal;
+
+            orderItemsData.push({
+              serviceName: service.name,
+              serviceType: service.type,
+              serviceUnit: service.unit,
+              quantity: quantity,
+              unitPrice: service.price,
+              subtotal: subtotal,
+              serviceId: service.id,
+            });
+          }
+
+          const order = await prisma.order.create({
+            data: {
+              trackingCode,
+              status,
+              paymentStatus,
+              paymentMethod,
+              totalAmount: calculatedTotal, // Override random total with calculated total
+              outletId: outlet.id,
+              customerId: selectedCustomer?.id, // Link to customer
+              customerName: selectedCustomer?.name || customerData[customerIndex].name,
+              customerPhone: selectedCustomer?.phone || customerData[customerIndex].phone,
+              notes: i % 3 === 0 ? 'Catatan khusus untuk order ini' : null,
+              createdAt,
+              completedAt: status === OrderStatus.TAKEN ? new Date(createdAt.getTime() + 2 * 24 * 60 * 60 * 1000) : null,
+              statusHistory: {
+                create: {
+                  fromStatus: OrderStatus.QUEUED,
+                  toStatus: status,
+                  createdAt: createdAt,
+                  changedByUser: { connect: { phone: resolvedOwnerPhones[0] } } // Assume changed by owner A for simplicity
+                }
+              },
+              items: {
+                create: orderItemsData
+              }
+            },
+          });
+          orderCount++;
         }
+        console.log(`   ✅ Created ${numOrders} orders for ${outlet.name}`);
       }
-
-      const order = await prisma.order.create({
-        data: {
-          trackingCode,
-          status,
-          paymentStatus,
-          paymentMethod,
-          totalAmount,
-          outletId: outlet.id,
-          customerName: customerNames[customerIndex],
-          customerPhone: customerPhones[customerIndex],
-          notes: i % 3 === 0 ? 'Catatan khusus untuk order ini' : null,
-          createdAt,
-          completedAt: status === OrderStatus.TAKEN ? new Date(createdAt.getTime() + 2 * 24 * 60 * 60 * 1000) : null,
-        },
-      });
-      orderCount++;
+      console.log(`   📊 Total orders created: ${orderCount}\n`);
     }
-    console.log(`   ✅ Created ${numOrders} orders for ${outlet.name}`);
-  }
-  console.log(`   📊 Total orders created: ${orderCount}\n`);
-  }
 
-  // ============================================
-  // 8. Create Sample Transactions
-  // ============================================
-  console.log('💳 Creating Sample Transactions...');
-  
-  // Get all orders with SETTLEMENT payment status
-  const settledOrders = await prisma.order.findMany({
-    where: {
-      paymentStatus: PaymentStatus.SETTLEMENT,
-      outletId: { in: demoOutletIds },
-    },
-    include: {
-      outlet: {
-        include: {
-          bankAccounts: {
-            where: { isActive: true },
-            take: 1,
+    // ============================================
+    // 8. Create Sample Transactions
+    // ============================================
+    console.log('💳 Creating Sample Transactions...');
+
+    // Get all orders with SETTLEMENT payment status
+    const settledOrders = await prisma.order.findMany({
+      where: {
+        paymentStatus: PaymentStatus.SETTLEMENT,
+        outletId: { in: demoOutletIds },
+      },
+      include: {
+        outlet: {
+          include: {
+            bankAccounts: {
+              where: { isActive: true },
+              take: 1,
+            },
           },
         },
       },
-    },
-  });
-
-  transactionCount = 0;
-  for (const order of settledOrders) {
-    const existingTx = await prisma.transaction.findFirst({
-      where: {
-        type: TransType.LAUNDRY_ORDER,
-        orderId: order.id,
-      },
-      select: { id: true },
     });
-    if (existingTx) continue;
 
-    const bankAccount = order.outlet.bankAccounts[0];
-    
-    await prisma.transaction.create({
-      data: {
-        type: TransType.LAUNDRY_ORDER,
-        amount: order.totalAmount,
-        paymentMethod: order.paymentMethod || PaymentMethod.CASH,
-        status: PaymentStatus.SETTLEMENT,
-        orderId: order.id,
-        outletId: order.outletId,
-        bankAccountId: order.paymentMethod === PaymentMethod.TRANSFER && bankAccount 
-          ? bankAccount.id 
-          : null,
-        settledAt: order.createdAt,
-        createdAt: order.createdAt,
-      },
-    });
-    transactionCount++;
+    transactionCount = 0;
+    for (const order of settledOrders) {
+      const existingTx = await prisma.transaction.findFirst({
+        where: {
+          type: TransType.LAUNDRY_ORDER,
+          orderId: order.id,
+        },
+        select: { id: true },
+      });
+      if (existingTx) continue;
+
+      const bankAccount = order.outlet.bankAccounts[0];
+
+      await prisma.transaction.create({
+        data: {
+          type: TransType.LAUNDRY_ORDER,
+          amount: order.totalAmount,
+          paymentMethod: order.paymentMethod || PaymentMethod.CASH,
+          status: PaymentStatus.SETTLEMENT,
+          orderId: order.id,
+          outletId: order.outletId,
+          bankAccountId: order.paymentMethod === PaymentMethod.TRANSFER && bankAccount
+            ? bankAccount.id
+            : null,
+          settledAt: order.createdAt,
+          createdAt: order.createdAt,
+        },
+      });
+      transactionCount++;
+    }
+    console.log(`   ✅ Created ${transactionCount} transactions\n`);
   }
-  console.log(`   ✅ Created ${transactionCount} transactions\n`);
+
+  // ============================================
+  // 9. Create Sample Expenses
+  // ============================================
+  console.log('💸 Creating Sample Expenses...');
+  let expenseCount = 0;
+
+  const expenseCategories = ['Operasional', 'Gaji', 'Bahan Baku', 'Listrik & Air'];
+  const expenseDescriptions = [
+    'Beli Deterjen 5kg', 'Beli Pewangi 10L', 'Bayar Listrik Bulan Ini',
+    'Gaji Pegawai Part-time', 'Service Mesin Cuci', 'Beli Plastik Packing',
+    'Uang Makan Pegawai', 'Token Listrik'
+  ];
+
+  for (const outlet of createdOutlets) {
+    // Create 5-10 expenses per outlet
+    const numExpenses = 5 + Math.floor(Math.random() * 6);
+
+    for (let i = 0; i < numExpenses; i++) {
+      const category = expenseCategories[Math.floor(Math.random() * expenseCategories.length)];
+      const description = expenseDescriptions[Math.floor(Math.random() * expenseDescriptions.length)];
+      const amount = 50000 + Math.floor(Math.random() * 500000);
+      const date = randomDate(30);
+
+      await prisma.expense.create({
+        data: {
+          outletId: outlet.id,
+          category,
+          description,
+          amount,
+          date,
+          createdAt: date,
+        }
+      });
+      expenseCount++;
+    }
+    console.log(`   ✅ Created ${numExpenses} expenses for ${outlet.name}`);
   }
+  console.log(`   📊 Total expenses created: ${expenseCount}\n`);
 
   // ============================================
   // Summary
@@ -529,11 +671,13 @@ async function main() {
   console.log('📋 SEED SUMMARY');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(`👤 Users:        ${users.length + 1} (1 SUPERADMIN, 2 OWNERS, ${users.length - 2} STAFF)`);
+  console.log(`👥 Customers:    ${createdCustomers.length}`);
   console.log(`🏪 Outlets:      ${createdOutlets.length}`);
   console.log(`🛍️  Services:     ${serviceTemplates.length * createdOutlets.length} (${serviceTemplates.length} per outlet)`);
   console.log(`🏦 Bank Accounts: ${bankAccounts.length}`);
-  console.log(`📦 Orders:       ${includeTransactions ? orderCount : 0}`);
+  console.log(`📦 Orders:       ${includeTransactions ? orderCount : 0} (with Items & Status History)`);
   console.log(`💳 Transactions: ${includeTransactions ? transactionCount : 0}`);
+  console.log(`💸 Expenses:     ${expenseCount}`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('\n📝 Login Credentials:');
   console.log(`   • SUPERADMIN: ${superAdminPhone} / PIN: 123456`);
