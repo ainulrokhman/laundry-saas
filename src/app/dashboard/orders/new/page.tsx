@@ -64,9 +64,17 @@ export default function NewOrderPage() {
 
   const [items, setItems] = useState<CartItem[]>([]);
 
+  // Customer State
+  const [customerId, setCustomerId] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState('Umum');
   const [customerPhone, setCustomerPhone] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Customer Search State
+  const [showCustomerSearch, setShowCustomerSearch] = useState(false);
+  const [customerSearchQuery, setCustomerSearchQuery] = useState('');
+  const [searchedCustomers, setSearchedCustomers] = useState<any[]>([]);
+  const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
 
   const [paymentNote, setPaymentNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -149,6 +157,55 @@ export default function NewOrderPage() {
       setServiceLoading(false);
     }
   }
+
+  // Customer Search Logic
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (showCustomerSearch && customerSearchQuery.trim().length > 0) {
+        void searchCustomers(customerSearchQuery);
+      } else {
+        setSearchedCustomers([]);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [customerSearchQuery, showCustomerSearch]);
+
+  async function searchCustomers(query: string) {
+    try {
+      setCustomerSearchLoading(true);
+      const res = await fetch(`/api/dashboard/customers?search=${encodeURIComponent(query)}&limit=5`);
+      const json = await res.json().catch(() => null);
+      if (res.ok && json?.success && json?.data) {
+        setSearchedCustomers(json.data);
+      } else {
+        setSearchedCustomers([]);
+      }
+    } catch (e) {
+      console.error('Customer search error', e);
+      setSearchedCustomers([]);
+    } finally {
+      setCustomerSearchLoading(false);
+    }
+  }
+
+  function selectCustomer(c: any) {
+    setCustomerId(c.id);
+    setCustomerName(c.name);
+    setCustomerPhone(c.phone || '');
+    if (c.address) {
+      // Optional: populate address if we had a field for it or append to notes
+      // setNotes(prev => prev ? `${prev}\nAlamat: ${c.address}` : `Alamat: ${c.address}`);
+    }
+    setShowCustomerSearch(false);
+    setCustomerSearchQuery('');
+  }
+
+  function clearResultCustomer() {
+    setCustomerId(null);
+    setCustomerName('Umum');
+    setCustomerPhone('');
+  }
+
 
   // Filter services by search
   const filteredServices = useMemo(() => {
@@ -279,6 +336,7 @@ export default function NewOrderPage() {
     setSubmitting(true);
     try {
       const payload = {
+        customerId: customerId || undefined,
         customerName: customerName.trim() || undefined,
         customerPhone: customerPhone.trim() || undefined,
         notes: notes.trim() || undefined,
@@ -493,15 +551,37 @@ export default function NewOrderPage() {
           <div className="d-flex flex-column h-100" style={{ background: '#fafafa' }}>
             {/* Customer Section */}
             <div className="bg-white p-3 border-bottom flex-shrink-0 d-flex justify-content-between align-items-center">
-              <div className="d-flex align-items-center gap-2">
-                <i className="fas fa-user text-secondary"></i>
-                <span className="fw-semibold text-dark fs-5">{customerName || 'Umum'}</span>
+              <div
+                className="d-flex align-items-center gap-2"
+                style={{ cursor: 'pointer' }}
+                onClick={() => setShowCustomerSearch(true)}
+              >
+                <div className={`rounded-circle bg-light d-flex align-items-center justify-content-center ${customerId ? 'text-primary' : 'text-secondary'}`} style={{ width: 40, height: 40 }}>
+                  <i className="fas fa-user"></i>
+                </div>
+                <div>
+                  <div className="text-muted small" style={{ fontSize: '0.7rem' }}>Pelanggan</div>
+                  <div className="fw-semibold text-dark fs-6 text-truncate" style={{ maxWidth: '150px' }}>
+                    {customerName || 'Umum'}
+                  </div>
+                </div>
               </div>
               <div className="d-flex gap-2">
-                <button className="btn btn-sm btn-light text-primary rounded-circle" style={{ width: '32px', height: '32px' }}>
-                  <i className="fas fa-cog"></i>
+                <button
+                  className="btn btn-sm btn-light text-primary rounded-circle"
+                  style={{ width: '32px', height: '32px' }}
+                  onClick={() => setShowCustomerSearch(true)}
+                  title="Cari Pelanggan"
+                >
+                  <i className="fas fa-search"></i>
                 </button>
-                <button className="btn btn-sm btn-light text-danger rounded-circle" style={{ width: '32px', height: '32px' }}>
+                <button
+                  className="btn btn-sm btn-light text-danger rounded-circle"
+                  style={{ width: '32px', height: '32px' }}
+                  onClick={clearResultCustomer}
+                  title="Reset Pelanggan (Umum)"
+                  disabled={!customerId && customerName === 'Umum'}
+                >
                   <i className="fas fa-eraser"></i>
                 </button>
               </div>
@@ -537,7 +617,7 @@ export default function NewOrderPage() {
                       </div>
 
                       {/* Row 2: Price & Controls */}
-                      <div className="d-flex justify-content-between align-items-end mt-2">
+                      <div className="d-flex justify-content-between align-items-end mt-1">
                         <div className="d-flex flex-column">
                           <div className={styles.cartItemPrice}>
                             {formatCurrency(item.unitPrice)}
@@ -596,7 +676,7 @@ export default function NewOrderPage() {
                             style={{ width: '20px', height: '24px', border: 'none', background: 'none' }}
                             onClick={() => removeItem(item.key)}
                           >
-                            <i className="fas fa-ellipsis-v"></i>
+                            <i className="fas fa-trash-alt"></i>
                           </button>
                         </div>
                       </div>
@@ -607,12 +687,12 @@ export default function NewOrderPage() {
             </div>
 
             {/* Summary Section - Fixed */}
-            <div className="bg-white mx-3 my-3 p-3 rounded shadow-sm flex-shrink-0">
-              <div className="d-flex justify-content-between align-items-center py-2">
+            <div className="bg-white mx-1 my-1 p-3 rounded shadow-sm flex-shrink-0">
+              <div className="d-flex justify-content-between align-items-center py-1">
                 <span className="text-secondary">Sub Total</span>
                 <span className="fw-semibold text-dark">{formatCurrency(totals.subtotalAmount)}</span>
               </div>
-              <div className="d-flex justify-content-between align-items-center py-2">
+              <div className="d-flex justify-content-between align-items-center py-1">
                 <span className="text-secondary">Penyesuaian</span>
                 <div className="d-flex align-items-center gap-2">
                   <button
@@ -640,8 +720,8 @@ export default function NewOrderPage() {
                   </button>
                 </div>
               </div>
-              <hr className="my-2" />
-              <div className="d-flex justify-content-between align-items-center py-2">
+              <hr className="my-1" />
+              <div className="d-flex justify-content-between align-items-center py-1">
                 <span className="fw-semibold text-dark" style={{ fontSize: '1.1rem' }}>Total</span>
                 <span className="fw-bold" style={{ fontSize: '1.5rem', color: '#667eea' }}>{formatCurrency(totals.totalAmount)}</span>
               </div>
@@ -649,7 +729,7 @@ export default function NewOrderPage() {
 
             {/* Payment Button */}
             <button
-              className="btn btn-lg mx-3 mb-3 d-flex align-items-center justify-content-center gap-2 fw-semibold shadow"
+              className="btn btn-lg mx-3 mb-3 d-flex align-items-center justify-content-center gap-1 fw-semibold shadow"
               style={{ background: 'linear-gradient(135deg, #27ae60 0%, #229954 100%)', color: 'white', fontSize: '1.1rem' }}
               onClick={handleOpenPayment}
               disabled={items.length === 0}
@@ -659,6 +739,85 @@ export default function NewOrderPage() {
             </button>
           </div>
         </div>
+
+        {/* Customer Search Modal */}
+        {showCustomerSearch && (
+          <>
+            <div className="modal-backdrop fade show" style={{ zIndex: 1050 }}></div>
+            <div className="modal fade show d-block" tabIndex={-1} style={{ zIndex: 1055 }}>
+              <div className="modal-dialog modal-dialog-centered">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h5 className="modal-title">Pilih Pelanggan</h5>
+                    <button type="button" className="btn-close" onClick={() => setShowCustomerSearch(false)}></button>
+                  </div>
+                  <div className="modal-body">
+                    <div className="input-group mb-3">
+                      <span className="input-group-text"><i className="fas fa-search"></i></span>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Cari nama atau telepon..."
+                        value={customerSearchQuery}
+                        onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+
+                    <div className="list-group list-group-flush">
+                      {customerSearchLoading && (
+                        <div className="text-center py-3"><div className="spinner-border spinner-border-sm text-primary"></div></div>
+                      )}
+
+                      {!customerSearchLoading && searchedCustomers.length === 0 && customerSearchQuery.trim().length > 0 && (
+                        <div className="text-center text-muted py-3">
+                          Tidak ditemukan.
+                          <br />
+                          <small>Tekan "Gunakan sebagai Manual" jika ingin input manual.</small>
+                        </div>
+                      )}
+
+                      {searchedCustomers.map(c => (
+                        <button
+                          key={c.id}
+                          className="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                          onClick={() => selectCustomer(c)}
+                        >
+                          <div>
+                            <div className="fw-semibold">{c.name}</div>
+                            <div className="text-muted small">{c.phone}</div>
+                          </div>
+                          <i className="fas fa-chevron-right text-muted small"></i>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="modal-footer justify-content-between">
+                    <button
+                      className="btn btn-outline-secondary"
+                      onClick={() => {
+                        // If user typed something but not found, allow using it as name
+                        if (customerSearchQuery.trim()) {
+                          setCustomerName(customerSearchQuery);
+                          setCustomerId(null); // Manual
+                          setCustomerPhone('');
+                          setShowCustomerSearch(false);
+                        } else {
+                          setShowCustomerSearch(false);
+                        }
+                      }}
+                    >
+                      Gunakan Manual: "{customerSearchQuery || 'Umum'}"
+                    </button>
+                    <button className="btn btn-primary" onClick={() => router.push('/dashboard/customers')}>
+                      <i className="fas fa-plus me-1"></i> Baru
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Payment Modal */}
         {showPaymentModal && (

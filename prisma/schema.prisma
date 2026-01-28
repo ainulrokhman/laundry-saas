@@ -117,6 +117,7 @@ model Outlet {
   updatedAt     DateTime              @updatedAt
   users         User[]
   services      Service[]
+  customers     Customer[]    // Daftar pelanggan outlet
   orders        Order[]
   bankAccounts  BankAccount[]         // Multiple rekening bank untuk transfer pelanggan
   paymentGatewayConfigs PaymentGatewayConfig[] // Konfigurasi payment gateway per outlet
@@ -171,8 +172,11 @@ model Order {
   totalAmount  Float
   outletId     String
   outlet       Outlet        @relation(fields: [outletId], references: [id], onDelete: Cascade)
-  customerName String?       // Nama pelanggan (opsional untuk privacy)
-  customerPhone String?      // Nomor telepon pelanggan (opsional)
+
+  customerName String?       // Nama pelanggan (snapshot saat order dibuat)
+  customerPhone String?      // Nomor telepon pelanggan (snapshot)
+  customerId   String?       // Relasi ke data pelanggan terdaftar (opsional)
+  customer     Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
   notes        String?       // Catatan tambahan
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -268,4 +272,22 @@ model Transaction {
   @@index([status])
   @@index([paymentMethod])
   @@index([gatewayTransactionId])
+}
+
+model Customer {
+  id          String   @id @default(uuid())
+  outletId    String
+  outlet      Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  name        String
+  phone       String?  // Nomor WhatsApp/Telepon (opsional, tapi jika ada harus unik per outlet)
+  email       String?  // Email (opsional)
+  address     String?  // Alamat (opsional)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orders      Order[]
+
+  @@unique([outletId, phone]) // Phone unik per outlet (jika tidak null)
+  @@index([outletId])
+  @@index([name])
+  @@index([phone])
 }
