@@ -41,6 +41,8 @@ const createSchema = z
     paid: z.boolean(),
     paidAt: z.string().datetime().optional(),
     paymentNote: z.string().trim().max(200, 'Catatan pembayaran maksimal 200 karakter').optional(),
+    dpAmount: z.coerce.number().finite().min(0, 'Nominal DP minimal 0').optional(),
+    dpNote: z.string().trim().max(200, 'Catatan DP maksimal 200 karakter').optional(),
   })
   .strict();
 
@@ -128,6 +130,8 @@ export const POST = withAuth(
         paid: validated.paid,
         paidAt: validated.paidAt,
         paymentNote: validated.paymentNote,
+        dpAmount: validated.dpAmount,
+        dpNote: validated.dpNote,
       });
 
       return Response.json(

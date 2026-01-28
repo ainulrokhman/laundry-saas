@@ -20,17 +20,17 @@ export function cn(...classes: (string | undefined | null | false)[]): string {
 export function normalizePhoneNumber(phone: string): string {
   // Remove all non-digit characters
   const digits = phone.replace(/\D/g, '');
-  
+
   // If starts with 0, replace with 62
   if (digits.startsWith('0')) {
     return `62${digits.slice(1)}`;
   }
-  
+
   // If doesn't start with 62, add it
   if (!digits.startsWith('62')) {
     return `62${digits}`;
   }
-  
+
   return digits;
 }
 
@@ -61,11 +61,11 @@ export function maskSensitiveData(data: string, visibleChars: number = 4): strin
   if (data.length <= visibleChars * 2) {
     return '*'.repeat(data.length);
   }
-  
+
   const start = data.slice(0, visibleChars);
   const end = data.slice(-visibleChars);
   const masked = '*'.repeat(data.length - visibleChars * 2);
-  
+
   return `${start}${masked}${end}`;
 }
 
@@ -105,17 +105,19 @@ export function formatDate(date: Date | string): string {
 }
 
 /**
- * Format datetime to Indonesian format
+ * Format datetime to dd/mm/yy H:i format
+ * Example: 27/01/26 22:19
  */
 export function formatDateTime(date: Date | string): string {
   const d = typeof date === 'string' ? new Date(date) : date;
-  return new Intl.DateTimeFormat('id-ID', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(d);
+
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = String(d.getFullYear()).slice(-2); // Last 2 digits
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
 }
 
 /**

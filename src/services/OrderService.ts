@@ -26,6 +26,8 @@ export type CreateOrderInput = {
   paid: boolean;
   paidAt?: string; // ISO (opsional; jika kosong dan paid=true akan di-set now)
   paymentNote?: string;
+  dpAmount?: number;
+  dpNote?: string;
 };
 
 export type UpdateOrderPaymentInput = {
@@ -114,10 +116,30 @@ export class OrderService extends BaseService {
       });
     }
 
-    const paidAt = input.paid
-      ? (input.paidAt ? new Date(input.paidAt) : new Date())
-      : null;
-    const paymentStatus = input.paid ? PaymentStatus.SETTLEMENT : PaymentStatus.UNPAID;
+    // Handle DP payment
+    const dpAmount = input.dpAmount ? roundIdr(Number(input.dpAmount)) : 0;
+    const dpNote = input.dpNote?.trim() || null;
+    const dpPaidAt = dpAmount > 0 ? new Date() : null;
+
+    // Determine payment status based on DP and total
+    let paymentStatus: PaymentStatus;
+    let paidAt: Date | null = null;
+
+    if (input.paid) {
+      // Marked as fully paid
+      paymentStatus = PaymentStatus.SETTLEMENT;
+      paidAt = input.paidAt ? new Date(input.paidAt) : new Date();
+    } else if (dpAmount > 0 && dpAmount >= roundIdr(totalAmount)) {
+      // DP covers full amount
+      paymentStatus = PaymentStatus.SETTLEMENT;
+      paidAt = new Date();
+    } else if (dpAmount > 0) {
+      // Partial DP
+      paymentStatus = PaymentStatus.PENDING;
+    } else {
+      // No payment
+      paymentStatus = PaymentStatus.UNPAID;
+    }
 
     // Create order + items. trackingCode harus unik.
     for (let attempt = 0; attempt < 10; attempt++) {
@@ -136,6 +158,9 @@ export class OrderService extends BaseService {
             paidAt,
             paymentNote,
             totalAmount: roundIdr(totalAmount),
+            dpAmount,
+            dpPaidAt,
+            dpNote,
             customerName,
             customerPhone,
             notes,
