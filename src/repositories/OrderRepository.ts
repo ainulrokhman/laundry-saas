@@ -208,7 +208,7 @@ export class OrderRepository extends BaseRepository {
   ): Promise<Order[]> {
     this.ensureOutletId(outletId, 'Order');
     const where: Prisma.OrderWhereInput = this.getOutletFilter(outletId);
-    
+
     if (options?.status) {
       where.status = options.status;
     }
@@ -237,7 +237,7 @@ export class OrderRepository extends BaseRepository {
   ): Promise<number> {
     this.ensureOutletId(outletId, 'Order');
     const where: Prisma.OrderWhereInput = this.getOutletFilter(outletId);
-    
+
     if (filters?.status) {
       where.status = filters.status;
     }
@@ -270,7 +270,7 @@ export class OrderRepository extends BaseRepository {
   ): Promise<number> {
     this.ensureOutletId(outletId, 'Order');
     const where: Prisma.OrderWhereInput = this.getOutletFilter(outletId);
-    
+
     if (filters?.paymentStatus) {
       where.paymentStatus = filters.paymentStatus;
     }
@@ -401,5 +401,108 @@ export class OrderRepository extends BaseRepository {
       where: { id },
       data,
     });
+  }
+  /**
+   * Get stats by date range
+   */
+  async getStatsByDateRange(
+    outletId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<{ totalOrders: number; totalRevenue: number; totalCustomers: number }> {
+    this.ensureOutletId(outletId, 'Order');
+
+    const where: Prisma.OrderWhereInput = this.combineFilters(outletId, {
+      createdAt: {
+        gte: startDate,
+        lte: endDate,
+      },
+      status: {
+        not: OrderStatus.CANCELLED,
+      },
+    });
+
+    const [countResult, revenueResult, customersResult] = await Promise.all([
+      prisma.order.count({ where }),
+      prisma.order.aggregate({
+        where: {
+          ...where,
+          paymentStatus: PaymentStatus.SETTLEMENT, // Only count settled payments for revenue
+        },
+        _sum: {
+          totalAmount: true,
+        },
+      }),
+      // distinct customers
+      prisma.order.groupBy({
+        by: ['customerPhone'],
+        where: {
+          ...where,
+          customerPhone: { not: null }
+        },
+      })
+    ]);
+
+    return {
+      totalOrders: countResult,
+      totalRevenue: revenueResult._sum.totalAmount || 0,
+      totalCustomers: customersResult.length,
+    };
+  }
+
+  /**
+   * Get daily stats for a date range
+   * Returns orders and revenue grouped by day
+   */
+  async getDailyStats(
+    outletId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<Array<{ date: string; count: number; revenue: number }>> {
+    this.ensureOutletId(outletId, 'Order');
+
+    // Fetch relevant fields to aggregate in memory
+    const orders = await prisma.order.findMany({
+      where: this.combineFilters(outletId, {
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+        status: {
+          not: OrderStatus.CANCELLED,
+        },
+      }),
+      select: {
+        createdAt: true,
+        totalAmount: true,
+        paymentStatus: true,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    // Aggregate in memory
+    const statsMap = new Map<string, { count: number; revenue: number }>();
+
+    orders.forEach((order) => {
+      const dateKey = order.createdAt.toISOString().split('T')[0]; // YYYY-MM-DD
+
+      const current = statsMap.get(dateKey) || { count: 0, revenue: 0 };
+
+      current.count += 1;
+      if (order.paymentStatus === PaymentStatus.SETTLEMENT) {
+        current.revenue += order.totalAmount;
+      }
+
+      statsMap.set(dateKey, current);
+    });
+
+    // Convert map to array
+    return Array.from(statsMap.entries()).map(([date, stats]) => ({
+      date,
+      count: stats.count,
+      revenue: stats.revenue,
+    }));
   }
 }
