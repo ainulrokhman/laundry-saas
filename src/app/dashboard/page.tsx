@@ -49,7 +49,7 @@ export default function DashboardPage() {
       const user = session.user as any;
       // Redirect SUPERADMIN to admin panel (they don't have outletId)
       if (user?.role === 'SUPERADMIN') {
-        router.push('/admin/outlets');
+        router.push('/admin');
         return;
       }
       

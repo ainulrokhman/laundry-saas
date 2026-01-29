@@ -141,9 +141,9 @@ const menuItems: MenuItem[] = [
   },
   // SUPERADMIN Menus
   {
-    label: 'Dashboard (Admin)',
+    label: 'Dashboard',
     icon: 'fas fa-tachometer-alt',
-    href: '/admin/outlets',
+    href: '/admin',
     roles: [Role.SUPERADMIN],
   },
   {
