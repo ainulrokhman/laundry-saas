@@ -80,6 +80,7 @@ export interface PackageDefinition {
     description: string;
     features: PackageFeature[];
     maxStaff: number; // -1 for unlimited
+    maxOutlets: number; // -1 for unlimited
     sortOrder: number;
 }
 
@@ -98,6 +99,7 @@ export const PACKAGE_DEFINITIONS: Record<string, PackageDefinition> = {
             PackageFeature.CUSTOMER_LIMIT_100,
         ],
         maxStaff: 1, // Owner saja
+        maxOutlets: 1,
         sortOrder: 0,
     },
     BERSIH: {
@@ -116,6 +118,7 @@ export const PACKAGE_DEFINITIONS: Record<string, PackageDefinition> = {
             PackageFeature.EXPORT_DATA,
         ],
         maxStaff: 2, // Owner + Kasir
+        maxOutlets: 1,
         sortOrder: 1,
     },
     WANGI: {
@@ -137,6 +140,7 @@ export const PACKAGE_DEFINITIONS: Record<string, PackageDefinition> = {
             PackageFeature.EXPORT_DATA,
         ],
         maxStaff: -1, // Unlimited
+        maxOutlets: 1,
         sortOrder: 2,
     },
     LICIN: {
@@ -162,6 +166,7 @@ export const PACKAGE_DEFINITIONS: Record<string, PackageDefinition> = {
             PackageFeature.PRIORITY_SUPPORT,
         ],
         maxStaff: -1, // Unlimited
+        maxOutlets: 5,
         sortOrder: 3,
     },
 };

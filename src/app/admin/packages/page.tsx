@@ -18,6 +18,7 @@ interface Package {
     description: string | null;
     features: PackageFeature[];
     maxStaff: number;
+    maxOutlets: number;
     isActive: boolean;
     sortOrder: number;
     subscriberCount: number;
@@ -28,6 +29,22 @@ export default function PackagesPage() {
     const [loading, setLoading] = useState(true);
     const [showInactive, setShowInactive] = useState(false);
 
+    // Modal & Form State
+    const [showModal, setShowModal] = useState(false);
+    const [editingPackage, setEditingPackage] = useState<Package | null>(null);
+    const [formData, setFormData] = useState<Partial<Package>>({
+        name: '',
+        slug: '',
+        price: 0,
+        description: '',
+        features: [],
+        maxStaff: 3,
+        maxOutlets: 1,
+        sortOrder: 0,
+        isActive: true,
+    });
+    const [formSaving, setFormSaving] = useState(false);
+
     useEffect(() => {
         fetchPackages();
     }, [showInactive]);
@@ -36,26 +53,88 @@ export default function PackagesPage() {
         try {
             setLoading(true);
             const res = await fetch(`/api/admin/packages?includeInactive=${showInactive}`);
-
-            if (!res.ok) {
-                // Try to parse error message if possible, otherwise use status text
-                const text = await res.text();
-                try {
-                    const json = JSON.parse(text);
-                    throw new Error(json.error || json.message || `Error ${res.status}: ${res.statusText}`);
-                } catch (e) {
-                    throw new Error(`Error ${res.status}: ${res.statusText}`);
-                }
-            }
-
+            if (!res.ok) throw new Error('Failed to fetch packages');
             const data = await res.json();
             setPackages(data);
         } catch (error) {
             console.error('Error fetching packages:', error);
-            // Optionally set empty packages or show error state
             setPackages([]);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleOpenCreate = () => {
+        setEditingPackage(null);
+        setFormData({
+            name: '',
+            slug: '',
+            price: 0,
+            description: '',
+            features: [],
+            maxStaff: 3,
+            maxOutlets: 1,
+            sortOrder: 0,
+            isActive: true,
+        });
+        setShowModal(true);
+    };
+
+    const handleOpenEdit = (pkg: Package) => {
+        setEditingPackage(pkg);
+        setFormData({
+            name: pkg.name,
+            slug: pkg.slug,
+            price: pkg.price,
+            description: pkg.description || '',
+            features: pkg.features,
+            maxStaff: pkg.maxStaff,
+            maxOutlets: pkg.maxOutlets,
+            sortOrder: pkg.sortOrder,
+            isActive: pkg.isActive,
+        });
+        setShowModal(true);
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setFormSaving(true);
+
+        try {
+            const url = editingPackage
+                ? `/api/admin/packages/${editingPackage.id}`
+                : '/api/admin/packages';
+            const method = editingPackage ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData),
+            });
+
+            const json = await res.json();
+
+            if (!res.ok) {
+                throw new Error(json.error || json.message || 'Failed to save package');
+            }
+
+            alert(`Package ${editingPackage ? 'updated' : 'created'} successfully!`);
+            setShowModal(false);
+            fetchPackages();
+        } catch (error: any) {
+            console.error('Save error:', error);
+            alert(error.message);
+        } finally {
+            setFormSaving(false);
+        }
+    };
+
+    const handleFeatureToggle = (feature: PackageFeature) => {
+        const currentFeatures = formData.features || [];
+        if (currentFeatures.includes(feature)) {
+            setFormData({ ...formData, features: currentFeatures.filter(f => f !== feature) });
+        } else {
+            setFormData({ ...formData, features: [...currentFeatures, feature] });
         }
     };
 
@@ -133,11 +212,11 @@ export default function PackagesPage() {
             <div className="content">
                 <div className="container-fluid">
                     <div className="row mb-3">
-                        <div className="col-md-12">
+                        <div className="col-md-12 d-flex justify-content-between">
                             <div className="btn-group">
                                 <button className="btn btn-primary" onClick={initializePackages}>
                                     <i className="fas fa-magic mr-2"></i>
-                                    Initialize Default Packages
+                                    Init Defaults
                                 </button>
                                 <button
                                     className={`btn ${showInactive ? 'btn-secondary' : 'btn-outline-secondary'}`}
@@ -147,6 +226,11 @@ export default function PackagesPage() {
                                     {showInactive ? 'Hide' : 'Show'} Inactive
                                 </button>
                             </div>
+
+                            <button className="btn btn-success" onClick={handleOpenCreate}>
+                                <i className="fas fa-plus mr-2"></i>
+                                Add Package
+                            </button>
                         </div>
                     </div>
 
@@ -163,7 +247,7 @@ export default function PackagesPage() {
                     ) : (
                         <div className="row">
                             {packages.map((pkg) => (
-                                <div key={pkg.id} className="col-md-4">
+                                <div key={pkg.id} className="col-md-4 mb-4">
                                     <div className={`card ${!pkg.isActive ? 'bg-light' : ''} h-100`}>
                                         <div className="card-header">
                                             <h3 className="card-title font-weight-bold">{pkg.name}</h3>
@@ -193,15 +277,22 @@ export default function PackagesPage() {
                                                 </span>
                                             </div>
 
+                                            <div className="d-flex justify-content-between mb-2 border-bottom pb-2">
+                                                <strong>Max Outlets:</strong>
+                                                <span>
+                                                    {pkg.maxOutlets === -1 ? '∞ Unlimited' : pkg.maxOutlets}
+                                                </span>
+                                            </div>
+
                                             <div className="d-flex justify-content-between mb-3 border-bottom pb-2">
                                                 <strong>Subscribers:</strong>
                                                 <span>{pkg.subscriberCount}</span>
                                             </div>
 
                                             <p className="mb-2"><strong>Features:</strong></p>
-                                            <ul className="list-unstyled fa-ul">
+                                            <ul className="list-unstyled fa-ul mb-0">
                                                 {pkg.features.map((feature) => (
-                                                    <li key={feature} className="mb-2">
+                                                    <li key={feature} className="mb-1">
                                                         <span className="fa-li"><i className="fas fa-check text-success"></i></span>
                                                         <small>{FEATURE_LABELS[feature]}</small>
                                                     </li>
@@ -209,22 +300,30 @@ export default function PackagesPage() {
                                             </ul>
                                         </div>
                                         <div className="card-footer bg-transparent">
-                                            <div className="btn-group btn-block w-100">
+                                            <div className="d-grid gap-2">
                                                 <button
-                                                    className={`btn ${pkg.isActive ? 'btn-warning' : 'btn-success'}`}
-                                                    onClick={() => togglePackageStatus(pkg.id)}
+                                                    className="btn btn-outline-primary"
+                                                    onClick={() => handleOpenEdit(pkg)}
                                                 >
-                                                    <i className={`fas fa-${pkg.isActive ? 'pause' : 'play'} mr-1`}></i>
-                                                    {pkg.isActive ? 'Deactivate' : 'Activate'}
+                                                    <i className="fas fa-edit mr-1"></i> Edit
                                                 </button>
-                                                <button
-                                                    className="btn btn-danger"
-                                                    onClick={() => deletePackage(pkg.id, pkg.name)}
-                                                    disabled={pkg.subscriberCount > 0}
-                                                >
-                                                    <i className="fas fa-trash mr-1"></i>
-                                                    Delete
-                                                </button>
+                                                <div className="btn-group">
+                                                    <button
+                                                        className={`btn ${pkg.isActive ? 'btn-warning' : 'btn-success'}`}
+                                                        onClick={() => togglePackageStatus(pkg.id)}
+                                                    >
+                                                        <i className={`fas fa-${pkg.isActive ? 'pause' : 'play'} mr-1`}></i>
+                                                        {pkg.isActive ? 'Deactivate' : 'Activate'}
+                                                    </button>
+                                                    <button
+                                                        className="btn btn-danger"
+                                                        onClick={() => deletePackage(pkg.id, pkg.name)}
+                                                        disabled={pkg.subscriberCount > 0}
+                                                    >
+                                                        <i className="fas fa-trash mr-1"></i>
+                                                        Delete
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -234,6 +333,126 @@ export default function PackagesPage() {
                     )}
                 </div>
             </div>
+
+            {/* Modal */}
+            {showModal && (
+                <>
+                    <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                        <div className="modal-dialog modal-lg">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h5 className="modal-title">{editingPackage ? 'Edit Package' : 'Create Package'}</h5>
+                                    <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
+                                </div>
+                                <form onSubmit={handleSubmit}>
+                                    <div className="modal-body">
+                                        <div className="row g-3">
+                                            <div className="col-md-6">
+                                                <label className="form-label">Package Name</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    required
+                                                    value={formData.name}
+                                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="col-md-6">
+                                                <label className="form-label">Slug (Unique ID)</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    required
+                                                    value={formData.slug}
+                                                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                                                    placeholder="basic-plan (lowercase, no spaces)"
+                                                />
+                                            </div>
+                                            <div className="col-md-6">
+                                                <label className="form-label">Price (IDR)</label>
+                                                <input
+                                                    type="number"
+                                                    className="form-control"
+                                                    required
+                                                    min="0"
+                                                    value={formData.price}
+                                                    onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                                                />
+                                            </div>
+                                            <div className="col-md-6">
+                                                <label className="form-label">Max Staff (-1 for Unlimited)</label>
+                                                <input
+                                                    type="number"
+                                                    className="form-control"
+                                                    required
+                                                    value={formData.maxStaff}
+                                                    onChange={(e) => setFormData({ ...formData, maxStaff: Number(e.target.value) })}
+                                                />
+                                            </div>
+                                            <div className="col-md-6">
+                                                <label className="form-label">Max Outlets (-1 for Unlimited)</label>
+                                                <input
+                                                    type="number"
+                                                    className="form-control"
+                                                    required
+                                                    value={formData.maxOutlets}
+                                                    onChange={(e) => setFormData({ ...formData, maxOutlets: Number(e.target.value) })}
+                                                />
+                                            </div>
+                                            <div className="col-md-6">
+                                                <label className="form-label">Sort Order</label>
+                                                <input
+                                                    type="number"
+                                                    className="form-control"
+                                                    value={formData.sortOrder}
+                                                    onChange={(e) => setFormData({ ...formData, sortOrder: Number(e.target.value) })}
+                                                />
+                                            </div>
+                                            <div className="col-12">
+                                                <label className="form-label">Description</label>
+                                                <textarea
+                                                    className="form-control"
+                                                    rows={2}
+                                                    value={formData.description || ''}
+                                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                                ></textarea>
+                                            </div>
+
+                                            <div className="col-12">
+                                                <label className="form-label d-block">Features</label>
+                                                <div className="row">
+                                                    {Object.entries(FEATURE_LABELS).map(([key, label]) => (
+                                                        <div key={key} className="col-md-6">
+                                                            <div className="form-check">
+                                                                <input
+                                                                    className="form-check-input"
+                                                                    type="checkbox"
+                                                                    id={`feature-${key}`}
+                                                                    checked={formData.features?.includes(key as PackageFeature)}
+                                                                    onChange={() => handleFeatureToggle(key as PackageFeature)}
+                                                                />
+                                                                <label className="form-check-label" htmlFor={`feature-${key}`}>
+                                                                    {label}
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="modal-footer">
+                                        <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
+                                        <button type="submit" className="btn btn-primary" disabled={formSaving}>
+                                            {formSaving ? 'Saving...' : 'Save Package'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     );
 }

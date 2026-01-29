@@ -17,6 +17,7 @@ const createPackageSchema = z.object({
     description: z.string().optional(),
     features: z.array(z.nativeEnum(PackageFeature)),
     maxStaff: z.number().int(),
+    maxOutlets: z.number().int(),
     sortOrder: z.number().int().optional(),
 });
 

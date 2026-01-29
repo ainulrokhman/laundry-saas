@@ -14,6 +14,7 @@ export interface PackageData {
     description?: string;
     features: PackageFeature[];
     maxStaff: number;
+    maxOutlets: number;
     sortOrder?: number;
 }
 
@@ -102,6 +103,7 @@ export class PackageManagementService {
                 description: data.description,
                 features: data.features,
                 maxStaff: data.maxStaff,
+                maxOutlets: data.maxOutlets,
                 sortOrder: data.sortOrder ?? 0,
             },
         });
@@ -144,6 +146,7 @@ export class PackageManagementService {
                 description: data.description,
                 features: data.features,
                 maxStaff: data.maxStaff,
+                maxOutlets: data.maxOutlets,
                 sortOrder: data.sortOrder,
             },
         });
@@ -229,6 +232,7 @@ export class PackageManagementService {
                         description: pkg.description,
                         features: pkg.features,
                         maxStaff: pkg.maxStaff,
+                        maxOutlets: pkg.maxOutlets,
                         sortOrder: pkg.sortOrder,
                     },
                 });
@@ -243,6 +247,7 @@ export class PackageManagementService {
                         description: pkg.description,
                         features: pkg.features,
                         maxStaff: pkg.maxStaff,
+                        maxOutlets: pkg.maxOutlets,
                         sortOrder: pkg.sortOrder,
                         isActive: true,
                     },

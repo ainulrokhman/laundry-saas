@@ -17,6 +17,7 @@ const updatePackageSchema = z.object({
     description: z.string().optional(),
     features: z.array(z.nativeEnum(PackageFeature)).optional(),
     maxStaff: z.number().int().optional(),
+    maxOutlets: z.number().int().optional(),
     sortOrder: z.number().int().optional(),
 });
 
