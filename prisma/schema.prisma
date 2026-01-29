@@ -164,6 +164,7 @@ model Outlet {
   bankAccounts  BankAccount[]         // Multiple rekening bank untuk transfer pelanggan
   paymentGatewayConfigs PaymentGatewayConfig[] // Konfigurasi payment gateway per outlet
   expenses      Expense[]             // Pengeluaran operasional outlet
+  transactions  Transaction[]         // Transaksi terkait outlet
 
   @@index([ownerId])
 }
@@ -302,6 +303,7 @@ model Transaction {
   orderId      String?
   order        Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
   outletId     String?
+  outlet       Outlet?       @relation(fields: [outletId], references: [id], onDelete: SetNull)
   bankAccountId String?      // ID rekening yang digunakan (jika paymentMethod = TRANSFER)
   bankAccount  BankAccount?  @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
   paymentGatewayConfigId String? // ID konfigurasi gateway yang digunakan

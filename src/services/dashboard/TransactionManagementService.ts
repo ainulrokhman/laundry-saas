@@ -284,4 +284,71 @@ export class TransactionManagementService {
             },
         };
     }
+
+    /**
+     * Get transaction statistics from all owned outlets (Global Mode - OWNER only)
+     */
+    async getGlobalTransactionStats(outletIds: string[], filters?: {
+        dateFrom?: Date;
+        dateTo?: Date;
+    }): Promise<TransactionStats> {
+        if (outletIds.length === 0) {
+            return {
+                totalRevenue: 0,
+                subscriptionRevenue: 0,
+                laundryRevenue: 0,
+                pendingCount: 0,
+                completedCount: 0,
+            };
+        }
+
+        // Build date filter
+        const dateFilters: { dateFrom?: Date; dateTo?: Date } = {};
+        if (filters?.dateFrom) {
+            dateFilters.dateFrom = filters.dateFrom;
+        }
+        if (filters?.dateTo) {
+            dateFilters.dateTo = filters.dateTo;
+        }
+
+        // Get revenue by type from all outlets
+        const [
+            totalRevenue,
+            subscriptionRevenue,
+            laundryRevenue,
+            pendingCount,
+            completedCount,
+        ] = await Promise.all([
+            this.transactionRepo.getTotalRevenueByOutletIds(outletIds, {
+                status: PaymentStatus.SETTLEMENT,
+                ...dateFilters,
+            }),
+            this.transactionRepo.getTotalRevenueByOutletIds(outletIds, {
+                type: TransType.SUBSCRIPTION,
+                status: PaymentStatus.SETTLEMENT,
+                ...dateFilters,
+            }),
+            this.transactionRepo.getTotalRevenueByOutletIds(outletIds, {
+                type: TransType.LAUNDRY_ORDER,
+                status: PaymentStatus.SETTLEMENT,
+                ...dateFilters,
+            }),
+            this.transactionRepo.countByOutletIdsWithFilters(outletIds, {
+                status: PaymentStatus.PENDING,
+                ...dateFilters,
+            }),
+            this.transactionRepo.countByOutletIdsWithFilters(outletIds, {
+                status: PaymentStatus.SETTLEMENT,
+                ...dateFilters,
+            }),
+        ]);
+
+        return {
+            totalRevenue,
+            subscriptionRevenue,
+            laundryRevenue,
+            pendingCount,
+            completedCount,
+        };
+    }
 }

@@ -398,4 +398,89 @@ export class TransactionRepository extends BaseRepository {
 
     return prisma.transaction.count({ where: combinedWhere });
   }
+
+  /**
+   * Get total revenue from transactions for multiple outlets (Global Mode)
+   */
+  async getTotalRevenueByOutletIds(
+    outletIds: string[],
+    filters?: {
+      type?: TransType;
+      status?: PaymentStatus;
+      dateFrom?: Date;
+      dateTo?: Date;
+    }
+  ): Promise<number> {
+    if (outletIds.length === 0) {
+      return 0;
+    }
+
+    const where: Prisma.TransactionWhereInput = {
+      outletId: { in: outletIds },
+    };
+
+    if (filters?.type) {
+      where.type = filters.type;
+    }
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+    if (filters?.dateFrom || filters?.dateTo) {
+      where.createdAt = {};
+      if (filters.dateFrom) {
+        where.createdAt.gte = filters.dateFrom;
+      }
+      if (filters.dateTo) {
+        where.createdAt.lte = filters.dateTo;
+      }
+    }
+
+    const result = await prisma.transaction.aggregate({
+      where,
+      _sum: {
+        amount: true,
+      },
+    });
+
+    return result._sum.amount || 0;
+  }
+
+  /**
+   * Count transactions for multiple outlets with filters (Global Mode)
+   */
+  async countByOutletIdsWithFilters(
+    outletIds: string[],
+    filters?: {
+      type?: TransType;
+      status?: PaymentStatus;
+      dateFrom?: Date;
+      dateTo?: Date;
+    }
+  ): Promise<number> {
+    if (outletIds.length === 0) {
+      return 0;
+    }
+
+    const where: Prisma.TransactionWhereInput = {
+      outletId: { in: outletIds },
+    };
+
+    if (filters?.type) {
+      where.type = filters.type;
+    }
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+    if (filters?.dateFrom || filters?.dateTo) {
+      where.createdAt = {};
+      if (filters.dateFrom) {
+        where.createdAt.gte = filters.dateFrom;
+      }
+      if (filters.dateTo) {
+        where.createdAt.lte = filters.dateTo;
+      }
+    }
+
+    return prisma.transaction.count({ where });
+  }
 }
