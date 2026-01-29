@@ -93,10 +93,11 @@ export const POST = withAuth(
 
       // Default limits if no package (e.g., allow 1 for trial or block)
       // Determining policy: For now, if no package, allow max 1 (Trial)
+      const isUnlimited = user.package?.maxOutlets === -1;
       const maxOutlets = user.package?.maxOutlets ?? 1;
       const currentOutlets = user._count.ownedOutlets;
 
-      if (currentOutlets >= maxOutlets) {
+      if (!isUnlimited && currentOutlets >= maxOutlets) {
         return Response.json(
           {
             success: false,
