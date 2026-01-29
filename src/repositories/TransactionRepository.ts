@@ -125,6 +125,53 @@ export class TransactionRepository extends BaseRepository {
   }
 
   /**
+   * Generic find method with full Prisma options support
+   */
+  async find(
+    outletId: string,
+    options?: {
+      where?: Prisma.TransactionWhereInput;
+      skip?: number;
+      take?: number;
+      orderBy?: Prisma.TransactionOrderByWithRelationInput;
+      include?: Prisma.TransactionInclude;
+    }
+  ): Promise<Transaction[]> {
+    this.ensureOutletId(outletId, 'Transaction');
+
+    const where = {
+      ...this.getOutletFilter(outletId),
+      ...options?.where,
+    };
+
+    return prisma.transaction.findMany({
+      where,
+      skip: options?.skip,
+      take: options?.take,
+      orderBy: options?.orderBy,
+      include: options?.include,
+    });
+  }
+
+  /**
+   * Generic count method with where clause support
+   */
+  async count(
+    outletId: string,
+    where?: Prisma.TransactionWhereInput
+  ): Promise<number> {
+    this.ensureOutletId(outletId, 'Transaction');
+
+    const combinedWhere = {
+      ...this.getOutletFilter(outletId),
+      ...where,
+    };
+
+    return prisma.transaction.count({ where: combinedWhere });
+  }
+
+
+  /**
    * Find subscription payments (Admin - cross outlet, no outletId filter)
    * For SUPERADMIN payment verification
    */

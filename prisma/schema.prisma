@@ -110,6 +110,10 @@ model Outlet {
   logoUrl       String?
   coverUrl      String?
   isPro         Boolean               @default(false)
+  // Subscription tracking
+  subscriptionTier      String?   @default("FREE") // "FREE", "PRO", "ENTERPRISE"
+  subscriptionExpiresAt DateTime? // Null = no active paid subscription
+  subscriptionStartedAt DateTime? // When current subscription period started
   // Owner relationship (1 OWNER bisa memiliki banyak outlet)
   ownerId       String?
   owner         User?                 @relation("OutletOwner", fields: [ownerId], references: [id], onDelete: SetNull)
@@ -124,6 +128,7 @@ model Outlet {
   expenses      Expense[]             // Pengeluaran operasional outlet
 
   @@index([ownerId])
+  @@index([subscriptionExpiresAt]) // For querying expiring subscriptions
 }
 
 model BankAccount {

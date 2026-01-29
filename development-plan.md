@@ -509,13 +509,13 @@ Priority order: **Multi-outlet OWNER → Landing Page + Settings → Staff Manag
 - [ ] Show “pending verification” status after submit
 
 ### 3.4 Transaction Management [Role: OWNER]
-- [ ] Create transaction list page (`app/dashboard/transactions/page.tsx`)
-- [ ] Implement filter by type (SUBSCRIPTION, LAUNDRY_ORDER)
-- [ ] Create transaction detail page
-- [ ] Implement transaction status management
-- [ ] Outlet transactions (LAUNDRY_ORDER) are **bookkeeping only** (no approval/verification, no paymentMethod)
-- [ ] (Optional) Create transaction reports for internal bookkeeping (daily/monthly, etc.)
-- [ ] Implement export functionality
+- [x] Create transaction list page (`app/dashboard/transactions/page.tsx`)
+- [x] Implement filter by type (SUBSCRIPTION, LAUNDRY_ORDER)
+- [x] Create transaction detail page
+- [x] Implement transaction status management
+- [x] Outlet transactions (LAUNDRY_ORDER) are **bookkeeping only** (no approval/verification, no paymentMethod)
+- [x] (Optional) Create transaction reports for internal bookkeeping (daily/monthly, etc.)
+- [x] Implement export functionality
 - [ ] Display webhook data for debugging (Admin Panel) [Role: SUPERADMIN]
 
 ### 3.5 Payment Gateway Integration (Future-ready) [Role: SYSTEM]
