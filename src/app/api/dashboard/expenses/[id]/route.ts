@@ -5,8 +5,9 @@ import { ExpensesService } from '@/services/dashboard/ExpensesService';
 
 const expensesService = new ExpensesService();
 
-export const DELETE = withAuth(async (request: Request, session: ExtendedSession, { params }: { params: { id: string } }) => {
+export const DELETE = withAuth(async (request: Request, session: ExtendedSession, context: any) => {
     try {
+        const params = await context.params;
         await expensesService.deleteExpense(session, params.id);
         return Response.json({ success: true });
     } catch (error) {

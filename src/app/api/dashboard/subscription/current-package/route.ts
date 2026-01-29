@@ -5,10 +5,12 @@
  */
 
 import { NextResponse } from 'next/server';
-import { withOwnerAuth } from '@/lib/proxy/route-proxy';
+import { withAuth } from '@/lib/proxy/route-proxy';
+import { Role } from '@/generated/prisma';
+import { prisma } from '@/lib/prisma';
 import { PackageFeatureService } from '@/services/PackageFeatureService';
 
-export const GET = withOwnerAuth(async (req, session) => {
+export const GET = withAuth(async (req, session) => {
     try {
         if (!session.outletId) {
             return NextResponse.json(
@@ -28,4 +30,4 @@ export const GET = withOwnerAuth(async (req, session) => {
             { status: 500 }
         );
     }
-});
+}, { roles: [Role.OWNER], requireOutlet: false });

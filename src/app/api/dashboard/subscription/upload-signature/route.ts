@@ -6,24 +6,22 @@
  */
 
 import { NextResponse } from 'next/server';
-import { withOwnerAuth } from '@/lib/proxy/route-proxy';
+import { withAuth } from '@/lib/proxy/route-proxy';
 import { ExtendedSession } from '@/lib/auth';
 import { FileUploadService } from '@/services/upload/FileUploadService';
+import { Role } from '@/generated/prisma';
 
 const fileUploadService = new FileUploadService();
 
-export const POST = withOwnerAuth(async (request: Request, session: ExtendedSession) => {
+export const POST = withAuth(async (request: Request, session: ExtendedSession) => {
     try {
-        if (!session.outletId) {
-            return NextResponse.json(
-                { error: 'Outlet context required' },
-                { status: 403 }
-            );
-        }
+        // For Global Owner actions (like Subscription), outletId might be null.
+        // We allow this and put files in a general folder.
+        const folderContext = session.outletId || `global-owner/${session.userId}`;
 
         // Generate upload signature for payment proof
         const signature = fileUploadService.generateUploadSignature(
-            session.outletId,
+            folderContext,
             'payment-proof'
         );
 
@@ -38,4 +36,4 @@ export const POST = withOwnerAuth(async (request: Request, session: ExtendedSess
             { status: 500 }
         );
     }
-});
+}, { roles: [Role.OWNER], requireOutlet: false });

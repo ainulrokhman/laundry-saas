@@ -21,10 +21,11 @@ const paramsSchema = z.object({
  */
 export const POST = withAdminAuth(async (request: Request, session: ExtendedSession, context: any) => {
     try {
-        const { id } = paramsSchema.parse({ id: context.params.id });
+        const params = await context.params;
+        const { id } = paramsSchema.parse({ id: params.id });
 
         const service = new SubscriptionPaymentService();
-        const payment = await service.approvePayment(id, session.user.id);
+        const payment = await service.approvePayment(id, session.userId);
 
         return Response.json(
             {

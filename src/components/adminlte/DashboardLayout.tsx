@@ -30,6 +30,7 @@ interface MenuChildItem {
   icon: string;
   href: string;
   roles: Role[];
+  scope?: 'global' | 'outlet';
 }
 
 interface MenuItem {
@@ -38,6 +39,7 @@ interface MenuItem {
   href: string;
   roles: Role[];
   children?: MenuChildItem[];
+  scope?: 'global' | 'outlet'; // New property
 }
 
 /**
@@ -49,42 +51,49 @@ const menuItems: MenuItem[] = [
     icon: 'fas fa-tachometer-alt',
     href: '/dashboard',
     roles: [Role.OWNER, Role.STAFF],
+    scope: 'outlet',
   },
   {
     label: 'Orders',
     icon: 'fas fa-shopping-cart',
     href: '/dashboard/orders',
     roles: [Role.OWNER, Role.STAFF],
+    scope: 'outlet',
   },
   {
     label: 'Layanan',
     icon: 'fas fa-concierge-bell',
     href: '/dashboard/services',
     roles: [Role.OWNER],
+    scope: 'outlet',
   },
   {
     label: 'Customers',
     icon: 'fas fa-users',
     href: '/dashboard/customers',
     roles: [Role.OWNER, Role.STAFF],
+    scope: 'outlet',
   },
   {
     label: 'Transactions',
     icon: 'fas fa-money-bill-wave',
     href: '/dashboard/transactions',
     roles: [Role.OWNER],
+    scope: 'outlet',
   },
   {
     label: 'Pengeluaran',
     icon: 'fas fa-file-invoice-dollar',
     href: '/dashboard/expenses',
     roles: [Role.OWNER],
+    scope: 'outlet',
   },
   {
     label: 'Reports',
     icon: 'fas fa-chart-bar',
     href: '/dashboard/reports',
     roles: [Role.OWNER],
+    scope: 'outlet',
   },
   {
     label: 'Settings',
@@ -97,24 +106,36 @@ const menuItems: MenuItem[] = [
         icon: 'fas fa-users',
         href: '/dashboard/settings/staff',
         roles: [Role.OWNER],
+        scope: 'outlet',
       },
       {
         label: 'Rekening Bank',
         icon: 'fas fa-university',
         href: '/dashboard/settings/bank-accounts',
         roles: [Role.OWNER],
+        scope: 'outlet',
       },
       {
         label: 'Landing Page Outlet',
         icon: 'fas fa-store',
         href: '/dashboard/settings/landing-page',
         roles: [Role.OWNER],
+        scope: 'outlet',
+      },
+      // Global Items in Settings
+      {
+        label: 'Manajemen Outlet',
+        icon: 'fas fa-store',
+        href: '/dashboard/settings/outlets',
+        roles: [Role.OWNER],
+        scope: 'global',
       },
       {
-        label: 'Subscription',
-        icon: 'fas fa-credit-card',
+        label: 'Paket Langganan',
+        icon: 'fas fa-gem',
         href: '/dashboard/settings/subscription',
         roles: [Role.OWNER],
+        scope: 'global',
       },
     ],
   },
@@ -193,10 +214,47 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [openTreeview, setOpenTreeview] = useState<string | null>(null);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
 
-  // Filter menu items based on user role
-  const filteredMenuItems = menuItems.filter((item) =>
-    userRole ? item.roles.includes(userRole) : false
-  );
+  // Filter menu items based on user role AND context (Global vs Outlet)
+  const filteredMenuItems = menuItems
+    .filter((item) => {
+      // 1. Role Check
+      if (!userRole || !item.roles.includes(userRole)) return false;
+
+      // 2. Scope Check (Only for OWNER, Staff always sees outlet stuff)
+      if (userRole === Role.OWNER) {
+        if (!activeOutletId) {
+          // Global Context: Show only global items + settings container
+          if (item.scope === 'outlet') return false;
+        } else {
+          // Outlet Context: Show outlet items + global items (optional, usually mixed is ok)
+          // For cleaner UX, maybe hide some global items? 
+          // Current request: "menu sidebar menyesuaikan"
+          // Let's hide 'global' specific items when in outlet mode if undesired?
+          // Actually, Settings usually contains both. Let's keep logic simple:
+          // If activeOutletId is set, show everything? Or hide global-only dashboards?
+          // Let's assume: 
+          // - Global Mode: Show ONLY Global Items.
+          // - Outlet Mode: Show Outlet Items AND Global Items (like Settings).
+        }
+      }
+      return true;
+    })
+    .map(item => {
+      // Filter children based on scope too
+      if (item.children) {
+        return {
+          ...item,
+          children: item.children.filter(child => {
+            if (userRole === Role.OWNER && !activeOutletId) {
+              // Global Mode: Hide outlet-scoped children
+              if ((child as any).scope === 'outlet') return false;
+            }
+            return true;
+          })
+        };
+      }
+      return item;
+    });
 
   const normalizePath = (path: string | null | undefined) => {
     const raw = (path ?? '').split('?')[0]?.split('#')[0] ?? '';
@@ -341,36 +399,43 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }, [showOutletSwitcher]);
 
   async function handleSwitchOutlet(nextOutletId: string) {
-    if (!nextOutletId || nextOutletId === activeOutletId) return;
+    if (nextOutletId === activeOutletId && nextOutletId !== '') return; // Allow re-selecting blank if somehow needed, but mostly avoid redundant
     if (switching) return;
 
     setSwitching(true);
     try {
-      // Server-side validation that outlet belongs to OWNER
-      const validateRes = await fetch('/api/dashboard/outlet-context', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ outletId: nextOutletId }),
-      });
-      const validateJson = await validateRes.json().catch(() => null);
-      if (!validateRes.ok) {
-        throw new Error(validateJson?.message || 'Outlet tidak valid');
+      // If nextOutletId is empty, it means "Global Mode"
+      // We don't need to validate outlet ownership for empty ID
+      if (nextOutletId) {
+        // Server-side validation that outlet belongs to OWNER
+        const validateRes = await fetch('/api/dashboard/outlet-context', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ outletId: nextOutletId }),
+        });
+        if (!validateRes.ok) {
+          throw new Error('Outlet tidak valid');
+        }
       }
 
-      // Update NextAuth session (JWT) - server will re-validate again in jwt callback
-      await update({ outletId: nextOutletId } as any);
+      // Update NextAuth session (JWT)
+      // If nextOutletId is empty string, the session update should handle clearing it (or set to null)
+      // Note: check your auth implementation if it allows null outletId
+      await update({ outletId: nextOutletId || null } as any);
 
       await Swal.fire({
         icon: 'success',
         title: 'Berhasil',
-        text: 'Outlet aktif berhasil diubah.',
+        text: nextOutletId ? 'Outlet aktif berhasil diubah.' : 'Masuk ke Global Dashboard.',
         confirmButtonText: 'OK',
         confirmButtonColor: '#3085d6',
-        timer: 1500,
+        timer: 1000,
         timerProgressBar: true,
       });
 
       router.refresh();
+      // Force redirect to dashboard home to avoid 404 on outlet-specific routes
+      router.push('/dashboard');
     } catch (e) {
       await Swal.fire({
         icon: 'error',
@@ -513,34 +578,58 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <ul className="navbar-nav ms-auto">
             {showOutletSwitcher && (
               <li className="nav-item d-flex align-items-center me-2">
-                <div className="input-group input-group-sm">
-                  <span className="input-group-text">
-                    <i className="fas fa-store"></i>
-                  </span>
-                  <select
-                    className="form-select form-select-sm"
-                    value={activeOutletId ?? ''}
-                    disabled={outletsLoading || switching || ownedOutlets.length === 0}
-                    onChange={(e) => void handleSwitchOutlet(e.target.value)}
-                    aria-label="Pilih outlet aktif"
+                <div className="dropdown">
+                  <button
+                    className="btn btn-outline-secondary btn-sm dropdown-toggle d-flex align-items-center gap-2"
+                    type="button"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                    disabled={outletsLoading || switching}
                   >
-                    {outletsLoading && (
-                      <option value="">
-                        Memuat outlet...
-                      </option>
+                    <i className="fas fa-store"></i>
+                    <span className="d-none d-md-inline text-truncate" style={{ maxWidth: '150px' }}>
+                      {switching ? 'Switching...' : (
+                        activeOutletId
+                          ? ownedOutlets.find(o => o.id === activeOutletId)?.name || 'Outlet Tidak Dikenal'
+                          : 'Global Dashboard'
+                      )}
+                    </span>
+                  </button>
+                  <ul className="dropdown-menu dropdown-menu-end shadow border-0 mt-1">
+                    <li>
+                      <button
+                        className={`dropdown-item py-2 d-flex align-items-center ${!activeOutletId ? 'active bg-primary text-white' : ''}`}
+                        onClick={() => handleSwitchOutlet('')}
+                      >
+                        <i className="fas fa-globe me-2"></i> Global Dashboard
+                      </button>
+                    </li>
+                    <li><hr className="dropdown-divider" /></li>
+                    {ownedOutlets.length > 0 ? (
+                      ownedOutlets.map((outlet) => (
+                        <li key={outlet.id}>
+                          <button
+                            className={`dropdown-item py-2 ${activeOutletId === outlet.id ? 'active bg-primary text-white' : ''
+                              }`}
+                            onClick={() => handleSwitchOutlet(outlet.id)}
+                          >
+                            {outlet.name}
+                          </button>
+                        </li>
+                      ))
+                    ) : (
+                      <li>
+                        <span className="dropdown-item text-muted">Belum ada outlet</span>
+                      </li>
                     )}
-                    {!outletsLoading && ownedOutlets.length === 0 && (
-                      <option value="">
-                        Tidak ada outlet
-                      </option>
-                    )}
-                    {!outletsLoading &&
-                      ownedOutlets.map((o) => (
-                        <option key={o.id} value={o.id}>
-                          {o.name}
-                        </option>
-                      ))}
-                  </select>
+                    {/* Link to Add Outlet if needed */}
+                    <li><hr className="dropdown-divider" /></li>
+                    <li>
+                      <Link href="/dashboard/settings/outlets" className="dropdown-item text-primary fw-bold">
+                        <i className="fas fa-plus me-2"></i> Kelola Outlet
+                      </Link>
+                    </li>
+                  </ul>
                 </div>
               </li>
             )}

@@ -8,6 +8,7 @@
 import { TransactionRepository } from '@/repositories/TransactionRepository';
 import { PaymentStatus, TransType } from '@/generated/prisma';
 import { securityLogService, SecurityEventType } from '../security/SecurityLogService';
+import { prisma } from '@/lib/prisma';
 
 export interface SubscriptionPaymentFilters {
     status?: PaymentStatus;
@@ -90,6 +91,35 @@ export class SubscriptionPaymentService {
             PaymentStatus.SETTLEMENT,
             new Date()
         );
+
+        // ACTIVATE SUBSCRIPTION
+        // If payment is for a subscription package, update the User's subscription details
+        if (payment.packageId && payment.userId) {
+            const pkg = await prisma.subscriptionPackage.findUnique({
+                where: { id: payment.packageId },
+            });
+
+            if (pkg) {
+                const now = new Date();
+                // Default duration 30 days if not specified in logic (assuming monthly for now)
+                // In future, package could have 'durationInDays' field.
+                // For now hardcode 30 days or derived from package name if needed. 
+                // Let's assume standard 30 days unless we have data.
+                const daysToAdd = 30;
+                const expiresAt = new Date(now.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+
+                await prisma.user.update({
+                    where: { id: payment.userId },
+                    data: {
+                        package: {
+                            connect: { id: pkg.id }
+                        },
+                        subscriptionStartedAt: now,
+                        subscriptionExpiresAt: expiresAt,
+                    },
+                });
+            }
+        }
 
         // Log admin action
         await securityLogService.logEvent({

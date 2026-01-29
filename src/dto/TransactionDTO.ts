@@ -89,7 +89,7 @@ export class TransactionDTO {
     return {
       ...base,
       // Include gateway transaction ID for admin
-      gatewayTransactionId: transaction.gatewayTransactionId || null,
+      gwTransactionId: transaction.gatewayTransactionId || null,
       // Include external ID for admin
       externalId: transaction.externalId || null,
       // Full bank account number for admin (not masked)
@@ -98,6 +98,20 @@ export class TransactionDTO {
           ...base.bankAccount,
           accountNumber: transaction.bankAccount.accountNumber, // Full number for admin
         },
+      }),
+      // Include Package Details (Subscription)
+      ...((transaction as any).package && {
+        package: {
+          name: (transaction as any).package.name,
+          price: (transaction as any).package.price,
+          maxOutlets: (transaction as any).package.maxOutlets,
+        }
+      }),
+      // Include User Subscription Details
+      ...((transaction as any).user && {
+        userSubscription: {
+          expiresAt: (transaction as any).user.subscriptionExpiresAt,
+        }
       }),
     };
   }

@@ -272,6 +272,23 @@ export class TransactionRepository extends BaseRepository {
             accountName: true,
           },
         },
+        package: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            description: true,
+            maxOutlets: true,
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            subscriptionExpiresAt: true,
+          }
+        }
       },
     });
   }

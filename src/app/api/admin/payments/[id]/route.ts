@@ -20,7 +20,9 @@ const paramsSchema = z.object({
  */
 export const GET = withAdminAuth(async (request: Request, _session, context: any) => {
     try {
-        const { id } = paramsSchema.parse({ id: context.params.id });
+        // Next.js 15: params is a Promise
+        const params = await context.params;
+        const { id } = paramsSchema.parse({ id: params.id });
 
         const service = new SubscriptionPaymentService();
         const payment = await service.getPaymentById(id);

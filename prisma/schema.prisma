@@ -58,6 +58,10 @@ enum OtpType {
 // Models
 // ============================================
 
+// ============================================
+// Models
+// ============================================
+
 model User {
   id                  String   @id @default(uuid())
   phone               String   @unique // Nomor WhatsApp (format: 6281234567890)
@@ -70,6 +74,13 @@ model User {
   // sedangkan kepemilikan outlet dimodelkan via Outlet.ownerId.
   ownedOutlets         Outlet[] @relation("OutletOwner")
   orderStatusChanges   OrderStatusHistory[] @relation("OrderStatusHistoryChangedBy")
+  
+  // Subscription fields (Owner-level)
+  packageId             String?   // Reference to SubscriptionPackage
+  package               SubscriptionPackage? @relation(fields: [packageId], references: [id])
+  subscriptionExpiresAt DateTime? // Null = no active paid subscription
+  subscriptionStartedAt DateTime? // When current subscription period started
+  
   isActive            Boolean  @default(true)
   isPinSet            Boolean  @default(false) // Flag untuk cek apakah PIN sudah di-set (setelah register)
   failedLoginAttempts Int      @default(0) // Jumlah percobaan login yang gagal
@@ -81,6 +92,9 @@ model User {
 
   @@index([outletId])
   @@index([phone])
+  @@index([packageId])
+
+  transactions Transaction[] // History pembayaran langganan
 }
 
 model OtpCode {
@@ -108,16 +122,19 @@ model SubscriptionPackage {
   description String?  // Package description
   features    Json     // Array of feature strings
   maxStaff    Int      @default(3) // Maximum staff members (-1 = unlimited)
+  maxOutlets  Int      @default(1) // Maximum outlets allowed (NEW)
   isActive    Boolean  @default(true)
   sortOrder   Int      @default(0) // Display order
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
-  outlets     Outlet[]
+  users       User[]
   
   @@index([slug])
   @@index([isActive])
   @@index([sortOrder])
+
+  transactions Transaction[] // History pembelian paket ini
 }
 
 model Outlet {
@@ -134,12 +151,7 @@ model Outlet {
   logoUrl       String?
   coverUrl      String?
   isPro         Boolean               @default(false)
-  // Subscription tracking
-  packageId             String?   // Reference to SubscriptionPackage
-  package               SubscriptionPackage? @relation(fields: [packageId], references: [id], onDelete: SetNull)
-  subscriptionTier      String?   @default("FREE") // DEPRECATED: use package instead
-  subscriptionExpiresAt DateTime? // Null = no active paid subscription
-  subscriptionStartedAt DateTime? // When current subscription period started
+  
   // Owner relationship (1 OWNER bisa memiliki banyak outlet)
   ownerId       String?
   owner         User?                 @relation("OutletOwner", fields: [ownerId], references: [id], onDelete: SetNull)
@@ -154,8 +166,6 @@ model Outlet {
   expenses      Expense[]             // Pengeluaran operasional outlet
 
   @@index([ownerId])
-  @@index([packageId])
-  @@index([subscriptionExpiresAt]) // For querying expiring subscriptions
 }
 
 model BankAccount {
@@ -296,6 +306,13 @@ model Transaction {
   bankAccount  BankAccount?  @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
   paymentGatewayConfigId String? // ID konfigurasi gateway yang digunakan
   paymentGatewayConfig PaymentGatewayConfig? @relation(fields: [paymentGatewayConfigId], references: [id], onDelete: SetNull)
+  
+  // Subscription Payment Fields (Phase 4)
+  userId       String?       // Owner who pays (for Subscription)
+  user         User?         @relation(fields: [userId], references: [id])
+  packageId    String?       // Package being purchased
+  package      SubscriptionPackage? @relation(fields: [packageId], references: [id])
+
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   settledAt    DateTime?     // Timestamp ketika pembayaran diselesaikan

@@ -29,6 +29,14 @@ type PaymentRow = {
     verifiedAt: string | null;
     externalId: string | null;
     outletId: string | null;
+    package?: {
+        name: string;
+        price: number;
+        maxOutlets: number;
+    };
+    userSubscription?: {
+        expiresAt: string | null;
+    };
 };
 
 type PaymentStats = {
@@ -612,6 +620,30 @@ export default function AdminPaymentsPage() {
                                                     </div>
                                                 </div>
 
+                                                {selectedPayment.package && (
+                                                    <div className="col-12 col-md-6">
+                                                        <label className="form-label fw-bold">Paket Langganan</label>
+                                                        <div className="fs-5">{selectedPayment.package.name}</div>
+                                                        <small className="text-muted">Max Outlet: {selectedPayment.package.maxOutlets}</small>
+                                                    </div>
+                                                )}
+
+                                                {selectedPayment.userSubscription && (
+                                                    <div className="col-12 col-md-6">
+                                                        <label className="form-label fw-bold">Status Berjalan</label>
+                                                        <div>
+                                                            {selectedPayment.userSubscription.expiresAt && new Date(selectedPayment.userSubscription.expiresAt) > new Date() ? (
+                                                                <span className="badge bg-success">Aktif</span>
+                                                            ) : (
+                                                                <span className="badge bg-secondary">Tidak Aktif</span>
+                                                            )}
+                                                        </div>
+                                                        <div className="small text-muted mt-1">
+                                                            Exp: {selectedPayment.userSubscription.expiresAt ? formatDateTime(selectedPayment.userSubscription.expiresAt) : '-'}
+                                                        </div>
+                                                    </div>
+                                                )}
+
                                                 <div className="col-12 col-md-6">
                                                     <label className="form-label fw-bold">Tanggal Upload</label>
                                                     <div>{formatDateTime(selectedPayment.createdAt)}</div>
@@ -687,7 +719,8 @@ export default function AdminPaymentsPage() {
                     </div>
                     <div className="modal-backdrop fade show"></div>
                 </>
-            )}
+            )
+            }
         </>
     );
 }

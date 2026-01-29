@@ -23,7 +23,8 @@ const updatePackageSchema = z.object({
 export const GET = withAdminAuth(async (req, session, context: { params: { id: string } }) => {
     try {
         const service = new PackageManagementService();
-        const pkg = await service.getPackageById(context.params.id);
+        const params = await context.params;
+        const pkg = await service.getPackageById(params.id);
 
         return NextResponse.json(pkg);
     } catch (error: any) {
@@ -41,7 +42,8 @@ export const PUT = withAdminAuth(async (req, session, context: { params: { id: s
         const validatedData = updatePackageSchema.parse(body);
 
         const service = new PackageManagementService();
-        const pkg = await service.updatePackage(context.params.id, validatedData);
+        const params = await context.params;
+        const pkg = await service.updatePackage(params.id, validatedData);
 
         return NextResponse.json(pkg);
     } catch (error: any) {
@@ -64,7 +66,8 @@ export const PUT = withAdminAuth(async (req, session, context: { params: { id: s
 export const DELETE = withAdminAuth(async (req, session, context: { params: { id: string } }) => {
     try {
         const service = new PackageManagementService();
-        await service.deletePackage(context.params.id);
+        const params = await context.params;
+        await service.deletePackage(params.id);
 
         return NextResponse.json({ success: true });
     } catch (error: any) {

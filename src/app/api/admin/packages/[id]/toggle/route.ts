@@ -11,7 +11,8 @@ import { PackageManagementService } from '@/services/admin/PackageManagementServ
 export const PATCH = withAdminAuth(async (req, session, context: { params: { id: string } }) => {
     try {
         const service = new PackageManagementService();
-        const pkg = await service.togglePackageStatus(context.params.id);
+        const params = await context.params;
+        const pkg = await service.togglePackageStatus(params.id);
 
         return NextResponse.json(pkg);
     } catch (error: any) {

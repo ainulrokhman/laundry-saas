@@ -5,6 +5,10 @@ OWNER is an outlet owner responsible for outlet configuration and operations. OW
 Note: OWNER can be **multi-outlet**. Dashboard actions always run within the **active outlet** (outlet context) selected by the user.
 
 ## Key features
+- **Subscription & Outlet Management (NEW)**
+  - Manage Subscription (Owner-level): View package status, upgrade plan.
+  - Manage Outlets: Create, Update, and Deactivate outlets (limited by Subscription Quota).
+  - Switch active outlet context.
 - **Dashboard & Outlet Operations**
   - View outlet performance summary (dashboard)
   - Manage orders and operational workflow
@@ -23,7 +27,30 @@ Note: OWNER can be **multi-outlet**. Dashboard actions always run within the **a
   - Update STAFF data (name/phone) and active/inactive status
   - Deactivate STAFF when needed
 - **Reports**
-  - View outlet operational reports (daily/weekly/monthly) (roadmap)
+  - View outlet operational reports (daily/weekly/monthly)
+  - View Global Business Reports (Aggregated from all outlets) (roadmap)
+
+## Menu Structure & Scope
+
+### 1. Global / Tenant Level (No Active Outlet Required)
+Items here apply to the Account or Business as a whole, across all outlets.
+*   **Settings**
+    *   **Manajemen Outlet**: Add, view, edit all branches.
+    *   **Paket Langganan**: Manage subscription plan and billing invoice.
+    *   **Profile**: Change PIN, Personal Info.
+*   **Global Reports (Roadmap)**: Consolidated revenue/transactions from all outlets.
+
+### 2. Single Outlet Level (Requires Active Outlet Context)
+Items here only show data specific to the *currently selected outlet* in the navbar.
+*   **Dashboard**: Outlet permormance summary.
+*   **Sales / POS**: Cashier interface for this outlet.
+*   **Orders**: Order history for this outlet.
+*   **Customers**: Customer database for this outlet.
+*   **Services**: Products/Services sold at this outlet.
+*   **Settings (Outlet)**:
+    *   Bank Accounts (local to outlet).
+    *   Payment Gateways (local to outlet).
+    *   Staff Management (local to outlet).
 
 ## Restrictions (not allowed)
 - Do not manage outlets outside of the OWNER’s ownership.
@@ -32,9 +59,9 @@ Note: OWNER can be **multi-outlet**. Dashboard actions always run within the **a
 
 ## Security notes
 - All data shown/modified by OWNER must always be scoped to the active outlet (tenant isolation).
+- Subscription data is scoped to the OWNER (User).
 - Sensitive operations (bank accounts, payment configuration) should be restricted to OWNER only.
 
 ## OWNER backlog
-- Subscription management on the outlet side (view status, make payments/renewals) per product design.
-- Upload subscription payment proof (manual transfer) and view verification status (roadmap).
+- Upload subscription payment proof (manual transfer) and view verification status.
 

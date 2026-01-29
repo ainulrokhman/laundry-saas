@@ -6,22 +6,20 @@
  */
 
 import { NextResponse } from 'next/server';
-import { withOwnerAuth } from '@/lib/proxy/route-proxy';
+import { withAuth } from '@/lib/proxy/route-proxy';
 import { ExtendedSession } from '@/lib/auth';
+import { Role } from '@/generated/prisma';
+import { prisma } from '@/lib/prisma';
 import { SubscriptionPaymentService } from '@/services/dashboard/SubscriptionPaymentService';
 
 const subscriptionService = new SubscriptionPaymentService();
 
-export const GET = withOwnerAuth(async (request: Request, session: ExtendedSession) => {
+export const GET = withAuth(async (request: Request, session: ExtendedSession) => {
     try {
-        if (!session.outletId) {
-            return NextResponse.json(
-                { error: 'Outlet context required' },
-                { status: 403 }
-            );
-        }
+        // Global owner mode allowed, no outlet check needed
+        // if (!session.outletId) ... removed
 
-        const history = await subscriptionService.getPaymentHistory(session.outletId);
+        const history = await subscriptionService.getPaymentHistory(session.userId);
 
         return NextResponse.json({
             success: true,
@@ -34,4 +32,4 @@ export const GET = withOwnerAuth(async (request: Request, session: ExtendedSessi
             { status: 500 }
         );
     }
-});
+}, { roles: [Role.OWNER], requireOutlet: false });

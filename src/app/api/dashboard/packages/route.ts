@@ -5,10 +5,11 @@
  */
 
 import { NextResponse } from 'next/server';
-import { withOwnerAuth } from '@/lib/proxy/route-proxy';
+import { withAuth } from '@/lib/proxy/route-proxy';
+import { Role } from '@/generated/prisma';
 import { PackageManagementService } from '@/services/admin/PackageManagementService';
 
-export const GET = withOwnerAuth(async () => {
+export const GET = withAuth(async () => {
     try {
         const service = new PackageManagementService();
         const packages = await service.getAllPackages(false); // Only active packages
@@ -21,4 +22,4 @@ export const GET = withOwnerAuth(async () => {
             { status: 500 }
         );
     }
-});
+}, { roles: [Role.OWNER], requireOutlet: false });

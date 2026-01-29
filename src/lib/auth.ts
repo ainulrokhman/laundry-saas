@@ -89,9 +89,11 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         const user = await prisma.user.findUnique({
           where: { phone: normalizedPhone },
           include: {
-            outlet: true,
+            outlet: {
+              select: { id: true, ownerId: true, name: true, slug: true }
+            },
             ownedOutlets: {
-              select: { id: true },
+              select: { id: true, name: true },
               orderBy: { createdAt: 'asc' },
             },
           },
@@ -127,7 +129,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           // Record failed attempt
           recordAttempt(normalizedPhone, LOGIN_RATE_LIMIT);
           const shouldLock = await recordFailedAttempt(user.id);
-          
+
           await securityLogService.logLoginAttempt(
             normalizedPhone,
             false,
@@ -209,12 +211,13 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             }
           }
 
-          // If OWNER has no owned outlets, block dashboard access early.
-          if (!nextActiveOutletId) {
-            throw new Error('Akun OWNER Anda belum memiliki outlet. Silakan hubungi admin untuk mengaitkan outlet.');
-          }
+          // If OWNER has no owned outlets, usually we force them to create one.
+          // But with Global Dashboard, we can allow login without an active outlet.
+          // if (!nextActiveOutletId) {
+          //   throw new Error('Akun OWNER Anda belum memiliki outlet. Silakan hubungi admin untuk mengaitkan outlet.');
+          // }
 
-          // Mutate return payload outletId to ensure session uses active outlet.
+          // Mutate return payload outletId to ensure session uses active outlet (or null for global).
           (user as any).outletId = nextActiveOutletId;
         }
 
@@ -262,12 +265,12 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
       // Allow outlet context switching for OWNER via useSession().update({ outletId })
       if (trigger === 'update' && session) {
-        const requestedOutletId = (session as any).outletId as string | null | undefined;
-        if (requestedOutletId !== undefined) {
-          if (!isValidUuid(requestedOutletId)) {
-            throw new Error('Outlet tidak valid');
-          }
+        // requestedOutletId can be string (UUID), empty string (""), or null.
+        // Undefined means it wasn't passed in the update payload.
+        const requestedOutletId = (session as any).outletId;
 
+        // Check if outletId property exists in the update payload
+        if (requestedOutletId !== undefined) {
           const role = token.role as Role | undefined;
           const userId = token.userId as string | undefined;
 
@@ -276,27 +279,39 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           }
 
           if (role === Role.OWNER) {
-            const owns = await prisma.outlet.count({
-              where: { id: requestedOutletId, ownerId: userId },
-            });
-            if (owns <= 0) {
-              throw new Error('Outlet tidak termasuk dalam kepemilikan Anda');
+            // Case 1: Switching to Global Mode (empty or null)
+            if (!requestedOutletId) {
+              await prisma.user.update({
+                where: { id: userId },
+                data: { outletId: null },
+              });
+              token.outletId = null;
             }
+            // Case 2: Switching to Specific Outlet
+            else {
+              if (!isValidUuid(requestedOutletId)) {
+                throw new Error('Outlet ID tidak valid');
+              }
 
-            // Persist active outlet for consistency across devices
-            await prisma.user.update({
-              where: { id: userId },
-              data: { outletId: requestedOutletId },
-            });
+              const owns = await prisma.outlet.count({
+                where: { id: requestedOutletId, ownerId: userId },
+              });
+              if (owns <= 0) {
+                throw new Error('Outlet tidak termasuk dalam kepemilikan Anda');
+              }
 
-            token.outletId = requestedOutletId;
+              // Persist active outlet
+              await prisma.user.update({
+                where: { id: userId },
+                data: { outletId: requestedOutletId },
+              });
+              token.outletId = requestedOutletId;
+            }
           } else if (role === Role.STAFF) {
-            // STAFF tidak boleh mengganti outlet context (single outlet)
-            if (token.outletId !== requestedOutletId) {
+            // STAFF cannot switch context
+            if (requestedOutletId !== token.outletId) {
               throw new Error('STAFF tidak dapat mengganti outlet');
             }
-          } else {
-            throw new Error('Role tidak dapat mengganti outlet');
           }
         }
       }

@@ -6,13 +6,15 @@
  */
 
 import { NextResponse } from 'next/server';
-import { withOwnerAuth } from '@/lib/proxy/route-proxy';
+import { withAuth } from '@/lib/proxy/route-proxy';
 import { ExtendedSession } from '@/lib/auth';
+import { Role } from '@/generated/prisma';
+import { prisma } from '@/lib/prisma';
 import { SubscriptionPaymentService } from '@/services/dashboard/SubscriptionPaymentService';
 
 const subscriptionService = new SubscriptionPaymentService();
 
-export const GET = withOwnerAuth(async (request: Request, session: ExtendedSession) => {
+export const GET = withAuth(async (request: Request, session: ExtendedSession) => {
     try {
         if (!session.outletId) {
             return NextResponse.json(
@@ -21,7 +23,7 @@ export const GET = withOwnerAuth(async (request: Request, session: ExtendedSessi
             );
         }
 
-        const subscription = await subscriptionService.getCurrentSubscription(session.outletId);
+        const subscription = await subscriptionService.getCurrentSubscription(session.userId);
 
         return NextResponse.json({
             success: true,
@@ -42,4 +44,4 @@ export const GET = withOwnerAuth(async (request: Request, session: ExtendedSessi
             { status: 500 }
         );
     }
-});
+}, { roles: [Role.OWNER], requireOutlet: false });
