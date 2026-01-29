@@ -115,6 +115,32 @@ const menuItems: MenuItem[] = [
         href: '/dashboard/settings/landing-page',
         roles: [Role.OWNER],
       },
+      {
+        label: 'Subscription',
+        icon: 'fas fa-credit-card',
+        href: '/dashboard/settings/subscription',
+        roles: [Role.OWNER],
+      },
+    ],
+  },
+  {
+    label: 'Subscriptions',
+    icon: 'fas fa-crown',
+    href: '/admin/subscriptions',
+    roles: [Role.SUPERADMIN],
+    children: [
+      {
+        label: 'All Subscriptions',
+        icon: 'fas fa-list',
+        href: '/admin/subscriptions',
+        roles: [Role.SUPERADMIN],
+      },
+      {
+        label: 'Pending Payments',
+        icon: 'fas fa-clock',
+        href: '/admin/subscriptions/pending',
+        roles: [Role.SUPERADMIN],
+      },
     ],
   },
   {
