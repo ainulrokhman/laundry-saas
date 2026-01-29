@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import { Role } from '@/generated/prisma';
+import ChangePinModal from './ChangePinModal';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -91,12 +92,6 @@ const menuItems: MenuItem[] = [
     href: '/dashboard/settings',
     roles: [Role.OWNER, Role.STAFF],
     children: [
-      {
-        label: 'Ubah PIN',
-        icon: 'fas fa-key',
-        href: '/dashboard/settings/change-pin',
-        roles: [Role.OWNER, Role.STAFF],
-      },
       {
         label: 'Manajemen Staff',
         icon: 'fas fa-users',
@@ -196,6 +191,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [outletsLoading, setOutletsLoading] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [openTreeview, setOpenTreeview] = useState<string | null>(null);
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
 
   // Filter menu items based on user role
   const filteredMenuItems = menuItems.filter((item) =>
@@ -549,57 +545,70 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </li>
             )}
             {/* User Dropdown Menu */}
-            <li className="nav-item dropdown user-menu">
+            <li className="nav-item dropdown">
               <a
                 href="#"
-                className="nav-link dropdown-toggle"
+                className="nav-link dropdown-toggle d-flex align-items-center"
                 data-bs-toggle="dropdown"
+                aria-expanded="false"
               >
-                <i className="bi bi-person-circle me-1"></i>
-                <span className="d-none d-md-inline">
+                <div
+                  className="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white me-2"
+                  style={{ width: '32px', height: '32px', fontSize: '14px' }}
+                >
+                  {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <span className="d-none d-md-inline fw-semibold">
                   {user?.name || user?.phone || 'User'}
                 </span>
               </a>
-              <ul className="dropdown-menu dropdown-menu-lg dropdown-menu-end">
-                {/* User Image */}
-                <li className="user-header text-bg-primary">
-                  <p>
-                    {user?.name || 'User'}
-                    {user?.role && (
-                      <small className="d-block">
-                        <span className="badge bg-light text-dark">{user.role}</span>
-                      </small>
-                    )}
-                  </p>
-                </li>
-                {/* End User Image */}
-                {/* Menu Body */}
-                <li className="user-body">
+              <ul className="dropdown-menu dropdown-menu-end border-0 shadow-lg p-0 overflow-hidden" style={{ minWidth: '240px' }}>
+                {/* Header */}
+                <li className="p-3 bg-primary text-white text-center">
+                  <div className="fw-bold fs-5">{user?.name || 'User'}</div>
+                  <div className="small opacity-75 mb-1">{user?.role || 'Guest'}</div>
                   {user?.phone && (
-                    <div className="row">
-                      <div className="col-12 text-center">
-                        <small className="text-muted">
-                          <i className="bi bi-telephone me-1"></i>
-                          {user.phone}
-                        </small>
-                      </div>
+                    <div className="small opacity-75">
+                      <i className="bi bi-telephone-fill me-1" style={{ fontSize: '0.8em' }}></i>
+                      {user.phone}
                     </div>
                   )}
                 </li>
-                {/* End Menu Body */}
-                {/* Menu Footer */}
-                <li className="user-footer">
-                  <Link href="/dashboard/settings" className="btn btn-default btn-flat">
-                    Profile
+
+                {/* Menu Items */}
+                <li className="py-1">
+                  <Link
+                    href="/dashboard/settings"
+                    className="dropdown-item py-2 px-3 d-flex align-items-center"
+                  >
+                    <i className="fas fa-user-circle me-3 text-secondary" style={{ width: '20px' }}></i>
+                    <span>Profile Saya</span>
                   </Link>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    className="dropdown-item py-2 px-3 d-flex align-items-center w-100 text-start"
+                    onClick={() => setIsPinModalOpen(true)}
+                  >
+                    <i className="fas fa-key me-3 text-secondary" style={{ width: '20px' }}></i>
+                    <span>Ubah PIN</span>
+                  </button>
+                </li>
+
+                {/* Divider */}
+                <li><hr className="dropdown-divider my-1" /></li>
+
+                {/* Logout */}
+                <li className="py-1">
                   <a
                     href="/api/auth/signout"
-                    className="btn btn-default btn-flat float-end"
+                    className="dropdown-item py-2 px-3 d-flex align-items-center text-danger"
                   >
-                    Sign out
+                    <i className="fas fa-sign-out-alt me-3" style={{ width: '20px' }}></i>
+                    <span>Sign Out</span>
                   </a>
                 </li>
-                {/* End Menu Footer */}
               </ul>
             </li>
             {/* End User Dropdown Menu */}
@@ -639,6 +648,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* End Copyright */}
       </footer>
       {/* End Footer */}
+      {/* End Footer */}
+
+      <ChangePinModal
+        isOpen={isPinModalOpen}
+        onClose={() => setIsPinModalOpen(false)}
+      />
     </div>
   );
 }
