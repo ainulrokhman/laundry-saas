@@ -8,16 +8,23 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import Swal from 'sweetalert2';
 // Import SweetAlert2 CSS
 import 'sweetalert2/dist/sweetalert2.min.css';
 
 export default function LoginPage() {
+  const { data: session, status } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [phone, setPhone] = useState('');
   const [pin, setPin] = useState('');
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.push('/dashboard');
+    }
+  }, [status, router]);
 
   // SweetAlert2 CSS is imported statically at the top of the file
 
