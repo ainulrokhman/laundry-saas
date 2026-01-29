@@ -53,7 +53,7 @@ const menuItems: MenuItem[] = [
     label: 'Orders',
     icon: 'fas fa-shopping-cart',
     href: '/dashboard/orders',
-    roles: [Role.SUPERADMIN, Role.OWNER, Role.STAFF],
+    roles: [Role.OWNER, Role.STAFF],
   },
   {
     label: 'Layanan',
@@ -65,25 +65,25 @@ const menuItems: MenuItem[] = [
     label: 'Customers',
     icon: 'fas fa-users',
     href: '/dashboard/customers',
-    roles: [Role.SUPERADMIN, Role.OWNER, Role.STAFF],
+    roles: [Role.OWNER, Role.STAFF],
   },
   {
     label: 'Transactions',
     icon: 'fas fa-money-bill-wave',
     href: '/dashboard/transactions',
-    roles: [Role.SUPERADMIN, Role.OWNER],
+    roles: [Role.OWNER],
   },
   {
     label: 'Pengeluaran',
     icon: 'fas fa-file-invoice-dollar',
     href: '/dashboard/expenses',
-    roles: [Role.OWNER, Role.SUPERADMIN],
+    roles: [Role.OWNER],
   },
   {
     label: 'Reports',
     icon: 'fas fa-chart-bar',
     href: '/dashboard/reports',
-    roles: [Role.SUPERADMIN, Role.OWNER],
+    roles: [Role.OWNER],
   },
   {
     label: 'Settings',
@@ -122,6 +122,13 @@ const menuItems: MenuItem[] = [
         roles: [Role.OWNER],
       },
     ],
+  },
+  // SUPERADMIN Menus
+  {
+    label: 'Dashboard (Admin)',
+    icon: 'fas fa-tachometer-alt',
+    href: '/admin/outlets',
+    roles: [Role.SUPERADMIN],
   },
   {
     label: 'Subscriptions',
@@ -173,7 +180,6 @@ const menuItems: MenuItem[] = [
     href: '/admin/payments',
     roles: [Role.SUPERADMIN],
   },
-  // Add more SUPERADMIN menu items here
 ];
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
@@ -427,7 +433,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   : active;
                 return (
                   <li
-                    key={item.href}
+                    key={item.label}
                     className={`nav-item ${shouldMenuOpen ? 'menu-open' : ''}`}
                   >
                     {hasChildren ? (
