@@ -70,8 +70,9 @@ export default function SubscriptionPage() {
     const calculateProgress = () => {
         if (!data) return 0;
         if (data.maxOutlets === 0) return 100; // Prevent division by zero
-        const pct = (data.usedOutlets / data.maxOutlets) * 100;
-        return Math.min(pct, 100);
+        return data.maxOutlets === -1
+            ? 100
+            : Math.min((data.usedOutlets / data.maxOutlets) * 100, 100);
     };
 
     const formatCurrency = (val: number) => {
@@ -108,6 +109,8 @@ export default function SubscriptionPage() {
 
     const progress = calculateProgress();
     const isExpired = data?.status === 'EXPIRED';
+    const isUnlimited = data?.maxOutlets === -1;
+    const max = isUnlimited ? 'Unlimited' : data?.maxOutlets;
 
     return (
         <div className="content-wrapper">
@@ -161,25 +164,23 @@ export default function SubscriptionPage() {
                                 <div className="card-body">
                                     <h5>Outlet</h5>
                                     <p className="text-muted">
-                                        Anda menggunakan <b>{data?.usedOutlets}</b> dari <b>{data?.maxOutlets}</b> slot outlet.
+                                        Anda menggunakan <b>{data?.usedOutlets}</b> dari <b>{max}</b> slot outlet.
                                     </p>
                                     <div className="progress mb-3" style={{ height: '20px' }}>
                                         <div
-                                            className={`progress-bar ${progress >= 100 ? 'bg-danger' : 'bg-primary'}`}
-                                            role="progressbar"
+                                            className={`progress-bar ${!isUnlimited && progress >= 100 ? 'bg-danger' : 'bg-primary'}`}
                                             style={{ width: `${progress}%` }}
-                                            aria-valuenow={progress}
-                                            aria-valuemin={0}
-                                            aria-valuemax={100}
                                         >
-                                            {Math.round(progress)}%
+                                            {isUnlimited ? 'Unlimited' : `${Math.round(progress)}%`}
                                         </div>
                                     </div>
 
-                                    <div className="alert alert-info mt-4">
-                                        <i className="icon fas fa-info-circle"></i>
-                                        Ingin menambah cabang lebih banyak? Upgrade ke paket <b>Pro</b> atau <b>Enterprise</b> untuk kebutuhan skala besar.
-                                    </div>
+                                    {!isUnlimited && (
+                                        <div className="alert alert-info mt-4">
+                                            <i className="icon fas fa-info-circle"></i>
+                                            Ingin menambah cabang lebih banyak? Upgrade ke paket <b>Pro</b> atau <b>Enterprise</b> untuk kebutuhan skala besar.
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
