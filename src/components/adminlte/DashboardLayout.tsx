@@ -129,6 +129,12 @@ const menuItems: MenuItem[] = [
     href: '/admin/users',
     roles: [Role.SUPERADMIN],
   },
+  {
+    label: 'Verifikasi Pembayaran',
+    icon: 'fas fa-money-check-alt',
+    href: '/admin/payments',
+    roles: [Role.SUPERADMIN],
+  },
 ];
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {

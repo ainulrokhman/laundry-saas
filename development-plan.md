@@ -464,19 +464,19 @@ Priority order: **Multi-outlet OWNER → Landing Page + Settings → Staff Manag
 - [ ] Implement PDF download (optional)
 
 ### 2.6 Customer Management [Role: OWNER/STAFF]
-- [ ] Create Customer model in Prisma
-- [ ] Create customer list page (`app/dashboard/customers/page.tsx`)
-- [ ] Implement CRUD for customers
-- [ ] Create customer detail page with order history
-- [ ] Implement customer search
-- [ ] Create quick customer selection in POS
+- [x] Create Customer model in Prisma
+- [x] Create customer list page (`app/dashboard/customers/page.tsx`)
+- [x] Implement CRUD for customers
+- [x] Create customer detail page with order history
+- [x] Implement customer search
+- [x] Create quick customer selection in POS
 
 ### 2.7 Order Reports [Role: OWNER]
-- [ ] Create reports page (`app/dashboard/reports/page.tsx`)
-- [ ] Implement daily/weekly/monthly reports
-- [ ] Create chart for order statistics
-- [ ] Implement export to Excel/PDF (optional)
-- [ ] Create date range filter
+- [x] Create reports page (`app/dashboard/reports/page.tsx`)
+- [x] Implement daily/weekly/monthly reports
+- [x] Create chart for order statistics
+- [x] Implement export to Excel/PDF (optional)
+- [x] Create date range filter
 
 ---
 
@@ -485,13 +485,13 @@ Priority order: **Multi-outlet OWNER → Landing Page + Settings → Staff Manag
 > Scope note: **Payment methods + approval/verification are only for SaaS subscriptions**. Outlet transactions (laundry orders) are **bookkeeping only**.
 
 ### 3.2 Payment Verification (Subscription - SuperAdmin) [Role: SUPERADMIN]
-- [ ] Create payment verification page (`app/admin/payments/page.tsx`)
-- [ ] Implement list of pending payments (subscription only)
-- [ ] Create AdminLTE Info Box for payment status
-- [ ] Implement approve/reject for subscription payments
-- [ ] Create payment detail modal
-- [ ] Implement payment history
-- [ ] Create notification system for payment status
+- [x] Create payment verification page (`app/admin/payments/page.tsx`)
+- [x] Implement list of pending payments (subscription only)
+- [x] Create AdminLTE Info Box for payment status
+- [x] Implement approve/reject for subscription payments
+- [x] Create payment detail modal
+- [x] Implement payment history
+- [x] Create notification system for payment status
 
 ### 3.3 Subscription Management [Role: SUPERADMIN]
 - [ ] Create subscription management page (`app/admin/subscriptions/page.tsx`)

@@ -34,7 +34,7 @@ export class TransactionRepository extends BaseRepository {
   ): Promise<Transaction[]> {
     this.ensureOutletId(outletId, 'Transaction');
     const where: Prisma.TransactionWhereInput = this.getOutletFilter(outletId);
-    
+
     if (options?.type) {
       where.type = options.type;
     }
@@ -63,7 +63,7 @@ export class TransactionRepository extends BaseRepository {
   ): Promise<number> {
     this.ensureOutletId(outletId, 'Transaction');
     const where: Prisma.TransactionWhereInput = this.getOutletFilter(outletId);
-    
+
     if (filters?.type) {
       where.type = filters.type;
     }
@@ -104,7 +104,7 @@ export class TransactionRepository extends BaseRepository {
   ): Promise<number> {
     this.ensureOutletId(outletId, 'Transaction');
     const where: Prisma.TransactionWhereInput = this.getOutletFilter(outletId);
-    
+
     if (filters?.type) {
       where.type = filters.type;
     }
@@ -122,5 +122,157 @@ export class TransactionRepository extends BaseRepository {
     }
 
     return prisma.transaction.count({ where });
+  }
+
+  /**
+   * Find subscription payments (Admin - cross outlet, no outletId filter)
+   * For SUPERADMIN payment verification
+   */
+  async findSubscriptionPayments(options?: {
+    status?: PaymentStatus;
+    page?: number;
+    limit?: number;
+    search?: string; // search by outlet name
+  }): Promise<{ data: Transaction[]; total: number }> {
+    const where: Prisma.TransactionWhereInput = {
+      type: TransType.SUBSCRIPTION,
+    };
+
+    if (options?.status) {
+      where.status = options.status;
+    }
+
+    // Search by outlet name (if provided)
+    if (options?.search) {
+      where.outletId = {
+        not: null,
+      };
+      // Note: This requires a join, we'll handle it in the service layer
+    }
+
+    const page = options?.page || 1;
+    const limit = options?.limit || 50;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      prisma.transaction.findMany({
+        where,
+        include: {
+          order: {
+            select: {
+              id: true,
+              trackingCode: true,
+              customerName: true,
+            },
+          },
+          bankAccount: {
+            select: {
+              id: true,
+              bankName: true,
+              accountNumber: true,
+              accountName: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.transaction.count({ where }),
+    ]);
+
+    return { data, total };
+  }
+
+  /**
+   * Find subscription payment by ID (Admin - no outletId filter)
+   * Includes outlet details for display
+   */
+  async findSubscriptionPaymentById(id: string): Promise<Transaction | null> {
+    return prisma.transaction.findFirst({
+      where: {
+        id,
+        type: TransType.SUBSCRIPTION,
+      },
+      include: {
+        order: {
+          select: {
+            id: true,
+            trackingCode: true,
+            customerName: true,
+            outlet: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                address: true,
+                owner: {
+                  select: {
+                    id: true,
+                    name: true,
+                    phone: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        bankAccount: {
+          select: {
+            id: true,
+            bankName: true,
+            accountNumber: true,
+            accountName: true,
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * Update transaction payment status (Admin)
+   * Used for approve/reject workflows
+   */
+  async updatePaymentStatus(
+    id: string,
+    status: PaymentStatus,
+    settledAt?: Date
+  ): Promise<Transaction> {
+    return prisma.transaction.update({
+      where: { id },
+      data: {
+        status,
+        ...(settledAt && { settledAt }),
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  /**
+   * Get subscription payment statistics (Admin)
+   * Returns counts by status
+   */
+  async getSubscriptionPaymentStats(): Promise<{
+    pending: number;
+    approved: number;
+    rejected: number;
+    total: number;
+  }> {
+    const [pending, approved, rejected, total] = await Promise.all([
+      prisma.transaction.count({
+        where: { type: TransType.SUBSCRIPTION, status: PaymentStatus.PENDING },
+      }),
+      prisma.transaction.count({
+        where: { type: TransType.SUBSCRIPTION, status: PaymentStatus.SETTLEMENT },
+      }),
+      prisma.transaction.count({
+        where: { type: TransType.SUBSCRIPTION, status: PaymentStatus.FAILURE },
+      }),
+      prisma.transaction.count({
+        where: { type: TransType.SUBSCRIPTION },
+      }),
+    ]);
+
+    return { pending, approved, rejected, total };
   }
 }
