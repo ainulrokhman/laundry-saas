@@ -28,6 +28,8 @@ type OrderRow = {
   createdAt: string;
   paidAt: string | null;
   paymentNote: string | null;
+  outletId?: string;
+  outletName?: string;
 };
 
 type ApiListResponse = {
@@ -38,6 +40,7 @@ type ApiListResponse = {
   };
   error?: string;
   message?: string;
+  isGlobalMode?: boolean;
 };
 
 function labelStatus(status: OrderStatus): string {
@@ -114,8 +117,9 @@ export default function OrdersPage() {
   });
 
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isGlobalMode, setIsGlobalMode] = useState(false);
 
-  // Guard: auth/role/outlet
+  // Guard: auth/role
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
@@ -127,7 +131,8 @@ export default function OrdersPage() {
       router.push('/dashboard');
       return;
     }
-    if (!user?.outletId) {
+    // STAFF requires outlet, OWNER can be in global mode
+    if (role === 'STAFF' && !user?.outletId) {
       setError('Outlet context required. Silakan hubungi admin.');
       setLoading(false);
       return;
@@ -144,7 +149,11 @@ export default function OrdersPage() {
     return params.toString();
   }, [query, filterStatus, filterPayment, page, limit]);
 
-  const canFetch = status === 'authenticated' && (role === 'OWNER' || role === 'STAFF') && !!user?.outletId;
+  // OWNER can access in global mode (no outletId), STAFF requires outlet
+  const canFetch = status === 'authenticated' && (
+    (role === 'OWNER') || 
+    (role === 'STAFF' && !!user?.outletId)
+  );
 
   // Fetch when page/filter/query/limit changes, or manual refresh
   useEffect(() => {
@@ -167,6 +176,7 @@ export default function OrdersPage() {
       setItems(Array.isArray(json.data?.items) ? json.data!.items : []);
       const nextPagination = json.data?.pagination || { total: 0, page: 1, limit, totalPages: 1 };
       setPagination(nextPagination);
+      setIsGlobalMode(json.isGlobalMode || false);
       // Sinkronkan state page jika backend mengoreksi (mis. out-of-range)
       if (Number.isFinite(nextPagination.page) && nextPagination.page !== page) {
         setPage(nextPagination.page);
@@ -442,6 +452,12 @@ export default function OrdersPage() {
                       </Link>
                     ),
                   },
+                  ...(isGlobalMode ? [{
+                    header: 'Outlet',
+                    render: (o: OrderRow) => (
+                      <span className="badge bg-info">{o.outletName || '-'}</span>
+                    ),
+                  }] : []),
                   {
                     header: 'Pelanggan',
                     render: (o) => o.customerName || <span className="text-muted">-</span>,
@@ -545,6 +561,12 @@ export default function OrdersPage() {
                         </div>
                         <span className={`badge ${statusBadge(o.status)}`}>{labelStatus(o.status)}</span>
                       </div>
+
+                      {isGlobalMode && o.outletName && (
+                        <div className="mt-2">
+                          <span className="badge bg-info">{o.outletName}</span>
+                        </div>
+                      )}
 
                       <div className="mt-2">
                         <div className="text-muted small">Pelanggan</div>

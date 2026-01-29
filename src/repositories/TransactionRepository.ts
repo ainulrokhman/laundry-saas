@@ -339,4 +339,63 @@ export class TransactionRepository extends BaseRepository {
 
     return { pending, approved, rejected, total };
   }
+
+  // ============================================
+  // Global Methods (Multi-Outlet)
+  // ============================================
+
+  /**
+   * Find transactions for multiple outlets (Global Mode)
+   */
+  async findByOutletIds(
+    outletIds: string[],
+    options?: {
+      where?: Prisma.TransactionWhereInput;
+      skip?: number;
+      take?: number;
+      orderBy?: Prisma.TransactionOrderByWithRelationInput;
+      include?: Prisma.TransactionInclude;
+    }
+  ): Promise<Transaction[]> {
+    if (outletIds.length === 0) {
+      return [];
+    }
+
+    const where: Prisma.TransactionWhereInput = {
+      outletId: { in: outletIds },
+      ...options?.where,
+    };
+
+    return prisma.transaction.findMany({
+      where,
+      skip: options?.skip,
+      take: options?.take,
+      orderBy: options?.orderBy || { createdAt: 'desc' },
+      include: {
+        ...options?.include,
+        outlet: {
+          select: { id: true, name: true },
+        },
+      },
+    });
+  }
+
+  /**
+   * Count transactions for multiple outlets (Global Mode)
+   */
+  async countByOutletIds(
+    outletIds: string[],
+    where?: Prisma.TransactionWhereInput
+  ): Promise<number> {
+    if (outletIds.length === 0) {
+      return 0;
+    }
+
+    const combinedWhere: Prisma.TransactionWhereInput = {
+      outletId: { in: outletIds },
+      ...where,
+    };
+
+    return prisma.transaction.count({ where: combinedWhere });
+  }
 }

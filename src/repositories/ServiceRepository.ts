@@ -93,4 +93,57 @@ export class ServiceRepository extends BaseRepository {
       where: { id },
     });
   }
+
+  // ============================================
+  // Global Methods (Multi-Outlet)
+  // ============================================
+
+  /**
+   * Find all services for multiple outlets (Global Mode)
+   */
+  async findByOutletIds(outletIds: string[]): Promise<(Service & { outlet: { id: string; name: string } })[]> {
+    if (outletIds.length === 0) {
+      return [];
+    }
+
+    return prisma.service.findMany({
+      where: {
+        outletId: { in: outletIds },
+      },
+      include: {
+        outlet: {
+          select: { id: true, name: true },
+        },
+      },
+      orderBy: [
+        { outlet: { name: 'asc' } },
+        { createdAt: 'desc' },
+      ],
+    });
+  }
+
+  /**
+   * Find active services for multiple outlets (Global Mode)
+   */
+  async findActiveByOutletIds(outletIds: string[]): Promise<(Service & { outlet: { id: string; name: string } })[]> {
+    if (outletIds.length === 0) {
+      return [];
+    }
+
+    return prisma.service.findMany({
+      where: {
+        outletId: { in: outletIds },
+        isActive: true,
+      },
+      include: {
+        outlet: {
+          select: { id: true, name: true },
+        },
+      },
+      orderBy: [
+        { outlet: { name: 'asc' } },
+        { name: 'asc' },
+      ],
+    });
+  }
 }

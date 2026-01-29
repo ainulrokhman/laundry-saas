@@ -18,6 +18,8 @@ type Customer = {
     address: string | null;
     createdAt: string;
     updatedAt: string;
+    outletId?: string;
+    outletName?: string;
 };
 
 type ApiListResponse = {
@@ -31,6 +33,7 @@ type ApiListResponse = {
     };
     error?: string;
     message?: string;
+    isGlobalMode?: boolean;
 };
 
 export default function CustomersPage() {
@@ -56,6 +59,7 @@ export default function CustomersPage() {
     });
 
     const [refreshKey, setRefreshKey] = useState(0);
+    const [isGlobalMode, setIsGlobalMode] = useState(false);
 
     // Modal State
     const [showModal, setShowModal] = useState(false);
@@ -75,14 +79,18 @@ export default function CustomersPage() {
         } else if (status === 'authenticated') {
             if (role !== 'OWNER' && role !== 'STAFF') {
                 router.push('/dashboard');
-            } else if (!user?.outletId) {
+            } else if (role === 'STAFF' && !user?.outletId) {
                 setError('Outlet context required.');
                 setLoading(false);
             }
         }
     }, [status, router, role, user?.outletId]);
 
-    const canFetch = status === 'authenticated' && (role === 'OWNER' || role === 'STAFF') && !!user?.outletId;
+    // OWNER can access in global mode, STAFF requires outlet
+    const canFetch = status === 'authenticated' && (
+        (role === 'OWNER') ||
+        (role === 'STAFF' && !!user?.outletId)
+    );
 
     const queryString = useMemo(() => {
         const params = new URLSearchParams();
@@ -106,9 +114,9 @@ export default function CustomersPage() {
                 }
 
                 setItems(json.data || []);
+                setIsGlobalMode(json.isGlobalMode || false);
                 if (json.meta) {
                     setPagination(json.meta);
-                    // setPage(json.meta.page); // Don't force setPage here to avoid loop if logic differs, trust meta
                 }
             } catch (e) {
                 setError(e instanceof Error ? e.message : 'Gagal memuat data pelanggan');
@@ -271,6 +279,10 @@ export default function CustomersPage() {
                                 mobileContainerClassName="px-3 pt-2 pb-3"
                                 columns={[
                                     { header: 'Nama', render: (c) => <div className="fw-semibold">{c.name}</div> },
+                                    ...(isGlobalMode ? [{
+                                        header: 'Outlet',
+                                        render: (c: Customer) => <span className="badge bg-info">{c.outletName || '-'}</span>,
+                                    }] : []),
                                     { header: 'Telepon', render: (c) => c.phone || <em className="text-muted">-</em> },
                                     { header: 'Alamat', render: (c) => <div className="text-truncate" style={{ maxWidth: '200px' }} title={c.address || ''}>{c.address || <em className="text-muted">-</em>}</div> },
                                     { header: 'Terdaftar', render: (c) => formatDateTime(c.createdAt) },
@@ -305,7 +317,12 @@ export default function CustomersPage() {
                                     <div className="card mb-3 shadow-sm">
                                         <div className="card-body">
                                             <div className="d-flex justify-content-between align-items-start mb-2">
-                                                <h5 className="fw-bold mb-0">{c.name}</h5>
+                                                <div>
+                                                    <h5 className="fw-bold mb-0">{c.name}</h5>
+                                                    {isGlobalMode && c.outletName && (
+                                                        <span className="badge bg-info mt-1">{c.outletName}</span>
+                                                    )}
+                                                </div>
                                                 <div className="btn-group btn-group-sm">
                                                     <Link
                                                         href={`/dashboard/customers/${c.id}`}

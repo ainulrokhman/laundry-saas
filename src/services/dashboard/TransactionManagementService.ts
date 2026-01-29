@@ -227,4 +227,61 @@ export class TransactionManagementService {
 
         return csvLines.join('\\n');
     }
+
+    /**
+     * Get transactions from all owned outlets (Global Mode - OWNER only)
+     */
+    async getGlobalTransactions(outletIds: string[], filters?: TransactionFilters) {
+        const page = filters?.page || 1;
+        const limit = filters?.limit || 50;
+        const skip = (page - 1) * limit;
+
+        // Build prisma filters
+        const where: any = {};
+        if (filters?.type) {
+            where.type = filters.type;
+        }
+        if (filters?.status) {
+            where.status = filters.status;
+        }
+        if (filters?.dateFrom || filters?.dateTo) {
+            where.createdAt = {};
+            if (filters.dateFrom) {
+                where.createdAt.gte = filters.dateFrom;
+            }
+            if (filters.dateTo) {
+                where.createdAt.lte = filters.dateTo;
+            }
+        }
+
+        const [transactions, total] = await Promise.all([
+            this.transactionRepo.findByOutletIds(outletIds, {
+                where,
+                skip,
+                take: limit,
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    bankAccount: {
+                        select: {
+                            bankName: true,
+                            accountNumber: true,
+                        },
+                    },
+                },
+            }),
+            this.transactionRepo.countByOutletIds(outletIds, where),
+        ]);
+
+        const totalPages = Math.ceil(total / limit);
+
+        return {
+            data: transactions,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages,
+            },
+        };
+    }
 }

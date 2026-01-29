@@ -86,4 +86,14 @@ export class CustomerService {
 
         return this.customerRepo.delete(outletId, id);
     }
+
+    /**
+     * List customers from all owned outlets (Global Mode - OWNER only)
+     */
+    async listGlobalCustomers(outletIds: string[], params: { search?: string; page?: number; limit?: number }) {
+        return this.customerRepo.findAllByOutletIds({
+            outletIds,
+            ...params,
+        });
+    }
 }

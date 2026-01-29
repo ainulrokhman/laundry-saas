@@ -769,4 +769,69 @@ export class OrderRepository extends BaseRepository {
       totalRevenue: r._sum.totalAmount || 0,
     }));
   }
+
+  /**
+   * Find paged orders for multiple outlets (Global Mode)
+   * Returns orders with outlet info
+   */
+  async findPagedByOutletIds(
+    outletIds: string[],
+    options: {
+      q?: string;
+      status?: OrderStatus;
+      paymentStatus?: PaymentStatus;
+      dateFrom?: Date;
+      dateTo?: Date;
+      page?: number;
+      limit?: number;
+      orderBy?: Prisma.OrderOrderByWithRelationInput;
+    } = {}
+  ): Promise<{ data: (Order & { outlet: { id: string; name: string } })[]; total: number; page: number; limit: number }> {
+    if (outletIds.length === 0) {
+      return { data: [], total: 0, page: 1, limit: 20 };
+    }
+
+    const page = options.page && options.page > 0 ? options.page : 1;
+    const limit = options.limit && options.limit > 0 ? Math.min(options.limit, 200) : 20;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.OrderWhereInput = {
+      outletId: { in: outletIds },
+    };
+
+    if (options.status) where.status = options.status;
+    if (options.paymentStatus) where.paymentStatus = options.paymentStatus;
+
+    if (options.dateFrom || options.dateTo) {
+      where.createdAt = {};
+      if (options.dateFrom) where.createdAt.gte = options.dateFrom;
+      if (options.dateTo) where.createdAt.lte = options.dateTo;
+    }
+
+    if (options.q && options.q.trim().length > 0) {
+      const q = options.q.trim();
+      where.OR = [
+        { trackingCode: { contains: q, mode: 'insensitive' } },
+        { customerName: { contains: q, mode: 'insensitive' } },
+        { customerPhone: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+
+    const [total, orders] = await Promise.all([
+      prisma.order.count({ where }),
+      prisma.order.findMany({
+        where,
+        include: {
+          outlet: {
+            select: { id: true, name: true },
+          },
+        },
+        orderBy: options.orderBy || { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+    ]);
+
+    return { data: orders, total, page, limit };
+  }
 }

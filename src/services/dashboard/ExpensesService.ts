@@ -47,4 +47,22 @@ export class ExpensesService extends BaseService {
         const outletId = this.getOutletId(user);
         return this.expenseRepo.delete(outletId, id);
     }
+
+    /**
+     * List expenses from all owned outlets (Global Mode - OWNER only)
+     */
+    async listGlobalExpenses(
+        outletIds: string[],
+        params: {
+            startDate?: Date;
+            endDate?: Date;
+            page?: number;
+            limit?: number;
+        }
+    ) {
+        return this.expenseRepo.findAllByOutletIds({
+            outletIds,
+            ...params,
+        });
+    }
 }

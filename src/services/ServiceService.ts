@@ -105,4 +105,18 @@ export class ServiceService extends BaseService {
 
     return this.serviceRepo.delete(outletId, serviceId);
   }
+
+  /**
+   * Get all services from all owned outlets (Global Mode - OWNER only)
+   */
+  async getGlobalServices(outletIds: string[]): Promise<(Service & { outlet: { id: string; name: string } })[]> {
+    return this.serviceRepo.findByOutletIds(outletIds);
+  }
+
+  /**
+   * Get active services from all owned outlets (Global Mode - OWNER only)
+   */
+  async getGlobalActiveServices(outletIds: string[]): Promise<(Service & { outlet: { id: string; name: string } })[]> {
+    return this.serviceRepo.findActiveByOutletIds(outletIds);
+  }
 }

@@ -20,6 +20,8 @@ interface Transaction {
         bankName: string;
         accountNumber: string;
     } | null;
+    outletId?: string;
+    outletName?: string;
 }
 
 interface TransactionStats {
@@ -42,6 +44,7 @@ export default function TransactionsPage() {
         total: 0,
         totalPages: 0,
     });
+    const [isGlobalMode, setIsGlobalMode] = useState(false);
 
     // Filters
     const [typeFilter, setTypeFilter] = useState<string>('');
@@ -68,6 +71,7 @@ export default function TransactionsPage() {
             const data = await res.json();
             setTransactions(data.data);
             setPagination(data.pagination);
+            setIsGlobalMode(data.isGlobalMode || false);
         } catch (error) {
             console.error(error);
             Swal.fire({
@@ -321,6 +325,7 @@ export default function TransactionsPage() {
                                     <thead className="table-light">
                                         <tr>
                                             <th>Tanggal</th>
+                                            {isGlobalMode && <th>Outlet</th>}
                                             <th>Tipe</th>
                                             <th>Amount</th>
                                             <th>Status</th>
@@ -332,6 +337,11 @@ export default function TransactionsPage() {
                                         {transactions.map((transaction) => (
                                             <tr key={transaction.id}>
                                                 <td>{formatDateTime(transaction.createdAt)}</td>
+                                                {isGlobalMode && (
+                                                    <td>
+                                                        <span className="badge bg-info">{transaction.outletName || '-'}</span>
+                                                    </td>
+                                                )}
                                                 <td>
                                                     <span className={`badge ${getTypeBadge(transaction.type)}`}>
                                                         {transaction.type === TransType.SUBSCRIPTION ? 'Subscription' : 'Laundry'}

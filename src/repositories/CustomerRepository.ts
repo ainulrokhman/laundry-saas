@@ -101,4 +101,55 @@ export class CustomerRepository {
         const count = await prisma.customer.count({ where: { id, outletId } });
         return count > 0;
     }
+
+    // ============================================
+    // Global Methods (Multi-Outlet)
+    // ============================================
+
+    /**
+     * Find all customers for multiple outlets (Global Mode)
+     */
+    async findAllByOutletIds({
+        outletIds,
+        search,
+        page = 1,
+        limit = 10,
+    }: {
+        outletIds: string[];
+        search?: string;
+        page?: number;
+        limit?: number;
+    }) {
+        if (outletIds.length === 0) {
+            return { total: 0, customers: [], page, limit, totalPages: 0 };
+        }
+
+        const skip = (page - 1) * limit;
+        const where: Prisma.CustomerWhereInput = {
+            outletId: { in: outletIds },
+            ...(search && {
+                OR: [
+                    { name: { contains: search, mode: 'insensitive' } },
+                    { phone: { contains: search, mode: 'insensitive' } },
+                ],
+            }),
+        };
+
+        const [total, customers] = await Promise.all([
+            prisma.customer.count({ where }),
+            prisma.customer.findMany({
+                where,
+                include: {
+                    outlet: {
+                        select: { id: true, name: true },
+                    },
+                },
+                skip,
+                take: limit,
+                orderBy: { name: 'asc' },
+            }),
+        ]);
+
+        return { total, customers, page, limit, totalPages: Math.ceil(total / limit) };
+    }
 }

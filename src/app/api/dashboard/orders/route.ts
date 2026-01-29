@@ -1,7 +1,7 @@
 /**
  * Orders API Routes (OWNER/STAFF, outlet scope)
  *
- * - GET: list orders + filter + pagination
+ * - GET: list orders + filter + pagination (supports Global Mode for OWNER)
  * - POST: create order (POS)
  */
 
@@ -11,6 +11,7 @@ import { ExtendedSession } from '@/lib/auth';
 import { Role, OrderStatus, PaymentStatus } from '@/generated/prisma';
 import { OrderService } from '@/services/OrderService';
 import { OrderDTO } from '@/dto/OrderDTO';
+import { prisma } from '@/lib/prisma';
 
 const orderService = new OrderService();
 
@@ -65,6 +66,66 @@ export const GET = withAuth(
         phone: session.phone,
       };
 
+      // Global Mode: OWNER without active outlet
+      const isGlobalMode = !session.outletId && session.role === Role.OWNER;
+
+      if (isGlobalMode) {
+        // Fetch owned outlets
+        const ownedOutlets = await prisma.outlet.findMany({
+          where: { ownerId: session.userId },
+          select: { id: true },
+        });
+        const outletIds = ownedOutlets.map(o => o.id);
+
+        if (outletIds.length === 0) {
+          return Response.json({
+            success: true,
+            data: {
+              items: [],
+              pagination: { total: 0, page: 1, limit: parsed.limit, totalPages: 0 },
+            },
+            isGlobalMode: true,
+          });
+        }
+
+        const result = await orderService.listGlobalOrders(sessionUser, outletIds, {
+          q: parsed.q,
+          status: parsed.status,
+          paymentStatus: parsed.paymentStatus,
+          page: parsed.page,
+          limit: parsed.limit,
+        });
+
+        // Map with outlet info
+        const items = result.data.map((order: any) => ({
+          ...OrderDTO.toResponse(order),
+          outletId: order.outlet?.id,
+          outletName: order.outlet?.name,
+        }));
+
+        return Response.json({
+          success: true,
+          data: {
+            items,
+            pagination: {
+              total: result.total,
+              page: result.page,
+              limit: result.limit,
+              totalPages: Math.max(1, Math.ceil(result.total / result.limit)),
+            },
+          },
+          isGlobalMode: true,
+        });
+      }
+
+      // Single Outlet Mode
+      if (!session.outletId) {
+        return Response.json(
+          { success: false, error: 'Outlet context required' },
+          { status: 400 }
+        );
+      }
+
       const result = await orderService.listOrders(sessionUser, {
         q: parsed.q,
         status: parsed.status,
@@ -84,6 +145,7 @@ export const GET = withAuth(
             totalPages: Math.max(1, Math.ceil(result.total / result.limit)),
           },
         },
+        isGlobalMode: false,
       });
     } catch (error) {
       console.error('Error listing orders:', error);
@@ -106,7 +168,7 @@ export const GET = withAuth(
       );
     }
   },
-  { roles: [Role.OWNER, Role.STAFF], requireOutlet: true }
+  { roles: [Role.OWNER, Role.STAFF], requireOutlet: false }
 );
 
 export const POST = withAuth(

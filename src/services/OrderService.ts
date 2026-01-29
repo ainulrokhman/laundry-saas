@@ -321,5 +321,30 @@ export class OrderService extends BaseService {
       orderBy: { createdAt: 'desc' },
     } as any);
   }
+
+  /**
+   * List orders from all owned outlets (Global Mode - OWNER only)
+   */
+  async listGlobalOrders(
+    user: SessionUser | null,
+    outletIds: string[],
+    query: {
+      q?: string;
+      status?: any;
+      paymentStatus?: any;
+      page?: number;
+      limit?: number;
+    } = {}
+  ) {
+    this.requireRole(user, ['OWNER']);
+    return await this.orderRepository.findPagedByOutletIds(outletIds, {
+      q: query.q,
+      status: query.status,
+      paymentStatus: query.paymentStatus,
+      page: query.page,
+      limit: query.limit,
+      orderBy: { createdAt: 'desc' },
+    } as any);
+  }
 }
 

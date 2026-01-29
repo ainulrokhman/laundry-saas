@@ -214,42 +214,21 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [openTreeview, setOpenTreeview] = useState<string | null>(null);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
 
-  // Filter menu items based on user role AND context (Global vs Outlet)
+  // Filter menu items based on user role
+  // All menus are shown regardless of Global/Outlet mode - data fetching handles the mode
   const filteredMenuItems = menuItems
     .filter((item) => {
-      // 1. Role Check
+      // Role Check only - scope is handled by data layer
       if (!userRole || !item.roles.includes(userRole)) return false;
-
-      // 2. Scope Check (Only for OWNER, Staff always sees outlet stuff)
-      if (userRole === Role.OWNER) {
-        if (!activeOutletId) {
-          // Global Context: Show only global items + settings container
-          if (item.scope === 'outlet') return false;
-        } else {
-          // Outlet Context: Show outlet items + global items (optional, usually mixed is ok)
-          // For cleaner UX, maybe hide some global items? 
-          // Current request: "menu sidebar menyesuaikan"
-          // Let's hide 'global' specific items when in outlet mode if undesired?
-          // Actually, Settings usually contains both. Let's keep logic simple:
-          // If activeOutletId is set, show everything? Or hide global-only dashboards?
-          // Let's assume: 
-          // - Global Mode: Show ONLY Global Items.
-          // - Outlet Mode: Show Outlet Items AND Global Items (like Settings).
-        }
-      }
       return true;
     })
     .map(item => {
-      // Filter children based on scope too
+      // Filter children based on role only
       if (item.children) {
         return {
           ...item,
           children: item.children.filter(child => {
-            if (userRole === Role.OWNER && !activeOutletId) {
-              // Global Mode: Hide outlet-scoped children
-              if ((child as any).scope === 'outlet') return false;
-            }
-            return true;
+            return userRole ? child.roles.includes(userRole) : false;
           })
         };
       }

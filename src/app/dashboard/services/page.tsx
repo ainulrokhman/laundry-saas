@@ -28,6 +28,8 @@ type Service = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  outletId?: string;
+  outletName?: string;
 };
 
 type SortKey = 'createdAt' | 'name' | 'price';
@@ -60,6 +62,7 @@ export default function ServiceManagementPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [services, setServices] = useState<Service[]>([]);
+  const [isGlobalMode, setIsGlobalMode] = useState(false);
 
   const [query, setQuery] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | ServiceType>('ALL');
@@ -108,11 +111,7 @@ export default function ServiceManagementPage() {
         router.push('/dashboard');
         return;
       }
-      if (!user?.outletId) {
-        setError('Outlet context required. Silakan hubungi admin.');
-        setLoading(false);
-        return;
-      }
+      // Allow global mode - no outlet required for OWNER
       void fetchServices();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -131,6 +130,7 @@ export default function ServiceManagementPage() {
 
       const list: Service[] = Array.isArray(json.data) ? json.data : [];
       setServices(list);
+      setIsGlobalMode(json.isGlobalMode || false);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Gagal memuat daftar layanan');
     } finally {
@@ -661,6 +661,10 @@ export default function ServiceManagementPage() {
                           </div>
                         ),
                       },
+                      ...(isGlobalMode ? [{
+                        header: 'Outlet',
+                        render: (s: Service) => <span className="badge bg-info">{s.outletName || '-'}</span>,
+                      }] : []),
                       {
                         header: 'Kategori',
                         render: (s) => <span className={`badge ${typeBadgeClass(s.type)}`}>{typeLabel(s.type)}</span>,
@@ -726,6 +730,12 @@ export default function ServiceManagementPage() {
                               {s.isActive ? 'Aktif' : 'Nonaktif'}
                             </span>
                           </div>
+
+                          {isGlobalMode && s.outletName && (
+                            <div className="mt-2">
+                              <span className="badge bg-info">{s.outletName}</span>
+                            </div>
+                          )}
 
                           <div className="d-flex flex-wrap gap-2 mt-3">
                             <span className={`badge ${typeBadgeClass(s.type)}`}>{typeLabel(s.type)}</span>

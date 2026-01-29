@@ -17,19 +17,8 @@ type Expense = {
     category: string | null;
     date: string;
     createdAt: string;
-};
-
-type ApiListResponse = {
-    success: boolean;
-    data?: Expense[];
-    meta?: {
-        total: number;
-        page: number;
-        limit: number;
-        totalPages: number;
-    };
-    error?: string;
-    message?: string;
+    outletId?: string;
+    outletName?: string;
 };
 
 export default function ExpensesPage() {
@@ -56,6 +45,7 @@ export default function ExpensesPage() {
     });
 
     const [refreshKey, setRefreshKey] = useState(0);
+    const [isGlobalMode, setIsGlobalMode] = useState(false);
 
     // Modal State
     const [showModal, setShowModal] = useState(false);
@@ -109,6 +99,7 @@ export default function ExpensesPage() {
                 }
 
                 setItems(json.expenses || []);
+                setIsGlobalMode(json.isGlobalMode || false);
                 setPagination({
                     total: json.total || 0,
                     page: json.page || 1,
@@ -284,6 +275,10 @@ export default function ExpensesPage() {
                                 mobileContainerClassName="px-3 pt-2 pb-3"
                                 columns={[
                                     { header: 'Tanggal', render: (c) => formatDateTime(c.date).split(',')[0] }, // Just date
+                                    ...(isGlobalMode ? [{
+                                        header: 'Outlet',
+                                        render: (c: Expense) => <span className="badge bg-info">{c.outletName || '-'}</span>,
+                                    }] : []),
                                     { header: 'Kategori', render: (c) => <span className="badge bg-secondary">{c.category || '-'}</span> },
                                     { header: 'Deskripsi', render: (c) => c.description },
                                     { header: 'Jumlah', render: (c) => <div className="fw-bold text-danger">{formatCurrency(c.amount)}</div> },
@@ -314,6 +309,9 @@ export default function ExpensesPage() {
                                                     <i className="fas fa-trash"></i>
                                                 </button>
                                             </div>
+                                            {isGlobalMode && c.outletName && (
+                                                <div className="mb-1"><span className="badge bg-info me-2">{c.outletName}</span></div>
+                                            )}
                                             <div className="mb-1"><span className="badge bg-secondary me-2">{c.category || '-'}</span></div>
                                             <div className="text-dark">{c.description}</div>
                                         </div>

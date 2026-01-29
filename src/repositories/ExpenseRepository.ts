@@ -138,4 +138,53 @@ export class ExpenseRepository {
             totalExpense: r._sum.amount || 0,
         }));
     }
+
+    /**
+     * Find all expenses for multiple outlets (Global Mode)
+     */
+    async findAllByOutletIds({
+        outletIds,
+        startDate,
+        endDate,
+        page = 1,
+        limit = 10,
+    }: {
+        outletIds: string[];
+        startDate?: Date;
+        endDate?: Date;
+        page?: number;
+        limit?: number;
+    }) {
+        if (outletIds.length === 0) {
+            return { total: 0, expenses: [], page, limit, totalPages: 0 };
+        }
+
+        const skip = (page - 1) * limit;
+        const where: Prisma.ExpenseWhereInput = {
+            outletId: { in: outletIds },
+            ...(startDate && endDate && {
+                date: {
+                    gte: startDate,
+                    lte: endDate,
+                },
+            }),
+        };
+
+        const [total, expenses] = await Promise.all([
+            prisma.expense.count({ where }),
+            prisma.expense.findMany({
+                where,
+                include: {
+                    outlet: {
+                        select: { id: true, name: true },
+                    },
+                },
+                skip,
+                take: limit,
+                orderBy: { date: 'desc' },
+            }),
+        ]);
+
+        return { total, expenses, page, limit, totalPages: Math.ceil(total / limit) };
+    }
 }

@@ -1,16 +1,18 @@
 /**
  * Service Management API Routes (OWNER-only, outlet scope)
  *
- * - GET: list services per outlet aktif (session.outletId)
+ * - GET: list services per outlet aktif (session.outletId), supports Global Mode
  * - POST: create service (outletId selalu dari session)
  */
 
 import { z } from 'zod';
-import { withOwnerAuth } from '@/lib/proxy/route-proxy';
+import { withAuth } from '@/lib/proxy/route-proxy';
 import { ExtendedSession } from '@/lib/auth';
 import { ServiceDTO } from '@/dto/ServiceDTO';
 import { ServiceService } from '@/services/ServiceService';
 import { ServiceRepository } from '@/repositories/ServiceRepository';
+import { Role } from '@/generated/prisma';
+import { prisma } from '@/lib/prisma';
 
 const serviceService = new ServiceService(new ServiceRepository());
 
@@ -34,41 +36,86 @@ const createServiceSchema = z
 /**
  * GET /api/dashboard/services
  */
-export const GET = withOwnerAuth(async (_request: Request, session: ExtendedSession) => {
-  try {
-    if (!session.outletId) {
-      return Response.json({ success: false, error: 'Outlet context required' }, { status: 403 });
+export const GET = withAuth(
+  async (_request: Request, session: ExtendedSession) => {
+    try {
+      // Only OWNER can access services management
+      if (session.role !== Role.OWNER) {
+        return Response.json(
+          { success: false, error: 'Hanya OWNER yang dapat mengakses layanan' },
+          { status: 403 }
+        );
+      }
+
+      // Global Mode: OWNER without active outlet
+      const isGlobalMode = !session.outletId;
+
+      if (isGlobalMode) {
+        // Fetch owned outlets
+        const ownedOutlets = await prisma.outlet.findMany({
+          where: { ownerId: session.userId },
+          select: { id: true },
+        });
+        const outletIds = ownedOutlets.map(o => o.id);
+
+        if (outletIds.length === 0) {
+          return Response.json({
+            success: true,
+            data: [],
+            isGlobalMode: true,
+          });
+        }
+
+        const services = await serviceService.getGlobalServices(outletIds);
+
+        // Map with outlet info
+        const servicesWithOutlet = services.map((s: any) => ({
+          ...ServiceDTO.toResponse(s),
+          outletId: s.outlet?.id,
+          outletName: s.outlet?.name,
+        }));
+
+        return Response.json({
+          success: true,
+          data: servicesWithOutlet,
+          isGlobalMode: true,
+        });
+      }
+
+      // Single Outlet Mode
+      const sessionUser = {
+        userId: session.userId,
+        outletId: session.outletId,
+        role: session.role,
+        phone: session.phone,
+      };
+
+      const services = await serviceService.getServices(sessionUser);
+      return Response.json({
+        success: true,
+        data: ServiceDTO.toResponseArray(services as any),
+        isGlobalMode: false,
+      });
+    } catch (error) {
+      console.error('Error fetching services:', error);
+      return Response.json(
+        {
+          success: false,
+          error: 'Failed to fetch services',
+          message: error instanceof Error ? error.message : 'Unknown error',
+        },
+        { status: 500 }
+      );
     }
-
-    const sessionUser = {
-      userId: session.userId,
-      outletId: session.outletId,
-      role: session.role,
-      phone: session.phone,
-    };
-
-    const services = await serviceService.getServices(sessionUser);
-    return Response.json({
-      success: true,
-      data: ServiceDTO.toResponseArray(services as any),
-    });
-  } catch (error) {
-    console.error('Error fetching services:', error);
-    return Response.json(
-      {
-        success: false,
-        error: 'Failed to fetch services',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
-  }
-});
+  },
+  { roles: [Role.OWNER], requireOutlet: false }
+);
 
 /**
  * POST /api/dashboard/services
+ * Requires outlet context - cannot create in Global Mode
  */
-export const POST = withOwnerAuth(async (request: Request, session: ExtendedSession) => {
+export const POST = withAuth(async (request: Request, session: ExtendedSession) => {
   try {
     if (!session.outletId) {
       return Response.json({ success: false, error: 'Outlet context required' }, { status: 403 });
@@ -125,5 +172,5 @@ export const POST = withOwnerAuth(async (request: Request, session: ExtendedSess
       { status: 500 }
     );
   }
-});
+}, { roles: [Role.OWNER], requireOutlet: true });
 

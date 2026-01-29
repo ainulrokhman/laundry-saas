@@ -7,6 +7,7 @@ import { CustomerDTO } from '@/dto/CustomerDTO';
 import { Role } from '@/generated/prisma';
 import { z } from 'zod';
 import { sanitizeString, sanitizePhone, sanitizeEmail } from '@/lib/utils/sanitize';
+import { prisma } from '@/lib/prisma';
 
 const customerRepo = new CustomerRepository();
 const customerService = new CustomerService(customerRepo);
@@ -31,7 +32,61 @@ export const GET = withAuth(
             const query = Object.fromEntries(url.searchParams.entries());
             const { search, page, limit } = querySchema.parse(query);
 
-            const result = await customerService.listCustomers(session.outletId!, {
+            // Global Mode: OWNER without active outlet
+            const isGlobalMode = !session.outletId && session.role === Role.OWNER;
+
+            if (isGlobalMode) {
+                // Fetch owned outlets
+                const ownedOutlets = await prisma.outlet.findMany({
+                    where: { ownerId: session.userId },
+                    select: { id: true },
+                });
+                const outletIds = ownedOutlets.map(o => o.id);
+
+                if (outletIds.length === 0) {
+                    return Response.json({
+                        success: true,
+                        data: [],
+                        meta: { total: 0, page: 1, limit, totalPages: 0 },
+                        isGlobalMode: true,
+                    });
+                }
+
+                const result = await customerService.listGlobalCustomers(outletIds, {
+                    search: search ? sanitizeString(search) : undefined,
+                    page,
+                    limit,
+                });
+
+                // Map with outlet info
+                const customers = result.customers.map((c: any) => ({
+                    ...CustomerDTO.toResponse(c),
+                    outletId: c.outlet?.id,
+                    outletName: c.outlet?.name,
+                }));
+
+                return Response.json({
+                    success: true,
+                    data: customers,
+                    meta: {
+                        total: result.total,
+                        page: result.page,
+                        limit: result.limit,
+                        totalPages: result.totalPages,
+                    },
+                    isGlobalMode: true,
+                });
+            }
+
+            // Single Outlet Mode
+            if (!session.outletId) {
+                return Response.json(
+                    { success: false, error: 'Outlet context required' },
+                    { status: 400 }
+                );
+            }
+
+            const result = await customerService.listCustomers(session.outletId, {
                 search: search ? sanitizeString(search) : undefined,
                 page,
                 limit,
@@ -46,6 +101,7 @@ export const GET = withAuth(
                     limit: result.limit,
                     totalPages: result.totalPages,
                 },
+                isGlobalMode: false,
             });
         } catch (error) {
             console.error('List customers error:', error);
@@ -60,7 +116,7 @@ export const GET = withAuth(
     },
     {
         roles: [Role.OWNER, Role.STAFF],
-        requireOutlet: true,
+        requireOutlet: false,
     }
 );
 
