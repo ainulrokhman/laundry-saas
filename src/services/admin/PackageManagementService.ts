@@ -27,7 +27,7 @@ export class PackageManagementService {
             orderBy: { sortOrder: 'asc' },
             include: {
                 _count: {
-                    select: { outlets: true },
+                    select: { users: true },
                 },
             },
         });
@@ -35,7 +35,7 @@ export class PackageManagementService {
         return packages.map((pkg) => ({
             ...pkg,
             features: pkg.features as PackageFeature[],
-            outletCount: pkg._count.outlets,
+            subscriberCount: pkg._count.users,
         }));
     }
 
@@ -47,7 +47,7 @@ export class PackageManagementService {
             where: { id },
             include: {
                 _count: {
-                    select: { outlets: true },
+                    select: { users: true },
                 },
             },
         });
@@ -59,7 +59,7 @@ export class PackageManagementService {
         return {
             ...pkg,
             features: pkg.features as PackageFeature[],
-            outletCount: pkg._count.outlets,
+            subscriberCount: pkg._count.users,
         };
     }
 
@@ -185,7 +185,7 @@ export class PackageManagementService {
             where: { id },
             include: {
                 _count: {
-                    select: { outlets: true },
+                    select: { users: true },
                 },
             },
         });
@@ -194,9 +194,9 @@ export class PackageManagementService {
             throw new Error('Package not found');
         }
 
-        // Don't allow deletion if outlets are using it
-        if (pkg._count.outlets > 0) {
-            throw new Error(`Cannot delete package: ${pkg._count.outlets} outlet(s) are using it`);
+        // Don't allow deletion if users are using it
+        if (pkg._count.users > 0) {
+            throw new Error(`Cannot delete package: ${pkg._count.users} user(s) are using it`);
         }
 
         await prisma.subscriptionPackage.delete({
@@ -261,7 +261,7 @@ export class PackageManagementService {
         const packages = await prisma.subscriptionPackage.findMany({
             include: {
                 _count: {
-                    select: { outlets: true },
+                    select: { users: true },
                 },
             },
         });
@@ -271,7 +271,7 @@ export class PackageManagementService {
             name: pkg.name,
             slug: pkg.slug,
             price: pkg.price,
-            outletCount: pkg._count.outlets,
+            subscriberCount: pkg._count.users,
             isActive: pkg.isActive,
         }));
     }

@@ -20,7 +20,7 @@ interface Package {
     maxStaff: number;
     isActive: boolean;
     sortOrder: number;
-    outletCount: number;
+    subscriberCount: number;
 }
 
 export default function PackagesPage() {
@@ -194,8 +194,8 @@ export default function PackagesPage() {
                                             </div>
 
                                             <div className="d-flex justify-content-between mb-3 border-bottom pb-2">
-                                                <strong>Outlets:</strong>
-                                                <span>{pkg.outletCount}</span>
+                                                <strong>Subscribers:</strong>
+                                                <span>{pkg.subscriberCount}</span>
                                             </div>
 
                                             <p className="mb-2"><strong>Features:</strong></p>
@@ -220,7 +220,7 @@ export default function PackagesPage() {
                                                 <button
                                                     className="btn btn-danger"
                                                     onClick={() => deletePackage(pkg.id, pkg.name)}
-                                                    disabled={pkg.outletCount > 0}
+                                                    disabled={pkg.subscriberCount > 0}
                                                 >
                                                     <i className="fas fa-trash mr-1"></i>
                                                     Delete
