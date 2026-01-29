@@ -1,23 +1,44 @@
 # Roles & Permissions (RBAC)
 
-This document describes **which features** each role can access in the Laundry SaaS Platform.
+Dokumen ini menjelaskan **fitur apa saja** yang dapat diakses setiap role di Laundry SaaS Platform.
 
-## Role Summary
-- **SUPERADMIN**: SaaS platform admin (manages the system, not outlet operations)
-- **OWNER**: outlet admin (tenant admin) + manages outlet staff
-- **STAFF**: outlet operator (day-to-day operations)
+## Ringkasan Role
 
-## How to read this
-- Each role document focuses on **high-level features**, not route/API details.
-- Technical rules (multi-tenancy, outlet context, proxy auth) are referenced from:
+| Role | Deskripsi | Subscription |
+|------|-----------|--------------|
+| **SUPERADMIN** | Admin platform SaaS (mengelola sistem, bukan operasional outlet) | - |
+| **OWNER** | Admin outlet (tenant admin) + kelola staff outlet | **Di level User** |
+| **STAFF** | Operator outlet (operasional harian) | Mengikuti OWNER |
+
+## Model Subscription
+
+**Subscription dikelola di level OWNER (User)**, bukan di level Outlet:
+
+```
+User (OWNER)
+├── packageId → SubscriptionPackage
+├── subscriptionExpiresAt
+└── ownedOutlets[] → Outlet[]
+```
+
+Ini berarti:
+- 1 OWNER bisa memiliki banyak outlet (multi-outlet)
+- Quota outlet dibatasi oleh `package.maxOutlets`
+- Quota staff dibatasi oleh `package.maxStaff`
+
+## Cara Membaca Dokumentasi
+
+- Setiap dokumen role fokus pada **fitur high-level**, bukan detail route/API
+- Aturan teknis (multi-tenancy, outlet context, proxy auth) direferensikan dari:
   - `DEVELOPMENT-PLAN.md` (section **Role Model & Access (RBAC)**)
   - `.cursorrules`
 
-## Per-role documents
-- [`SUPERADMIN.md`](SUPERADMIN.md)
-- [`OWNER.md`](OWNER.md)
-- [`STAFF.md`](STAFF.md)
+## Dokumen Per-Role
 
-## Access-related backlog
-- **Impersonation (support, optional)**: SUPERADMIN can impersonate OWNER/STAFF for troubleshooting via the admin panel, with strict audit/logging.
+- [`SUPERADMIN.md`](SUPERADMIN.md) - Admin platform SaaS
+- [`OWNER.md`](OWNER.md) - Pemilik outlet (dengan fitur Global Reports)
+- [`STAFF.md`](STAFF.md) - Operator outlet
 
+## Backlog Terkait Akses
+
+- **Impersonation (support, optional)**: SUPERADMIN dapat impersonate OWNER/STAFF untuk troubleshooting via admin panel, dengan strict audit/logging.

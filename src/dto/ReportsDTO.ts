@@ -7,8 +7,8 @@ export interface DailyStat {
 export interface ReportsSummary {
     totalOrders: number;
     totalRevenue: number;
-    totalExpense: number; // New
-    netProfit: number;    // New
+    totalExpense: number;
+    netProfit: number;
     totalCustomers: number;
     averageOrderValue: number;
 }
@@ -29,15 +29,42 @@ export interface UnpaidOrder {
     status: string;
     paymentStatus: string;
     createdAt: string;
+    outletName?: string; // For global reports
 }
 
 export interface ReportsResponseDTO {
     summary: ReportsSummary;
     dailyStats: DailyStat[];
-    paymentMethods: PaymentMethodStat[]; // New
-    unpaidOrders: UnpaidOrder[];         // New
+    paymentMethods: PaymentMethodStat[];
+    unpaidOrders: UnpaidOrder[];
     period: {
         startDate: string;
         endDate: string;
     };
+}
+
+// ============================================
+// Global Reports DTO (Multi-Outlet)
+// ============================================
+
+export interface OutletBreakdown {
+    outletId: string;
+    outletName: string;
+    totalOrders: number;
+    totalRevenue: number;
+    totalExpense: number;
+    netProfit: number;
+}
+
+export interface GlobalReportsResponseDTO {
+    summary: ReportsSummary;
+    dailyStats: DailyStat[];
+    paymentMethods: PaymentMethodStat[];
+    unpaidOrders: UnpaidOrder[];
+    outletBreakdown: OutletBreakdown[]; // Per-outlet comparison
+    period: {
+        startDate: string;
+        endDate: string;
+    };
+    totalOutlets: number;
 }

@@ -3,34 +3,57 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { ReportsResponseDTO } from '@/dto/ReportsDTO';
+import { ReportsResponseDTO, GlobalReportsResponseDTO, OutletBreakdown } from '@/dto/ReportsDTO';
 import { RevenueChart } from '@/components/ui/Charts/RevenueChart';
 import Swal from 'sweetalert2';
 import { formatDateTime } from '@/lib/utils';
 import { ResponsiveTableToCards } from '@/components/adminlte/ResponsiveTableToCards';
+import { Role } from '@/generated/prisma';
+
+type ReportMode = 'single' | 'global';
+type ReportData = ReportsResponseDTO | GlobalReportsResponseDTO;
+
+function isGlobalReports(data: ReportData): data is GlobalReportsResponseDTO {
+    return 'outletBreakdown' in data;
+}
 
 export default function ReportsPage() {
     const { data: session } = useSession();
     const [loading, setLoading] = useState(true);
-    const [data, setData] = useState<ReportsResponseDTO | null>(null);
+    const [data, setData] = useState<ReportData | null>(null);
     const [period, setPeriod] = useState<string>('30days');
+    const [mode, setMode] = useState<ReportMode>('single');
     const [customRange, setCustomRange] = useState<{ start: string; end: string }>({
         start: '',
         end: '',
     });
-    const [activeTab, setActiveTab] = useState<'summary' | 'payment-methods' | 'receivables'>('summary');
+    const [activeTab, setActiveTab] = useState<'summary' | 'payment-methods' | 'receivables' | 'outlets'>('summary');
+
+    const user = session?.user as any;
+    const isOwner = user?.role === Role.OWNER;
+    const hasActiveOutlet = !!user?.outletId;
+
+    // Set initial mode based on session
+    useEffect(() => {
+        if (session && isOwner && !hasActiveOutlet) {
+            setMode('global');
+        }
+    }, [session, isOwner, hasActiveOutlet]);
 
     const fetchReports = async () => {
         try {
             setLoading(true);
-            let url = `/api/dashboard/reports?period=${period}`;
+            let url = `/api/dashboard/reports?period=${period}&mode=${mode}`;
 
             if (period === 'custom' && customRange.start && customRange.end) {
                 url += `&startDate=${customRange.start}&endDate=${customRange.end}`;
             }
 
             const res = await fetch(url);
-            if (!res.ok) throw new Error('Gagal mengambil data laporan');
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || 'Gagal mengambil data laporan');
+            }
 
             const jsonData = await res.json();
             setData(jsonData);
@@ -39,7 +62,7 @@ export default function ReportsPage() {
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: 'Failed to load reports data',
+                text: error instanceof Error ? error.message : 'Gagal memuat data laporan',
             });
         } finally {
             setLoading(false);
@@ -47,19 +70,37 @@ export default function ReportsPage() {
     };
 
     useEffect(() => {
+        // Wait for session to be ready
+        if (!session) {
+            return;
+        }
+
+        // For single mode, need active outlet
+        if (mode === 'single' && !hasActiveOutlet && isOwner) {
+            // Auto-switch to global if no active outlet
+            setMode('global');
+            return;
+        }
+
         if (period !== 'custom' || (customRange.start && customRange.end)) {
             fetchReports();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [period, customRange, session]);
+    }, [period, customRange, session, mode]);
+
+    // Reset to summary tab when switching modes
+    useEffect(() => {
+        if (activeTab === 'outlets' && mode === 'single') {
+            setActiveTab('summary');
+        }
+    }, [mode, activeTab]);
 
     const handleExport = () => {
         if (!data) return;
 
-        // Simple CSV export based on active tab
         let headers: string[] = [];
         let rows: (string | number)[][] = [];
-        let filename = `reports-${period}.csv`;
+        let filename = `reports-${mode}-${period}.csv`;
 
         if (activeTab === 'summary') {
             headers = ['Date', 'Orders', 'Revenue'];
@@ -67,11 +108,22 @@ export default function ReportsPage() {
         } else if (activeTab === 'payment-methods') {
             headers = ['Method', 'Count', 'Amount'];
             rows = data.paymentMethods.map(p => [p.method, p.count, p.amount]);
-            filename = `payment-methods-${period}.csv`;
+            filename = `payment-methods-${mode}-${period}.csv`;
         } else if (activeTab === 'receivables') {
-            headers = ['Tracking Code', 'Customer', 'Status', 'Payment Status', 'Total Amount', 'Paid Amount', 'Remaining'];
-            rows = data.unpaidOrders.map(o => [o.trackingCode, o.customerName, o.status, o.paymentStatus, o.totalAmount, o.paidAmount, o.remainingAmount]);
-            filename = `receivables-${period}.csv`;
+            const hasOutletName = mode === 'global';
+            headers = hasOutletName
+                ? ['Outlet', 'Tracking Code', 'Customer', 'Status', 'Payment Status', 'Total Amount', 'Paid Amount', 'Remaining']
+                : ['Tracking Code', 'Customer', 'Status', 'Payment Status', 'Total Amount', 'Paid Amount', 'Remaining'];
+            rows = data.unpaidOrders.map(o => 
+                hasOutletName
+                    ? [o.outletName || '', o.trackingCode, o.customerName, o.status, o.paymentStatus, o.totalAmount, o.paidAmount, o.remainingAmount]
+                    : [o.trackingCode, o.customerName, o.status, o.paymentStatus, o.totalAmount, o.paidAmount, o.remainingAmount]
+            );
+            filename = `receivables-${mode}-${period}.csv`;
+        } else if (activeTab === 'outlets' && isGlobalReports(data)) {
+            headers = ['Outlet', 'Total Orders', 'Revenue', 'Expenses', 'Net Profit'];
+            rows = data.outletBreakdown.map(o => [o.outletName, o.totalOrders, o.totalRevenue, o.totalExpense, o.netProfit]);
+            filename = `outlet-breakdown-${period}.csv`;
         }
 
         const csvContent = [
@@ -110,9 +162,44 @@ export default function ReportsPage() {
 
     return (
         <div className="container-fluid">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-                <h1 className="h3 mb-0 text-gray-800">Laporan Keuangan</h1>
-                <div className="d-flex gap-2">
+            {/* Header */}
+            <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+                <div>
+                    <h1 className="h3 mb-0 text-gray-800">Laporan Keuangan</h1>
+                    {mode === 'global' && isGlobalReports(data) && (
+                        <small className="text-muted">
+                            <i className="fas fa-globe me-1"></i>
+                            Gabungan dari {data.totalOutlets} outlet
+                        </small>
+                    )}
+                </div>
+                <div className="d-flex flex-wrap gap-2">
+                    {/* Mode Toggle - Only for OWNER */}
+                    {isOwner && (
+                        <div className="btn-group" role="group">
+                            <button
+                                type="button"
+                                className={`btn btn-sm ${mode === 'single' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                onClick={() => setMode('single')}
+                                disabled={!hasActiveOutlet}
+                                title={!hasActiveOutlet ? 'Pilih outlet aktif terlebih dahulu' : 'Laporan outlet aktif'}
+                            >
+                                <i className="fas fa-store me-1"></i>
+                                Outlet Aktif
+                            </button>
+                            <button
+                                type="button"
+                                className={`btn btn-sm ${mode === 'global' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                onClick={() => setMode('global')}
+                                title="Laporan gabungan semua outlet"
+                            >
+                                <i className="fas fa-globe me-1"></i>
+                                Semua Outlet
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Period Selector */}
                     <select
                         className="form-select form-select-sm"
                         style={{ width: 'auto' }}
@@ -216,6 +303,17 @@ export default function ReportsPage() {
                         <i className="fas fa-chart-line me-2"></i> Ringkasan & Grafik
                     </button>
                 </li>
+                {/* Outlet Breakdown Tab - Only in Global Mode */}
+                {mode === 'global' && isGlobalReports(data) && (
+                    <li className="nav-item">
+                        <button
+                            className={`nav-link ${activeTab === 'outlets' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('outlets')}
+                        >
+                            <i className="fas fa-store me-2"></i> Per Outlet
+                        </button>
+                    </li>
+                )}
                 <li className="nav-item">
                     <button
                         className={`nav-link ${activeTab === 'payment-methods' ? 'active' : ''}`}
@@ -252,6 +350,74 @@ export default function ReportsPage() {
                                         />
                                     )}
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Outlet Breakdown Tab (Global Mode Only) */}
+                {activeTab === 'outlets' && mode === 'global' && isGlobalReports(data) && (
+                    <div className="card shadow-sm">
+                        <div className="card-header border-0">
+                            <h3 className="card-title">
+                                <i className="fas fa-store me-2"></i>
+                                Perbandingan Per Outlet
+                            </h3>
+                        </div>
+                        <div className="card-body p-0">
+                            <div className="table-responsive">
+                                <table className="table table-hover table-striped mb-0">
+                                    <thead className="table-light">
+                                        <tr>
+                                            <th>Outlet</th>
+                                            <th className="text-center">Total Order</th>
+                                            <th className="text-end">Pendapatan</th>
+                                            <th className="text-end">Pengeluaran</th>
+                                            <th className="text-end">Laba Bersih</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {data.outletBreakdown.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={5} className="text-center py-4 text-muted">
+                                                    Tidak ada data outlet
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            data.outletBreakdown.map((outlet: OutletBreakdown) => (
+                                                <tr key={outlet.outletId}>
+                                                    <td className="fw-medium">
+                                                        <i className="fas fa-store text-muted me-2"></i>
+                                                        {outlet.outletName}
+                                                    </td>
+                                                    <td className="text-center">{outlet.totalOrders}</td>
+                                                    <td className="text-end text-success fw-bold">
+                                                        {formatCurrency(outlet.totalRevenue)}
+                                                    </td>
+                                                    <td className="text-end text-danger">
+                                                        {formatCurrency(outlet.totalExpense)}
+                                                    </td>
+                                                    <td className={`text-end fw-bold ${outlet.netProfit >= 0 ? 'text-primary' : 'text-danger'}`}>
+                                                        {formatCurrency(outlet.netProfit)}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                    {data.outletBreakdown.length > 0 && (
+                                        <tfoot className="table-light">
+                                            <tr className="fw-bold">
+                                                <td>TOTAL</td>
+                                                <td className="text-center">{data.summary.totalOrders}</td>
+                                                <td className="text-end text-success">{formatCurrency(data.summary.totalRevenue)}</td>
+                                                <td className="text-end text-danger">{formatCurrency(data.summary.totalExpense)}</td>
+                                                <td className={`text-end ${data.summary.netProfit >= 0 ? 'text-primary' : 'text-danger'}`}>
+                                                    {formatCurrency(data.summary.netProfit)}
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    )}
+                                </table>
                             </div>
                         </div>
                     </div>
@@ -306,6 +472,7 @@ export default function ReportsPage() {
                                 getRowKey={(o) => o.id}
                                 mobileContainerClassName="px-3 pt-2 pb-3"
                                 columns={[
+                                    ...(mode === 'global' ? [{ header: 'Outlet', render: (o: any) => <span className="text-muted">{o.outletName || '-'}</span> }] : []),
                                     { header: 'Kode', render: (o) => <span className="badge bg-secondary">{o.trackingCode}</span> },
                                     { header: 'Pelanggan', render: (o) => o.customerName },
                                     { header: 'Status Order', render: (o) => <span className="badge bg-info">{o.status}</span> },
@@ -327,6 +494,11 @@ export default function ReportsPage() {
                                                 <span className="badge bg-secondary">{o.trackingCode}</span>
                                                 <span className="text-muted small">{formatDateTime(o.createdAt)}</span>
                                             </div>
+                                            {mode === 'global' && o.outletName && (
+                                                <div className="text-muted small mb-1">
+                                                    <i className="fas fa-store me-1"></i> {o.outletName}
+                                                </div>
+                                            )}
                                             <h5 className="card-title fw-bold mb-1">{o.customerName}</h5>
                                             <div className="mb-2">
                                                 <span className="badge bg-warning text-dark me-1">{o.paymentStatus}</span>

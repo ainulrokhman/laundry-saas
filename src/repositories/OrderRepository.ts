@@ -558,4 +558,215 @@ export class OrderRepository extends BaseRepository {
       orderBy: { createdAt: 'desc' },
     });
   }
+
+  // ============================================
+  // Global Reports Methods (Multi-Outlet)
+  // ============================================
+
+  /**
+   * Get stats by date range for multiple outlets (Global Reports)
+   */
+  async getGlobalStatsByDateRange(
+    outletIds: string[],
+    startDate: Date,
+    endDate: Date
+  ): Promise<{ totalOrders: number; totalRevenue: number; totalCustomers: number }> {
+    if (outletIds.length === 0) {
+      return { totalOrders: 0, totalRevenue: 0, totalCustomers: 0 };
+    }
+
+    const where: Prisma.OrderWhereInput = {
+      outletId: { in: outletIds },
+      createdAt: {
+        gte: startDate,
+        lte: endDate,
+      },
+    };
+
+    const [countResult, revenueResult, customersResult] = await Promise.all([
+      prisma.order.count({ where }),
+      prisma.order.aggregate({
+        where: {
+          ...where,
+          paymentStatus: PaymentStatus.SETTLEMENT,
+        },
+        _sum: {
+          totalAmount: true,
+        },
+      }),
+      prisma.order.groupBy({
+        by: ['customerPhone'],
+        where: {
+          ...where,
+          customerPhone: { not: null }
+        },
+      })
+    ]);
+
+    return {
+      totalOrders: countResult,
+      totalRevenue: revenueResult._sum.totalAmount || 0,
+      totalCustomers: customersResult.length,
+    };
+  }
+
+  /**
+   * Get daily stats for multiple outlets (Global Reports)
+   */
+  async getGlobalDailyStats(
+    outletIds: string[],
+    startDate: Date,
+    endDate: Date
+  ): Promise<Array<{ date: string; count: number; revenue: number }>> {
+    if (outletIds.length === 0) {
+      return [];
+    }
+
+    const orders = await prisma.order.findMany({
+      where: {
+        outletId: { in: outletIds },
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      select: {
+        createdAt: true,
+        totalAmount: true,
+        paymentStatus: true,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    const statsMap = new Map<string, { count: number; revenue: number }>();
+
+    orders.forEach((order) => {
+      const dateKey = order.createdAt.toISOString().split('T')[0];
+      const current = statsMap.get(dateKey) || { count: 0, revenue: 0 };
+
+      current.count += 1;
+      if (order.paymentStatus === PaymentStatus.SETTLEMENT) {
+        current.revenue += order.totalAmount;
+      }
+
+      statsMap.set(dateKey, current);
+    });
+
+    return Array.from(statsMap.entries()).map(([date, stats]) => ({
+      date,
+      count: stats.count,
+      revenue: stats.revenue,
+    }));
+  }
+
+  /**
+   * Get payment method stats for multiple outlets (Global Reports)
+   */
+  async getGlobalPaymentMethodStats(
+    outletIds: string[],
+    startDate: Date,
+    endDate: Date
+  ): Promise<Array<{ method: string; count: number; amount: number }>> {
+    if (outletIds.length === 0) {
+      return [];
+    }
+
+    const result = await prisma.order.groupBy({
+      by: ['paymentMethod'],
+      where: {
+        outletId: { in: outletIds },
+        createdAt: { gte: startDate, lte: endDate },
+        paymentStatus: PaymentStatus.SETTLEMENT,
+      },
+      _count: { _all: true },
+      _sum: { totalAmount: true },
+    });
+
+    return result.map(r => ({
+      method: r.paymentMethod || 'UNKNOWN',
+      count: r._count._all,
+      amount: r._sum.totalAmount || 0,
+    }));
+  }
+
+  /**
+   * Get unpaid orders for multiple outlets (Global Reports)
+   */
+  async getGlobalUnpaidOrders(outletIds: string[]): Promise<any[]> {
+    if (outletIds.length === 0) {
+      return [];
+    }
+
+    return prisma.order.findMany({
+      where: {
+        outletId: { in: outletIds },
+        OR: [
+          { paymentStatus: PaymentStatus.UNPAID },
+          { paymentStatus: PaymentStatus.PENDING },
+        ]
+      },
+      select: {
+        id: true,
+        trackingCode: true,
+        customerName: true,
+        totalAmount: true,
+        dpAmount: true,
+        paymentStatus: true,
+        status: true,
+        createdAt: true,
+        outletId: true,
+        outlet: {
+          select: {
+            name: true,
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * Get per-outlet breakdown for Global Reports
+   */
+  async getPerOutletBreakdown(
+    outletIds: string[],
+    startDate: Date,
+    endDate: Date
+  ): Promise<Array<{
+    outletId: string;
+    outletName: string;
+    totalOrders: number;
+    totalRevenue: number;
+  }>> {
+    if (outletIds.length === 0) {
+      return [];
+    }
+
+    const result = await prisma.order.groupBy({
+      by: ['outletId'],
+      where: {
+        outletId: { in: outletIds },
+        createdAt: { gte: startDate, lte: endDate },
+        paymentStatus: PaymentStatus.SETTLEMENT,
+      },
+      _count: { _all: true },
+      _sum: { totalAmount: true },
+    });
+
+    // Get outlet names
+    const outlets = await prisma.outlet.findMany({
+      where: { id: { in: outletIds } },
+      select: { id: true, name: true },
+    });
+    const outletMap = new Map(outlets.map(o => [o.id, o.name]));
+
+    return result.map(r => ({
+      outletId: r.outletId,
+      outletName: outletMap.get(r.outletId) || 'Unknown',
+      totalOrders: r._count._all,
+      totalRevenue: r._sum.totalAmount || 0,
+    }));
+  }
 }

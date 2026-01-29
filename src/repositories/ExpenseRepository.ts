@@ -74,4 +74,68 @@ export class ExpenseRepository {
             where: { id, outletId },
         });
     }
+
+    // ============================================
+    // Global Reports Methods (Multi-Outlet)
+    // ============================================
+
+    /**
+     * Get total expenses for multiple outlets (Global Reports)
+     */
+    async getGlobalTotalExpenses(
+        outletIds: string[],
+        startDate: Date,
+        endDate: Date
+    ): Promise<number> {
+        if (outletIds.length === 0) {
+            return 0;
+        }
+
+        const aggregate = await prisma.expense.aggregate({
+            where: {
+                outletId: { in: outletIds },
+                date: {
+                    gte: startDate,
+                    lte: endDate,
+                },
+            },
+            _sum: {
+                amount: true,
+            },
+        });
+
+        return aggregate._sum.amount || 0;
+    }
+
+    /**
+     * Get per-outlet expense breakdown (Global Reports)
+     */
+    async getPerOutletExpenseBreakdown(
+        outletIds: string[],
+        startDate: Date,
+        endDate: Date
+    ): Promise<Array<{ outletId: string; totalExpense: number }>> {
+        if (outletIds.length === 0) {
+            return [];
+        }
+
+        const result = await prisma.expense.groupBy({
+            by: ['outletId'],
+            where: {
+                outletId: { in: outletIds },
+                date: {
+                    gte: startDate,
+                    lte: endDate,
+                },
+            },
+            _sum: {
+                amount: true,
+            },
+        });
+
+        return result.map(r => ({
+            outletId: r.outletId,
+            totalExpense: r._sum.amount || 0,
+        }));
+    }
 }
