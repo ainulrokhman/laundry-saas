@@ -96,6 +96,30 @@ model OtpCode {
   @@index([expiresAt])
 }
 
+// ============================================
+// Subscription Package Model
+// ============================================
+
+model SubscriptionPackage {
+  id          String   @id @default(uuid())
+  name        String   // "Paket Bersih", "Paket Wangi", "Paket Licin"
+  slug        String   @unique // "bersih", "wangi", "licin"
+  price       Float    // Monthly price in IDR (49000, 99000, 149000)
+  description String?  // Package description
+  features    Json     // Array of feature strings
+  maxStaff    Int      @default(3) // Maximum staff members (-1 = unlimited)
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0) // Display order
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  outlets     Outlet[]
+  
+  @@index([slug])
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
 model Outlet {
   id            String                @id @default(uuid())
   name          String
@@ -111,7 +135,9 @@ model Outlet {
   coverUrl      String?
   isPro         Boolean               @default(false)
   // Subscription tracking
-  subscriptionTier      String?   @default("FREE") // "FREE", "PRO", "ENTERPRISE"
+  packageId             String?   // Reference to SubscriptionPackage
+  package               SubscriptionPackage? @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  subscriptionTier      String?   @default("FREE") // DEPRECATED: use package instead
   subscriptionExpiresAt DateTime? // Null = no active paid subscription
   subscriptionStartedAt DateTime? // When current subscription period started
   // Owner relationship (1 OWNER bisa memiliki banyak outlet)
@@ -128,6 +154,7 @@ model Outlet {
   expenses      Expense[]             // Pengeluaran operasional outlet
 
   @@index([ownerId])
+  @@index([packageId])
   @@index([subscriptionExpiresAt]) // For querying expiring subscriptions
 }
 

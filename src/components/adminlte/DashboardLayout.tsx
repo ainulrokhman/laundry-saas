@@ -141,7 +141,19 @@ const menuItems: MenuItem[] = [
         href: '/admin/subscriptions/pending',
         roles: [Role.SUPERADMIN],
       },
+      {
+        label: 'Bank Accounts',
+        icon: 'fas fa-university',
+        href: '/admin/subscriptions/bank-accounts',
+        roles: [Role.SUPERADMIN],
+      },
     ],
+  },
+  {
+    label: 'Packages',
+    icon: 'fas fa-box',
+    href: '/admin/packages',
+    roles: [Role.SUPERADMIN],
   },
   {
     label: 'Outlets',
@@ -161,6 +173,7 @@ const menuItems: MenuItem[] = [
     href: '/admin/payments',
     roles: [Role.SUPERADMIN],
   },
+  // Add more SUPERADMIN menu items here
 ];
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {

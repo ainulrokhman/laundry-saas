@@ -15,7 +15,7 @@ const requestSchema = z.object({
     amount: z.number().positive(),
     proofUrl: z.string().url(),
     bankAccountId: z.string().uuid(),
-    description: z.string().optional(),
+    packageId: z.string().uuid().optional(), // Selected package
 });
 
 const subscriptionService = new SubscriptionPaymentService();
