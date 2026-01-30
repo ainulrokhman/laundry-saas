@@ -22,8 +22,6 @@ export interface SubscriptionListItem {
 
 export interface PendingPayment {
     id: string;
-    outletId: string;
-    outletName: string;
     amount: number;
     proofUrl: string | null;
     createdAt: Date;
@@ -31,6 +29,14 @@ export interface PendingPayment {
         bankName: string;
         accountNumber: string;
     } | null;
+    // User info (owner who pays)
+    userId: string;
+    userName: string;
+    userPhone: string;
+    // Package info
+    packageId: string | null;
+    packageName: string | null;
+    packagePrice: number | null;
 }
 
 export interface SubscriptionStats {
@@ -99,28 +105,40 @@ export class SubscriptionManagementService {
                         accountNumber: true,
                     },
                 },
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        phone: true,
+                    },
+                },
+                package: {
+                    select: {
+                        id: true,
+                        name: true,
+                        price: true,
+                    },
+                },
             },
             orderBy: {
                 createdAt: 'desc',
             },
         });
 
-        // Fetch outlet names separately
-        const outletIds = transactions.map(t => t.outletId).filter((id): id is string => id !== null);
-        const outlets = await prisma.outlet.findMany({
-            where: { id: { in: outletIds } },
-            select: { id: true, name: true },
-        });
-        const outletMap = new Map(outlets.map(o => [o.id, o.name]));
-
         return transactions.map((t) => ({
             id: t.id,
-            outletId: t.outletId || '',
-            outletName: t.outletId ? (outletMap.get(t.outletId) || 'Unknown') : 'Unknown',
             amount: t.amount,
             proofUrl: t.proofUrl,
             createdAt: t.createdAt,
             bankAccount: t.bankAccount,
+            // User info
+            userId: t.user?.id || '',
+            userName: t.user?.name || 'Unknown',
+            userPhone: t.user?.phone || '',
+            // Package info
+            packageId: t.package?.id || null,
+            packageName: t.package?.name || null,
+            packagePrice: t.package?.price || null,
         }));
     }
 
@@ -133,6 +151,9 @@ export class SubscriptionManagementService {
     ): Promise<void> {
         const transaction = await prisma.transaction.findUnique({
             where: { id: transactionId },
+            include: {
+                package: true, // Include package info
+            },
         });
 
         if (!transaction) {
@@ -143,40 +164,44 @@ export class SubscriptionManagementService {
             throw new Error('Transaction is not pending');
         }
 
-        const outlet = await prisma.outlet.findUnique({
-            where: { id: transaction.outletId! },
+        if (!transaction.userId) {
+            throw new Error('Transaction has no associated user');
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id: transaction.userId },
         });
 
-        if (!outlet) {
-            throw new Error('Outlet not found');
+        if (!user) {
+            throw new Error('User not found');
         }
 
         // Calculate new expiry date
         const now = new Date();
-        const currentExpiry = outlet.subscriptionExpiresAt;
+        const currentExpiry = user.subscriptionExpiresAt;
 
         // If current subscription is still active, extend from expiry date
         // Otherwise, start from now
         const startDate = currentExpiry && currentExpiry > now ? currentExpiry : now;
         const newExpiryDate = new Date(startDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
 
-        // Update transaction status and outlet subscription
+        // Update transaction status and user subscription
         await prisma.$transaction([
             // Mark transaction as settled
             prisma.transaction.update({
                 where: { id: transactionId },
                 data: {
                     status: PaymentStatus.SETTLEMENT,
+                    settledAt: now,
                 },
             }),
-            // Update outlet subscription
-            prisma.outlet.update({
-                where: { id: transaction.outletId! },
+            // Update user subscription
+            prisma.user.update({
+                where: { id: transaction.userId },
                 data: {
-                    subscriptionTier: 'PRO', // Or determine based on amount
+                    packageId: transaction.packageId, // Assign purchased package
                     subscriptionExpiresAt: newExpiryDate,
-                    subscriptionStartedAt: outlet.subscriptionStartedAt || now,
-                    isPro: true,
+                    subscriptionStartedAt: user.subscriptionStartedAt || now,
                 },
             }),
         ]);
