@@ -186,7 +186,7 @@ export class OrderService extends BaseService {
             dpAmount,
             dpPaidAt,
             dpNote,
-            customerId, // Relasi ke Customer (null = pelanggan umum)
+            customer: customerId ? { connect: { id: customerId } } : undefined, // Relasi ke Customer (null = pelanggan umum)
             customerName,
             customerPhone,
             notes,

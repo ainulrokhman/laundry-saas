@@ -224,6 +224,7 @@ export const POST = withAuth(
       };
 
       const created = await orderService.createOrder(sessionUser, {
+        customerId: validated.customerId,
         customerName: validated.customerName,
         customerPhone: validated.customerPhone,
         notes: validated.notes,
