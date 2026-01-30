@@ -40,9 +40,6 @@ export enum PackageFeature {
   // Payroll
   PAYROLL_AUTO = "PAYROLL_AUTO",
 
-  // Media
-  PHOTO_EVIDENCE = "PHOTO_EVIDENCE", // Bukti Cuci
-
   // Advanced
   MULTI_OUTLET = "MULTI_OUTLET",
   PRIORITY_SUPPORT = "PRIORITY_SUPPORT",
@@ -68,7 +65,6 @@ export const FEATURE_LABELS: Record<PackageFeature, string> = {
   [PackageFeature.STOCK_TRANSFER]: "Transfer Stok Antar Outlet",
   [PackageFeature.LOG_ACTIVITY]: "Log Aktivitas (Anti-Maling)",
   [PackageFeature.PAYROLL_AUTO]: "Sistem Gaji & Komisi Otomatis",
-  [PackageFeature.PHOTO_EVIDENCE]: "Simpan Foto Bukti Cuci",
   [PackageFeature.MULTI_OUTLET]: "Multi-Outlet Management",
   [PackageFeature.PRIORITY_SUPPORT]: "Priority Support",
 };
@@ -114,13 +110,15 @@ export const PACKAGE_DEFINITIONS: Record<string, PackageDefinition> = {
       PackageFeature.ORDER_MANAGEMENT,
       PackageFeature.INVOICE_CUSTOM, // Bersih (Logo Toko)
       PackageFeature.WA_MANUAL,
+      PackageFeature.REPORT_BASIC,
       PackageFeature.REPORT_SIMPLE_PL,
       PackageFeature.STOCK_BASIC,
       PackageFeature.CUSTOMER_UNLIMITED,
+      PackageFeature.CRM_BASIC,
       PackageFeature.EXPORT_DATA,
     ],
-    maxStaff: 2, // Owner + Kasir
-    maxOutlets: 3,
+    maxStaff: 3, // Owner + 2 Staff
+    maxOutlets: 1,
     sortOrder: 1,
   },
   WANGI: {
@@ -134,16 +132,18 @@ export const PACKAGE_DEFINITIONS: Record<string, PackageDefinition> = {
       PackageFeature.ORDER_MANAGEMENT,
       PackageFeature.INVOICE_CUSTOM,
       PackageFeature.WA_AUTOMATIC,
+      PackageFeature.REPORT_BASIC,
+      PackageFeature.REPORT_SIMPLE_PL,
       PackageFeature.REPORT_COMPLETE_PL,
       PackageFeature.STOCK_BASIC,
       PackageFeature.CUSTOMER_UNLIMITED,
+      PackageFeature.CRM_BASIC,
       PackageFeature.LOG_ACTIVITY,
       PackageFeature.PAYROLL_AUTO,
-      PackageFeature.PHOTO_EVIDENCE,
       PackageFeature.EXPORT_DATA,
     ],
-    maxStaff: -1, // Unlimited
-    maxOutlets: -1,
+    maxStaff: 5, // Owner + 4 Staff
+    maxOutlets: 3,
     sortOrder: 2,
   },
   LICIN: {
@@ -157,6 +157,9 @@ export const PACKAGE_DEFINITIONS: Record<string, PackageDefinition> = {
       PackageFeature.ORDER_MANAGEMENT,
       PackageFeature.INVOICE_CUSTOM,
       PackageFeature.WA_AUTOMATIC,
+      PackageFeature.REPORT_BASIC,
+      PackageFeature.REPORT_SIMPLE_PL,
+      PackageFeature.REPORT_COMPLETE_PL,
       PackageFeature.REPORT_CONSOLIDATED,
       PackageFeature.STOCK_BASIC,
       PackageFeature.STOCK_TRANSFER,
@@ -164,7 +167,6 @@ export const PACKAGE_DEFINITIONS: Record<string, PackageDefinition> = {
       PackageFeature.CRM_ADVANCED,
       PackageFeature.LOG_ACTIVITY,
       PackageFeature.PAYROLL_AUTO,
-      PackageFeature.PHOTO_EVIDENCE,
       PackageFeature.MULTI_OUTLET,
       PackageFeature.EXPORT_DATA,
       PackageFeature.PRIORITY_SUPPORT,
