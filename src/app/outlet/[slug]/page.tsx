@@ -120,339 +120,242 @@ export default async function OutletLandingPage({ params }: PageProps) {
   });
 
   return (
-    <div className="bg-light">
-      <div className="container py-4 py-md-5">
-        <div className="row justify-content-center">
-          <div className="col-lg-9">
-            <OwnerPublicBar slug={slug} />
-            {/* Hero */}
-            <div className="card shadow-sm border-0 overflow-hidden">
-              <div className="position-relative">
-                {hasCover ? (
-                  <div className="ratio ratio-21x9 bg-dark">
-                    <img
-                      src={outletPublic.coverUrl as string}
-                      alt={`Foto cover ${outletPublic.name}`}
-                      className="w-100 h-100 object-fit-cover"
-                      loading="lazy"
-                    />
-                  </div>
+    <div className="bg-light min-vh-100 font-sans tracking-wide">
+      {/* Owner Bar */}
+      <div className="bg-luxury-dark border-bottom border-white border-opacity-10">
+        <div className="container py-2">
+          <OwnerPublicBar slug={slug} />
+        </div>
+      </div>
+
+      {/* Luxury Hero Section */}
+      <section className="position-relative bg-luxury-dark text-white overflow-hidden" style={{ minHeight: '60vh' }}>
+        {hasCover ? (
+          <>
+            <img
+              src={outletPublic.coverUrl as string}
+              alt={`Cover ${outletPublic.name}`}
+              className="position-absolute top-0 start-0 w-100 h-100 object-fit-cover opacity-40 animate-in"
+              style={{ filter: 'blur(0px)', transition: 'transform 10s ease' }}
+            />
+            <div className="position-absolute top-0 start-0 w-100 h-100 bg-gradient-to-br from-luxury-dark via-luxury-dark to-transparent opacity-90"></div>
+          </>
+        ) : (
+          <div className="position-absolute top-0 start-0 w-100 h-100 bg-gradient-to-br from-luxury-dark via-gray-900 to-luxury-dark"></div>
+        )}
+
+        <div className="container position-relative h-100 d-flex flex-column justify-content-center py-5">
+          <div className="row align-items-center justify-content-center text-center animate-in delay-100">
+            <div className="col-lg-8">
+              <div className="mb-4 d-inline-block position-relative">
+                {hasLogo ? (
+                  <img
+                    src={outletPublic.logoUrl as string}
+                    alt="Logo"
+                    className="rounded-circle border border-4 border-luxury-gold shadow-luxury"
+                    width={100}
+                    height={100}
+                  />
                 ) : (
-                  <div className="bg-dark text-white">
-                    <div className="p-4 p-md-5">
-                      <div className="d-flex align-items-center gap-3">
-                        <div className="bg-white bg-opacity-10 rounded p-3">
-                          <i className="fas fa-store fa-2x"></i>
-                        </div>
-                        <div>
-                          <div className="small text-white-50">Outlet</div>
-                          <div className="h4 mb-0">{outletPublic.name}</div>
-                        </div>
-                      </div>
-                    </div>
+                  <div className="bg-luxury-gold rounded-circle d-flex align-items-center justify-content-center shadow-luxury" style={{ width: 100, height: 100 }}>
+                    <i className="fas fa-store fa-3x text-white"></i>
                   </div>
-                )}
-
-                {hasCover && (
-                  <>
-                    <div className="position-absolute top-0 start-0 w-100 h-100 bg-dark opacity-50"></div>
-                    <div className="position-absolute bottom-0 start-0 w-100 p-3 p-md-4">
-                      <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
-                        <div className="d-flex align-items-center gap-3">
-                          {hasLogo ? (
-                            <div className="bg-white rounded shadow-sm p-1">
-                              <img
-                                src={outletPublic.logoUrl as string}
-                                alt={`Logo ${outletPublic.name}`}
-                                className="rounded object-fit-cover"
-                                width={56}
-                                height={56}
-                                loading="lazy"
-                              />
-                            </div>
-                          ) : (
-                            <div className="bg-white bg-opacity-25 rounded p-3">
-                              <i className="fas fa-store text-white"></i>
-                            </div>
-                          )}
-
-                          <div className="text-white">
-                            <h1 className="h4 mb-1">{outletPublic.name}</h1>
-                            {heroTagline && (
-                              <div className="small text-white-50">{heroTagline}</div>
-                            )}
-                            <div className="text-white-50">
-                              <i className="fas fa-map-marker-alt me-2"></i>
-                              {outletPublic.address}
-                            </div>
-                            {heroLead && (
-                              <div className="mt-2 text-white-50">{heroLead}</div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="d-flex gap-2 flex-wrap">
-                          <a
-                            href={mapsUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn btn-outline-light"
-                          >
-                            <i className="fas fa-map-marked-alt me-2"></i>
-                            Buka Maps
-                          </a>
-
-                          <a href="#track-order" className="btn btn-primary">
-                            <i className="fas fa-search me-2"></i>
-                            Lacak Pesanan
-                          </a>
-
-                          {waUrl && (
-                            <a
-                              href={waUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="btn btn-success d-none d-md-inline-flex"
-                            >
-                              <i className="fab fa-whatsapp me-2"></i>
-                              Chat WhatsApp
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </>
                 )}
               </div>
 
-              {!hasCover && (
-                <div className="card-body">
-                  <div className="d-flex align-items-start justify-content-between flex-wrap gap-3">
-                    <div className="d-flex align-items-center gap-3">
-                      {hasLogo && (
-                        <div className="bg-white rounded shadow-sm p-1 border">
-                          <img
-                            src={outletPublic.logoUrl as string}
-                            alt={`Logo ${outletPublic.name}`}
-                            className="rounded object-fit-cover"
-                            width={56}
-                            height={56}
-                            loading="lazy"
-                          />
-                        </div>
-                      )}
-                      <div>
-                        <h1 className="h4 mb-1">{outletPublic.name}</h1>
-                        {heroTagline && (
-                          <div className="small text-muted">{heroTagline}</div>
-                        )}
-                        <div className="text-muted">
-                          <i className="fas fa-map-marker-alt me-2"></i>
-                          {outletPublic.address}
-                        </div>
-                        {heroLead && (
-                          <div className="text-muted small mt-2">{heroLead}</div>
-                        )}
-                      </div>
-                    </div>
+              <h1 className="display-4 fw-bold mb-3 tracking-tight">
+                {outletPublic.name}
+              </h1>
 
-                    <div className="d-flex gap-2 flex-wrap">
-                      <a
-                        href={mapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-outline-secondary"
-                      >
-                        <i className="fas fa-map-marked-alt me-2"></i>
-                        Buka Maps
-                      </a>
-                      <a href="#track-order" className="btn btn-primary">
-                        <i className="fas fa-search me-2"></i>
-                        Lacak Pesanan
-                      </a>
-                      {waUrl && (
-                        <a
-                          href={waUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn btn-success"
-                        >
-                          <i className="fab fa-whatsapp me-2"></i>
-                          Chat WhatsApp
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
+              {heroTagline && (
+                <p className="lead text-luxury-gold fw-medium mb-4 text-uppercase tracking-widest small">
+                  {heroTagline}
+                </p>
               )}
-            </div>
 
-            {/* Floating CTA (mobile) */}
-            {waUrl && (
-              <a
-                href={waUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-success position-fixed bottom-0 end-0 m-3 shadow d-md-none z-3"
-                aria-label="Chat WhatsApp"
-              >
-                <i className="fab fa-whatsapp me-2"></i>
-                Chat
-              </a>
-            )}
-
-            <div className="row g-3 mt-1">
-              <div className="col-md-7">
-                <div className="card shadow-sm h-100">
-                  <div className="card-body">
-                    <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-                      <h2 className="h6 mb-0">
-                        <i className="fas fa-info-circle me-2 text-info"></i>
-                        Tentang Outlet
-                      </h2>
-                      <span className="badge bg-light text-muted border">
-                        <i className="fas fa-shield-alt me-1"></i>
-                        Data sesuai yang tersedia
-                      </span>
-                    </div>
-
-                    {hasDescription ? (
-                      <p className="mb-0">{outletPublic.description}</p>
-                    ) : (
-                      <div className="alert alert-light border mb-0">
-                        <span className="text-muted">Belum ada deskripsi outlet yang ditampilkan.</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
+              <div className="d-flex align-items-center justify-content-center gap-2 mb-5 text-white-50">
+                <i className="fas fa-map-marker-alt text-luxury-gold"></i>
+                <span>{outletPublic.address}</span>
               </div>
 
-              <div className="col-md-5">
-                <div className="card shadow-sm h-100">
-                  <div className="card-body">
-                    <h2 className="h6 mb-2">
-                      <i className="fas fa-clock me-2 text-warning"></i>
-                      Jam Operasional
-                    </h2>
-                    {hasBusinessHours ? (
-                      <div className="alert alert-light border mb-0">{outletPublic.businessHours}</div>
-                    ) : (
-                      <div className="alert alert-light border mb-0">
-                        <span className="text-muted">Belum ada jam operasional yang ditampilkan.</span>
-                      </div>
-                    )}
-
-                    <hr className="my-3" />
-
-                    <h2 className="h6 mb-2">
-                      <i className="fas fa-map-marked-alt me-2 text-danger"></i>
-                      Lokasi
-                    </h2>
-                    <div className="text-muted small mb-2">{outletPublic.address}</div>
-                    <a
-                      href={mapsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-outline-secondary btn-sm"
-                    >
-                      <i className="fas fa-directions me-2"></i>
-                      Petunjuk Arah
-                    </a>
-                  </div>
-                </div>
+              <div className="d-flex justify-content-center flex-wrap gap-3">
+                <a href="#track-order" className="btn btn-luxury-gold btn-lg rounded-pill px-5 shadow-lg">
+                  <i className="fas fa-search me-2"></i> Lacak Pesanan
+                </a>
+                <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="btn btn-outline-light btn-lg rounded-pill px-5 hover-scale">
+                  <i className="fas fa-location-arrow me-2"></i> Lokasi
+                </a>
               </div>
-            </div>
-
-            <div className="mt-3" id="track-order">
-              <TrackOrderInline slug={slug} />
-            </div>
-
-            {/* Services */}
-            <div className="card shadow-sm mt-3">
-              <div className="card-header bg-white">
-                <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                  <h2 className="h6 mb-0">
-                    <i className="fas fa-concierge-bell me-2 text-primary"></i>
-                    Daftar Layanan & Harga
-                  </h2>
-                  <div className="text-muted small">
-                    <i className="fas fa-info-circle me-1"></i>
-                    Ditampilkan hanya jika tersedia
-                  </div>
-                </div>
-              </div>
-              <div className="card-body">
-                {!hasServices ? (
-                  <div className="alert alert-light border mb-0">
-                    <span className="text-muted">Belum ada layanan yang ditampilkan.</span>
-                  </div>
-                ) : (
-                  <div className="vstack gap-4">
-                    {serviceTypes.map((type) => (
-                      <div key={type}>
-                        <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-                          <div className="fw-semibold">
-                            {formatServiceType(type)}
-                          </div>
-                          <span className="badge bg-secondary">
-                            {servicesByType[type].length} item
-                          </span>
-                        </div>
-
-                        <div className="row g-3">
-                          {servicesByType[type].map((svc: any) => (
-                            <div key={svc.id} className="col-md-6">
-                              <div className="card h-100 border">
-                                <div className="card-body">
-                                  <div className="d-flex justify-content-between align-items-start gap-3">
-                                    <div className="flex-grow-1">
-                                      <div className="fw-semibold">{svc.name}</div>
-                                      {svc.description && (
-                                        <div className="text-muted small mt-1">{svc.description}</div>
-                                      )}
-                                      {svc.unit && (
-                                        <div className="mt-2">
-                                          <span className="badge bg-light text-muted border">
-                                            Satuan: {svc.unit}
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="text-end">
-                                      <div className="fw-bold text-primary">
-                                        {formatCurrency(Number(svc.price) || 0)}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="card-footer bg-white d-flex justify-content-between flex-wrap gap-2">
-                <Link href="/" className="btn btn-outline-secondary">
-                  <i className="fas fa-arrow-left me-2"></i>
-                  Kembali
-                </Link>
-                <div className="text-muted small">
-                  <i className="fas fa-link me-1"></i>
-                  URL outlet: <span className="fw-semibold">/outlet/{outletPublic.slug}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="text-center text-muted small mt-3">
-              Halaman ini menampilkan informasi outlet yang tersedia saat ini (tanpa klaim berlebihan).
             </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Main Content with Glassmorphism */}
+      <main className="container py-5" style={{ marginTop: '-80px', position: 'relative', zIndex: 10 }}>
+        <div className="row g-4 justify-content-center">
+
+          {/* Left Column: Track & Info */}
+          <div className="col-lg-4 order-lg-last animate-in delay-200 mt-lg-5 pt-lg-5">
+            {/* Track Order Card */}
+            <div id="track-order" className="glass-panel text-dark shadow-luxury rounded-4 mb-4 overflow-hidden">
+              <div className="p-4 border-bottom border-secondary border-opacity-10 bg-white bg-opacity-50">
+                <h5 className="fw-bold mb-0 d-flex align-items-center gap-2 text-luxury-dark">
+                  <i className="fas fa-search text-luxury-gold"></i>
+                  Cek Status
+                </h5>
+              </div>
+              <div className="p-4">
+                <TrackOrderInline slug={slug} />
+              </div>
+            </div>
+
+            {/* Outlet Info Card */}
+            <div className="glass-panel text-dark shadow-luxury rounded-4 mb-4 p-4">
+              <h6 className="fw-bold text-uppercase tracking-widest text-muted mb-4 small">Informasi Outlet</h6>
+
+              {hasDescription && (
+                <div className="mb-4 text-secondary">
+                  {outletPublic.description}
+                </div>
+              )}
+
+              <div className="vstack gap-4">
+                <div className="d-flex gap-3 align-items-start">
+                  <div className="bg-luxury-gold bg-opacity-10 p-2 rounded text-luxury-gold">
+                    <i className="fas fa-clock"></i>
+                  </div>
+                  <div>
+                    <div className="fw-bold text-dark">Jam Operasional</div>
+                    <p className="small text-muted mb-0">{outletPublic.businessHours || '-'}</p>
+                  </div>
+                </div>
+                <div className="d-flex gap-3 align-items-start">
+                  <div className="bg-luxury-gold bg-opacity-10 p-2 rounded text-luxury-gold">
+                    <i className="fas fa-map-marked-alt"></i>
+                  </div>
+                  <div>
+                    <div className="fw-bold text-dark">Alamat Lengkap</div>
+                    <p className="small text-muted mb-0">{outletPublic.address}</p>
+                  </div>
+                </div>
+                {waUrl && (
+                  <div className="d-flex gap-3 align-items-start">
+                    <div className="bg-luxury-gold bg-opacity-10 p-2 rounded text-luxury-gold">
+                      <i className="fab fa-whatsapp"></i>
+                    </div>
+                    <div>
+                      <div className="fw-bold text-dark">Kontak</div>
+                      <a href={waUrl} target="_blank" rel="noopener noreferrer" className="text-decoration-none text-luxury-gold fw-semibold small">
+                        Hubungi via WhatsApp
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Services */}
+          <div className="col-lg-8 animate-in delay-300 mt-lg-5 pt-lg-5">
+            {/* Services Section */}
+            <div className="d-flex align-items-center justify-content-between mb-4 mt-2 mt-lg-0">
+              <h2 className="h4 fw-bold text-luxury-dark mb-0">
+                Layanan Eksklusif
+              </h2>
+              <span className="text-muted small fst-italic">Standard kualitas terbaik</span>
+            </div>
+
+            {!hasServices ? (
+              <div className="text-center py-5 text-muted glass-panel rounded-4">
+                <i className="fas fa-spa fa-2x mb-3 text-luxury-gold opacity-50"></i>
+                <p>Belum ada layanan yang ditampilkan saat ini.</p>
+              </div>
+            ) : (
+              <div className="vstack gap-5">
+                {serviceTypes.map((type) => (
+                  <div key={type}>
+                    <div className="d-flex align-items-center gap-3 mb-4">
+                      <span className="text-uppercase tracking-widest fw-bold text-luxury-gold small">{formatServiceType(type)}</span>
+                      <div className="flex-grow-1 border-bottom border-luxury-gold opacity-25"></div>
+                    </div>
+
+                    <div className="row row-cols-1 row-cols-md-2 g-3">
+                      {servicesByType[type].map((svc: any) => (
+                        <div key={svc.id} className="col">
+                          <div className="card h-100 border-0 shadow-luxury hover-lift transition-all rounded-3 overflow-hidden group">
+                            <div className="card-body p-4 position-relative">
+                              <div className="position-absolute top-0 end-0 p-3 opacity-5">
+                                <i className="fas fa-tshirt fa-3x"></i>
+                              </div>
+
+                              <div className="d-flex flex-column h-100">
+                                <h5 className="fw-bold text-dark mb-1">{svc.name}</h5>
+                                <div className="mb-3">
+                                  {svc.description && (
+                                    <p className="text-muted small mb-0 line-clamp-2">
+                                      {svc.description}
+                                    </p>
+                                  )}
+                                </div>
+
+                                <div className="mt-auto d-flex align-items-end justify-content-between">
+                                  <div className="text-luxury-gold fw-bold fs-5">
+                                    {formatCurrency(Number(svc.price) || 0)}
+                                  </div>
+                                  {svc.unit && (
+                                    <span className="text-muted small bg-light px-2 py-1 rounded">
+                                      / {svc.unit}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="card-footer p-0 bg-luxury-gold" style={{ height: '3px', opacity: 0.8 }}></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+
+      <footer className="bg-white border-top py-5 mt-auto">
+        <div className="container text-center">
+          <div className="d-flex justify-content-center mb-3">
+            <div className="bg-luxury-gold rounded-circle d-flex align-items-center justify-content-center" style={{ width: 40, height: 40 }}>
+              <i className="fas fa-store text-white"></i>
+            </div>
+          </div>
+          <h5 className="fw-bold text-luxury-dark mb-1">{outletPublic.name}</h5>
+          <p className="text-muted small mb-4">{outletPublic.address}</p>
+
+          <div className="border-top w-25 mx-auto mb-4 border-luxury-gold opacity-25"></div>
+
+          <p className="text-muted small mb-0">
+            &copy; {new Date().getFullYear()} {outletPublic.name} <br />
+            <span className="opacity-50">Powered by Kasirlondri System</span>
+          </p>
+        </div>
+      </footer>
+
+      {/* Floating WA Button (Mobile Only) */}
+      {waUrl && (
+        <a
+          href={waUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn btn-success rounded-circle shadow-luxury position-fixed bottom-0 end-0 m-4 d-md-none z-3 d-flex align-items-center justify-content-center hover-scale"
+          style={{ width: '60px', height: '60px' }}
+          aria-label="Chat WhatsApp"
+        >
+          <i className="fab fa-whatsapp fa-2x"></i>
+        </a>
+      )}
     </div>
   );
 }
-

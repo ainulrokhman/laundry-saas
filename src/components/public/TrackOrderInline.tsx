@@ -18,11 +18,8 @@ function formatDateTimeId(value: string): string {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
   return new Intl.DateTimeFormat('id-ID', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+    dateStyle: 'medium',
+    timeStyle: 'short',
   }).format(d);
 }
 
@@ -48,7 +45,7 @@ function labelStatus(status: string): string {
 function labelPaymentStatus(status: string): string {
   switch (status) {
     case 'UNPAID':
-      return 'Belum dibayar';
+      return 'Belum Bayar';
     case 'PENDING':
       return 'Menunggu';
     case 'SETTLEMENT':
@@ -63,15 +60,13 @@ function labelPaymentStatus(status: string): string {
 function paymentBadgeClass(status: string): string {
   switch (status) {
     case 'SETTLEMENT':
-      return 'bg-success';
+      return 'bg-success-subtle text-success border border-success';
     case 'UNPAID':
-      return 'bg-danger';
+      return 'bg-danger-subtle text-danger border border-danger';
     case 'PENDING':
-      return 'bg-warning text-dark';
-    case 'FAILURE':
-      return 'bg-dark';
+      return 'bg-warning-subtle text-warning-emphasis border border-warning';
     default:
-      return 'bg-secondary';
+      return 'bg-secondary-subtle text-secondary border';
   }
 }
 
@@ -101,7 +96,7 @@ export function TrackOrderInline(props: { slug: string }) {
 
     const normalized = code.trim().toUpperCase();
     if (normalized.length < 6) {
-      setError('Tracking code minimal 6 karakter.');
+      setError('Kode minimal 6 karakter');
       setResult(null);
       return;
     }
@@ -127,149 +122,118 @@ export function TrackOrderInline(props: { slug: string }) {
   }
 
   return (
-    <div className="card shadow-sm border-0">
-      <div className="card-header bg-white">
-        <h2 className="h6 mb-0">
-          <i className="fas fa-search me-2 text-primary"></i>
-          Lacak Pesanan
-        </h2>
-      </div>
-      <div className="card-body">
-        <form onSubmit={handleTrack} className="row g-2 align-items-end">
-          <div className="col-md-8">
-            <label className="form-label fw-semibold" htmlFor="trackingCode">
-              Tracking code
-            </label>
-            <div className="input-group">
-              <span className="input-group-text">
-                <i className="fas fa-hashtag"></i>
-              </span>
-              <input
-                id="trackingCode"
-                className="form-control"
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/[^a-z0-9]/gi, '').toUpperCase())}
-                placeholder="Contoh: A1B2C3D4"
-                autoComplete="off"
-                inputMode="text"
-              />
-            </div>
-            <div className="form-text">
-              Masukkan kode yang Anda terima untuk melihat status terbaru.
-            </div>
-          </div>
-          <div className="col-md-4 d-grid">
-            <button className="btn btn-primary" type="submit" disabled={loading}>
-              {loading ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Melacak...
-                </>
-              ) : (
-                <>
-                  <i className="fas fa-location-arrow me-2"></i>
-                  Lacak
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-
+    <div>
+      <form onSubmit={handleTrack} className="mb-4">
+        <label className="form-label fw-bold small text-uppercase text-muted tracking-wide" htmlFor="trackingCode">
+          Kode Transaksi
+        </label>
+        <div className="input-group">
+          <input
+            id="trackingCode"
+            className="form-control border-end-0 bg-transparent text-dark"
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/[^a-z0-9]/gi, '').toUpperCase())}
+            placeholder="A1B2C3"
+            autoComplete="off"
+            style={{
+              letterSpacing: '2px',
+              fontWeight: 'bold',
+              borderTop: 'none',
+              borderLeft: 'none',
+              borderRight: 'none',
+              borderBottom: '2px solid #e2e8f0',
+              borderRadius: 0,
+              paddingLeft: 0
+            }}
+          />
+          <button className="btn btn-luxury-gold px-4 rounded-end-0 rounded-start-0" type="submit" disabled={loading} style={{ borderRadius: '0 4px 0 0' }}>
+            {loading ? <span className="spinner-border spinner-border-sm"></span> : <i className="fas fa-arrow-right"></i>}
+          </button>
+        </div>
         {error && (
-          <div className="alert alert-danger mt-3 mb-0">
-            <i className="fas fa-exclamation-triangle me-2"></i>
-            {error}
+          <div className="mt-2 text-danger small animate-in">
+            <i className="fas fa-exclamation-circle me-1"></i> {error}
           </div>
         )}
+      </form>
 
-        {result && (
-          <div className="mt-3">
-            <div className="card border">
-              <div className="card-body">
-                <div className="d-flex align-items-start justify-content-between flex-wrap gap-3">
-                  <div>
-                    <div className="text-muted small">Tracking code</div>
-                    <div className="fw-bold">{result.trackingCode}</div>
-                    {result.outletName && (
-                      <div className="text-muted small mt-2">
-                        Outlet: <span className="fw-semibold">{result.outletName}</span>
+      {result && (
+        <div className="animate-in fade-in zoom-in slide-in-from-bottom-2 duration-300">
+          <div className="bg-white bg-opacity-50 rounded-3 p-3 border border-light mb-4 shadow-sm">
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <span className="text-muted small text-uppercase tracking-wider">ID Pesanan</span>
+              <span className="fw-bold fs-5 text-luxury-dark">{result.trackingCode}</span>
+            </div>
+
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <span className="text-muted small text-uppercase tracking-wider">Status Bayar</span>
+              <span className={`badge rounded-0 fw-normal ${paymentBadgeClass(result.paymentStatus)}`}>
+                {labelPaymentStatus(result.paymentStatus)}
+              </span>
+            </div>
+
+            <div className="d-flex justify-content-between align-items-center border-top border-secondary border-opacity-10 pt-2">
+              <span className="text-muted small text-uppercase tracking-wider">Total</span>
+              <span className="fw-bold text-luxury-gold fs-5">{formatCurrency(Number(result.totalAmount) || 0)}</span>
+            </div>
+          </div>
+
+          <h6 className="fw-bold mb-5 small text-uppercase text-muted tracking-widest text-center border-bottom pb-2">Status Pesanan</h6>
+
+          <div className="position-relative px-2">
+            {/* Connecting Line */}
+            <div
+              className="position-absolute top-0 bottom-0 border-start border-2 border-luxury-gold border-opacity-25"
+              style={{ left: '1.25rem', zIndex: 0 }}
+            ></div>
+
+            <div className="vstack gap-4 position-relative" style={{ zIndex: 1 }}>
+              {steps.map((s, idx) => {
+                const done = currentIndex >= 0 && idx < currentIndex;
+                const isCurrent = currentIndex === idx;
+                const future = idx > currentIndex;
+
+                return (
+                  <div key={s.key} className="d-flex gap-3 align-items-center">
+                    {/* Icon Bubble */}
+                    <div
+                      className={`rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 transition-all ${done ? 'bg-luxury-gold text-white border border-luxury-gold shadow-sm' :
+                          isCurrent ? 'bg-white text-luxury-gold border border-4 border-luxury-gold shadow-luxury scale-110' :
+                            'bg-white text-muted border border-secondary border-opacity-25'
+                        }`}
+                      style={{ width: '2.5rem', height: '2.5rem' }}
+                    >
+                      {done ? (
+                        <i className="fas fa-check small"></i>
+                      ) : isCurrent ? (
+                        <i className="fas fa-circle fa-xs animate-pulse"></i>
+                      ) : (
+                        <div className="rounded-circle bg-secondary opacity-25" style={{ width: '8px', height: '8px' }}></div>
+                      )}
+                    </div>
+
+                    {/* Label */}
+                    <div className={`transition-all ${isCurrent ? 'transform translate-x-2' : ''}`}>
+                      <div className={`fw-bold ${isCurrent ? 'text-luxury-dark fs-6' : done ? 'text-dark' : 'text-muted'}`}>
+                        {s.label}
                       </div>
-                    )}
-                    <div className="text-muted small mt-2">Status</div>
-                    <span className="badge bg-info text-dark border">
-                      {labelStatus(result.status)}
-                    </span>
-                    {result.customerName && (
-                      <div className="text-muted small mt-2">
-                        Pelanggan: <span className="fw-semibold">{result.customerName}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="text-end">
-                    <div className="text-muted small">Total</div>
-                    <div className="fw-bold text-primary">{formatCurrency(Number(result.totalAmount) || 0)}</div>
-                    <div className="text-muted small mt-2">Pembayaran</div>
-                    <span className={`badge ${paymentBadgeClass(result.paymentStatus)}`}>
-                      {labelPaymentStatus(result.paymentStatus)}
-                    </span>
-                  </div>
-                </div>
-
-                <hr className="my-3" />
-
-                <div className="row g-2">
-                  <div className="col-md-6">
-                    <div className="text-muted small">Dibuat</div>
-                    <div className="fw-semibold">{formatDateTimeId(result.createdAt)}</div>
-                  </div>
-                  <div className="col-md-6">
-                    <div className="text-muted small">Selesai</div>
-                    <div className="fw-semibold">
-                      {result.completedAt ? formatDateTimeId(result.completedAt) : '—'}
+                      {isCurrent && (
+                        <div className="small text-luxury-gold fst-italic animate-in">Sedang diproses</div>
+                      )}
                     </div>
                   </div>
-                </div>
-
-                <hr className="my-3" />
-
-                <div className="text-muted small mb-2">
-                  <i className="fas fa-stream me-2"></i>
-                  Timeline status
-                </div>
-
-                <ul className="list-group">
-                  {steps.map((s, idx) => {
-                    const done = currentIndex >= 0 && idx <= currentIndex;
-                    const isCurrent = currentIndex === idx;
-                    return (
-                      <li
-                        key={s.key}
-                        className={`list-group-item d-flex justify-content-between align-items-center ${
-                          done ? 'list-group-item-success' : ''
-                        }`}
-                      >
-                        <div className="d-flex align-items-center gap-2">
-                          <i className={`${s.icon} ${done ? 'text-success' : 'text-muted'}`}></i>
-                          <span className={isCurrent ? 'fw-bold' : ''}>{s.label}</span>
-                        </div>
-                        {isCurrent && (
-                          <span className="badge bg-primary">Saat ini</span>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-
-                <div className="text-muted small mt-2">
-                  Informasi ditampilkan sesuai data yang tersedia saat ini.
-                </div>
-              </div>
+                );
+              })}
             </div>
           </div>
-        )}
-      </div>
+
+          <div className="text-center mt-4">
+            <small className="text-muted fst-italic opacity-50" style={{ fontSize: '0.7rem' }}>
+              Last updated: {formatDateTimeId(new Date().toISOString())}
+            </small>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
