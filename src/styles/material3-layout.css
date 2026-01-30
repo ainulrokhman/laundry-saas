@@ -73,12 +73,11 @@
   color: var(--md-sys-color-on-surface-variant) !important;
   font: var(--md-sys-typescale-label-large);
   padding: var(--md-sys-spacing-3) var(--md-sys-spacing-4);
-  border-radius: var(--md-sys-shape-corner-full);
+  border-radius: var(--md-sys-shape-corner-small);
   min-height: 56px;
   display: flex;
   align-items: center;
-  transition: all var(--md-sys-motion-duration-short4)
-    var(--md-sys-motion-easing-standard);
+  transition: all var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard);
   margin: 0 var(--md-sys-spacing-1);
 }
 
@@ -88,7 +87,7 @@
 }
 
 .app-sidebar .nav-link.active,
-.app-sidebar .nav-item.menu-open > .nav-link {
+.app-sidebar .nav-item.menu-open>.nav-link {
   background-color: var(--md-sys-color-secondary-container) !important;
   color: var(--md-sys-color-on-secondary-container) !important;
   font-weight: 600;
@@ -116,11 +115,10 @@
 
 /* Nav Arrow */
 .app-sidebar .nav-arrow {
-  transition: transform var(--md-sys-motion-duration-short4)
-    var(--md-sys-motion-easing-standard);
+  transition: transform var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard);
 }
 
-.app-sidebar .nav-item.menu-open > .nav-link .nav-arrow {
+.app-sidebar .nav-item.menu-open>.nav-link .nav-arrow {
   transform: rotate(90deg);
 }
 
@@ -161,9 +159,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--md-sys-shape-corner-full);
-  transition: background-color var(--md-sys-motion-duration-short4)
-    var(--md-sys-motion-easing-standard);
+  border-radius: var(--md-sys-shape-corner-small);
+  transition: background-color var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard);
 }
 
 .app-header .navbar-nav .nav-link:hover {
@@ -213,7 +210,8 @@
 
 .app-main {
   background-color: var(--md-sys-color-surface);
-  min-height: calc(100vh - 64px - 57px); /* viewport - header - footer */
+  min-height: calc(100vh - 64px - 57px);
+  /* viewport - header - footer */
 }
 
 .app-content {
@@ -250,6 +248,7 @@
    ============================================ */
 
 @media (max-width: 991.98px) {
+
   /* Mobile Sidebar as Drawer */
   .app-sidebar {
     position: fixed;
@@ -259,8 +258,7 @@
     width: 280px;
     z-index: 1040;
     transform: translateX(-100%);
-    transition: transform var(--md-sys-motion-duration-medium2)
-      var(--md-sys-motion-easing-emphasized);
+    transition: transform var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-emphasized);
     box-shadow: var(--md-sys-elevation-level4);
   }
 
