@@ -1,11 +1,11 @@
 /**
  * Dashboard DTO
- * 
+ *
  * Data Transfer Objects for dashboard responses.
  * Ensures sensitive data is scrubbed before sending to client.
  */
 
-import { DashboardStats, RecentOrder } from '@/services/DashboardService';
+import { DashboardStats, RecentOrder } from "@/services/DashboardService";
 
 export class DashboardDTO {
   /**
@@ -27,11 +27,14 @@ export class DashboardDTO {
     return {
       id: order.id,
       trackingCode: order.trackingCode,
-      customerName: order.customerName || 'Pelanggan',
+      customerName: order.customerName || "Pelanggan",
       status: order.status,
       paymentStatus: order.paymentStatus,
       totalAmount: order.totalAmount,
       createdAt: order.createdAt.toISOString(),
+      // Include outlet info for global mode
+      ...(order.outletId && { outletId: order.outletId }),
+      ...(order.outletName && { outletName: order.outletName }),
     };
   }
 

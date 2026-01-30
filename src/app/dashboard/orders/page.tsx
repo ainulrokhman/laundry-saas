@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Orders List (OWNER/STAFF)
@@ -6,17 +6,23 @@
  * Tabel React (tanpa plugin): search/filter/sort/pagination + toggle pembayaran (bookkeeping).
  */
 
-import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import Swal from 'sweetalert2';
-import 'sweetalert2/dist/sweetalert2.min.css';
-import { formatCurrency, formatDateTime } from '@/lib/utils';
-import { ResponsiveTableToCards } from '@/components/adminlte/ResponsiveTableToCards';
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import Swal from "sweetalert2";
+import "sweetalert2/dist/sweetalert2.min.css";
+import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { ResponsiveTableToCards } from "@/components/adminlte/ResponsiveTableToCards";
 
-type OrderStatus = 'QUEUED' | 'WASHING' | 'DRYING' | 'IRONING' | 'READY' | 'TAKEN';
-type PaymentStatus = 'UNPAID' | 'PENDING' | 'SETTLEMENT' | 'FAILURE';
+type OrderStatus =
+  | "QUEUED"
+  | "WASHING"
+  | "DRYING"
+  | "IRONING"
+  | "READY"
+  | "TAKEN";
+type PaymentStatus = "UNPAID" | "PENDING" | "SETTLEMENT" | "FAILURE";
 
 type OrderRow = {
   id: string;
@@ -36,7 +42,12 @@ type ApiListResponse = {
   success: boolean;
   data?: {
     items: OrderRow[];
-    pagination: { total: number; page: number; limit: number; totalPages: number };
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
   };
   error?: string;
   message?: string;
@@ -45,48 +56,55 @@ type ApiListResponse = {
 
 function labelStatus(status: OrderStatus): string {
   const labels: Record<OrderStatus, string> = {
-    QUEUED: 'Antri',
-    WASHING: 'Cuci',
-    DRYING: 'Kering',
-    IRONING: 'Setrika',
-    READY: 'Siap',
-    TAKEN: 'Diambil',
+    QUEUED: "Antri",
+    WASHING: "Cuci",
+    DRYING: "Kering",
+    IRONING: "Setrika",
+    READY: "Siap",
+    TAKEN: "Diambil",
   };
   return labels[status] || status;
 }
 
 function statusBadge(status: OrderStatus): string {
   const map: Record<OrderStatus, string> = {
-    QUEUED: 'bg-info',
-    WASHING: 'bg-warning',
-    DRYING: 'bg-primary',
-    IRONING: 'bg-secondary',
-    READY: 'bg-success',
-    TAKEN: 'bg-dark',
+    QUEUED: "bg-info",
+    WASHING: "bg-warning",
+    DRYING: "bg-primary",
+    IRONING: "bg-secondary",
+    READY: "bg-success",
+    TAKEN: "bg-dark",
   };
-  return map[status] || 'bg-secondary';
+  return map[status] || "bg-secondary";
 }
 
 function labelPayment(status: PaymentStatus): string {
-  if (status === 'SETTLEMENT') return 'Lunas';
-  if (status === 'UNPAID') return 'Belum dibayar';
-  if (status === 'PENDING') return 'Menunggu';
-  if (status === 'FAILURE') return 'Gagal';
+  if (status === "SETTLEMENT") return "Lunas";
+  if (status === "UNPAID") return "Belum dibayar";
+  if (status === "PENDING") return "Menunggu";
+  if (status === "FAILURE") return "Gagal";
   return status;
 }
 
 function paymentBadge(status: PaymentStatus): string {
-  if (status === 'SETTLEMENT') return 'bg-success';
-  if (status === 'UNPAID') return 'bg-danger';
-  if (status === 'PENDING') return 'bg-warning';
-  return 'bg-secondary';
+  if (status === "SETTLEMENT") return "bg-success";
+  if (status === "UNPAID") return "bg-danger";
+  if (status === "PENDING") return "bg-warning";
+  return "bg-secondary";
 }
 
 /**
  * Get the next logical status in the workflow
  */
 function getNextStatus(current: OrderStatus): OrderStatus | null {
-  const flow: OrderStatus[] = ['QUEUED', 'WASHING', 'DRYING', 'IRONING', 'READY', 'TAKEN'];
+  const flow: OrderStatus[] = [
+    "QUEUED",
+    "WASHING",
+    "DRYING",
+    "IRONING",
+    "READY",
+    "TAKEN",
+  ];
   const currentIndex = flow.indexOf(current);
   if (currentIndex === -1 || currentIndex === flow.length - 1) return null;
   return flow[currentIndex + 1];
@@ -102,14 +120,21 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [query, setQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'ALL' | OrderStatus>('ALL');
-  const [filterPayment, setFilterPayment] = useState<'ALL' | 'UNPAID' | 'SETTLEMENT'>('ALL');
+  const [query, setQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState<"ALL" | OrderStatus>("ALL");
+  const [filterPayment, setFilterPayment] = useState<
+    "ALL" | "UNPAID" | "SETTLEMENT"
+  >("ALL");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
 
   const [items, setItems] = useState<OrderRow[]>([]);
-  const [pagination, setPagination] = useState<{ total: number; page: number; limit: number; totalPages: number }>({
+  const [pagination, setPagination] = useState<{
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>({
     total: 0,
     page: 1,
     limit: 20,
@@ -121,19 +146,19 @@ export default function OrdersPage() {
 
   // Guard: auth/role
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
+    if (status === "unauthenticated") {
+      router.push("/login");
       return;
     }
-    if (status !== 'authenticated') return;
+    if (status !== "authenticated") return;
 
-    if (role !== 'OWNER' && role !== 'STAFF') {
-      router.push('/dashboard');
+    if (role !== "OWNER" && role !== "STAFF") {
+      router.push("/dashboard");
       return;
     }
     // STAFF requires outlet, OWNER can be in global mode
-    if (role === 'STAFF' && !user?.outletId) {
-      setError('Outlet context required. Silakan hubungi admin.');
+    if (role === "STAFF" && !user?.outletId) {
+      setError("Outlet context required. Silakan hubungi admin.");
       setLoading(false);
       return;
     }
@@ -141,19 +166,18 @@ export default function OrdersPage() {
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
-    if (query.trim()) params.set('q', query.trim());
-    if (filterStatus !== 'ALL') params.set('status', filterStatus);
-    if (filterPayment !== 'ALL') params.set('paymentStatus', filterPayment);
-    params.set('page', String(page));
-    params.set('limit', String(limit));
+    if (query.trim()) params.set("q", query.trim());
+    if (filterStatus !== "ALL") params.set("status", filterStatus);
+    if (filterPayment !== "ALL") params.set("paymentStatus", filterPayment);
+    params.set("page", String(page));
+    params.set("limit", String(limit));
     return params.toString();
   }, [query, filterStatus, filterPayment, page, limit]);
 
   // OWNER can access in global mode (no outletId), STAFF requires outlet
-  const canFetch = status === 'authenticated' && (
-    (role === 'OWNER') || 
-    (role === 'STAFF' && !!user?.outletId)
-  );
+  const canFetch =
+    status === "authenticated" &&
+    (role === "OWNER" || (role === "STAFF" && !!user?.outletId));
 
   // Fetch when page/filter/query/limit changes, or manual refresh
   useEffect(() => {
@@ -167,39 +191,57 @@ export default function OrdersPage() {
       setLoading(true);
       setError(null);
 
-      const res = await fetch(`/api/dashboard/orders?${queryString}`, { method: 'GET' });
-      const json = (await res.json().catch(() => null)) as ApiListResponse | null;
+      const res = await fetch(`/api/dashboard/orders?${queryString}`, {
+        method: "GET",
+      });
+      const json = (await res
+        .json()
+        .catch(() => null)) as ApiListResponse | null;
       if (!res.ok || !json?.success) {
-        throw new Error(json?.message || json?.error || 'Gagal memuat daftar order');
+        throw new Error(
+          json?.message || json?.error || "Gagal memuat daftar order",
+        );
       }
 
       setItems(Array.isArray(json.data?.items) ? json.data!.items : []);
-      const nextPagination = json.data?.pagination || { total: 0, page: 1, limit, totalPages: 1 };
+      const nextPagination = json.data?.pagination || {
+        total: 0,
+        page: 1,
+        limit,
+        totalPages: 1,
+      };
       setPagination(nextPagination);
       setIsGlobalMode(json.isGlobalMode || false);
       // Sinkronkan state page jika backend mengoreksi (mis. out-of-range)
-      if (Number.isFinite(nextPagination.page) && nextPagination.page !== page) {
+      if (
+        Number.isFinite(nextPagination.page) &&
+        nextPagination.page !== page
+      ) {
         setPage(nextPagination.page);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Gagal memuat daftar order');
+      setError(e instanceof Error ? e.message : "Gagal memuat daftar order");
     } finally {
       setLoading(false);
     }
   }
 
-  async function updateOrderStatus(orderId: string, currentStatus: OrderStatus, newStatus: OrderStatus) {
+  async function updateOrderStatus(
+    orderId: string,
+    currentStatus: OrderStatus,
+    newStatus: OrderStatus,
+  ) {
     if (currentStatus === newStatus) return;
 
     const result = await Swal.fire({
-      icon: 'question',
-      title: 'Ubah Status?',
+      icon: "question",
+      title: "Ubah Status?",
       text: `Ubah status dari ${labelStatus(currentStatus)} menjadi ${labelStatus(newStatus)}?`,
       showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#6c757d',
-      confirmButtonText: 'Ya, Ubah',
-      cancelButtonText: 'Batal',
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Ya, Ubah",
+      cancelButtonText: "Batal",
     });
 
     if (!result.isConfirmed) {
@@ -209,41 +251,44 @@ export default function OrdersPage() {
     }
 
     try {
-      const res = await fetch(`/api/dashboard/orders/${encodeURIComponent(orderId)}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      });
+      const res = await fetch(
+        `/api/dashboard/orders/${encodeURIComponent(orderId)}/status`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: newStatus }),
+        },
+      );
       const json = await res.json().catch(() => null);
       if (!res.ok || !json?.success) {
-        throw new Error(json?.message || json?.error || 'Gagal update status');
+        throw new Error(json?.message || json?.error || "Gagal update status");
       }
 
       setRefreshKey((k) => k + 1);
       await Swal.fire({
-        icon: 'success',
-        title: 'Status Diperbarui',
+        icon: "success",
+        title: "Status Diperbarui",
         text: `Status berhasil diubah menjadi ${labelStatus(newStatus)}`,
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#3085d6',
+        confirmButtonText: "OK",
+        confirmButtonColor: "#3085d6",
         timer: 1500,
         timerProgressBar: true,
         showConfirmButton: false,
       });
     } catch (e) {
       await Swal.fire({
-        icon: 'error',
-        title: 'Gagal',
-        text: e instanceof Error ? e.message : 'Gagal update status',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#3085d6',
+        icon: "error",
+        title: "Gagal",
+        text: e instanceof Error ? e.message : "Gagal update status",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#3085d6",
       });
       // Reset to current status on error
       setRefreshKey((k) => k + 1);
     }
   }
 
-  if (status === 'loading' || loading) {
+  if (status === "loading" || loading) {
     return (
       <div className="content-wrapper">
         <div className="content-header pt-3">
@@ -275,14 +320,20 @@ export default function OrdersPage() {
         </div>
         <div className="content">
           <div className="container-fluid">
-            <div className="alert alert-danger alert-dismissible fade show" role="alert">
+            <div
+              className="alert alert-danger alert-dismissible fade show"
+              role="alert"
+            >
               <h4 className="alert-heading">
                 <i className="fas fa-exclamation-triangle me-2"></i>
                 Error!
               </h4>
               <p>{error}</p>
               <hr />
-              <button className="btn btn-primary btn-sm" onClick={() => setRefreshKey((k) => k + 1)}>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => setRefreshKey((k) => k + 1)}
+              >
                 <i className="fas fa-redo me-1"></i>
                 Coba Lagi
               </button>
@@ -317,7 +368,10 @@ export default function OrdersPage() {
         <div className="container-fluid">
           <div className="row mb-3 g-2 align-items-end">
             <div className="col-12 col-md-auto">
-              <Link href="/dashboard/orders/new" className="btn btn-primary btn-sm">
+              <Link
+                href="/dashboard/orders/new"
+                className="btn btn-primary btn-sm"
+              >
                 <i className="fas fa-plus me-1"></i>
                 Buat Order Baru
               </Link>
@@ -345,7 +399,7 @@ export default function OrdersPage() {
                     className="btn btn-outline-secondary"
                     type="button"
                     onClick={() => {
-                      setQuery('');
+                      setQuery("");
                       setPage(1);
                     }}
                   >
@@ -355,7 +409,10 @@ export default function OrdersPage() {
               </div>
             </div>
             <div className="col-6 col-md-2">
-              <label className="form-label small text-muted mb-1" htmlFor="status">
+              <label
+                className="form-label small text-muted mb-1"
+                htmlFor="status"
+              >
                 Status
               </label>
               <select
@@ -368,16 +425,19 @@ export default function OrdersPage() {
                 }}
               >
                 <option value="ALL">Semua</option>
-                <option value="QUEUED">QUEUED</option>
-                <option value="WASHING">WASHING</option>
-                <option value="DRYING">DRYING</option>
-                <option value="IRONING">IRONING</option>
-                <option value="READY">READY</option>
-                <option value="TAKEN">TAKEN</option>
+                <option value="QUEUED">Antri</option>
+                <option value="WASHING">Cuci</option>
+                <option value="DRYING">Kering</option>
+                <option value="IRONING">Setrika</option>
+                <option value="READY">Siap</option>
+                <option value="TAKEN">Diambil</option>
               </select>
             </div>
             <div className="col-6 col-md-2">
-              <label className="form-label small text-muted mb-1" htmlFor="payment">
+              <label
+                className="form-label small text-muted mb-1"
+                htmlFor="payment"
+              >
                 Pembayaran
               </label>
               <select
@@ -395,7 +455,10 @@ export default function OrdersPage() {
               </select>
             </div>
             <div className="col-12 col-md-2">
-              <label className="form-label small text-muted mb-1" htmlFor="limit">
+              <label
+                className="form-label small text-muted mb-1"
+                htmlFor="limit"
+              >
                 Baris/halaman
               </label>
               <select
@@ -421,7 +484,12 @@ export default function OrdersPage() {
                 Orders
               </h3>
               <div className="card-tools">
-                <button className="btn btn-tool" type="button" onClick={() => setRefreshKey((k) => k + 1)} title="Refresh">
+                <button
+                  className="btn btn-tool"
+                  type="button"
+                  onClick={() => setRefreshKey((k) => k + 1)}
+                  title="Refresh"
+                >
                   <i className="fas fa-sync-alt"></i>
                 </button>
               </div>
@@ -429,8 +497,9 @@ export default function OrdersPage() {
             <div className="card-body p-0">
               <div className="d-md-none px-3 pt-3 pb-0">
                 <div className="text-muted small">
-                  Menampilkan <span className="fw-semibold">{items.length}</span> dari{' '}
-                  <span className="fw-semibold">{pagination.total}</span> • Hal{' '}
+                  Menampilkan{" "}
+                  <span className="fw-semibold">{items.length}</span> dari{" "}
+                  <span className="fw-semibold">{pagination.total}</span> • Hal{" "}
                   <span className="fw-semibold">{pagination.page}</span>/
                   <span className="fw-semibold">{pagination.totalPages}</span>
                 </div>
@@ -441,7 +510,7 @@ export default function OrdersPage() {
                 mobileContainerClassName="px-3 pt-2 pb-3"
                 columns={[
                   {
-                    header: 'Tracking',
+                    header: "Tracking",
                     render: (o) => (
                       <Link
                         href={`/dashboard/orders/${encodeURIComponent(o.id)}`}
@@ -452,33 +521,58 @@ export default function OrdersPage() {
                       </Link>
                     ),
                   },
-                  ...(isGlobalMode ? [{
-                    header: 'Outlet',
-                    render: (o: OrderRow) => (
-                      <span className="badge bg-info">{o.outletName || '-'}</span>
+                  ...(isGlobalMode
+                    ? [
+                        {
+                          header: "Outlet",
+                          render: (o: OrderRow) => (
+                            <span className="badge bg-info">
+                              {o.outletName || "-"}
+                            </span>
+                          ),
+                        },
+                      ]
+                    : []),
+                  {
+                    header: "Pelanggan",
+                    render: (o) =>
+                      o.customerName || <span className="text-muted">-</span>,
+                  },
+                  {
+                    header: "Status",
+                    render: (o) => (
+                      <span className={`badge ${statusBadge(o.status)}`}>
+                        {labelStatus(o.status)}
+                      </span>
                     ),
-                  }] : []),
-                  {
-                    header: 'Pelanggan',
-                    render: (o) => o.customerName || <span className="text-muted">-</span>,
                   },
                   {
-                    header: 'Status',
-                    render: (o) => <span className={`badge ${statusBadge(o.status)}`}>{labelStatus(o.status)}</span>,
-                  },
-                  {
-                    header: 'Pembayaran',
+                    header: "Pembayaran",
                     render: (o) => (
                       <>
-                        <span className={`badge ${paymentBadge(o.paymentStatus)}`}>{labelPayment(o.paymentStatus)}</span>
-                        {o.paidAt ? <div className="text-muted small">{formatDateTime(o.paidAt)}</div> : null}
+                        <span
+                          className={`badge ${paymentBadge(o.paymentStatus)}`}
+                        >
+                          {labelPayment(o.paymentStatus)}
+                        </span>
+                        {o.paidAt ? (
+                          <div className="text-muted small">
+                            {formatDateTime(o.paidAt)}
+                          </div>
+                        ) : null}
                       </>
                     ),
                   },
-                  { header: 'Total', render: (o) => formatCurrency(o.totalAmount) },
-                  { header: 'Dibuat', render: (o) => formatDateTime(o.createdAt) },
                   {
-                    header: 'Aksi',
+                    header: "Total",
+                    render: (o) => formatCurrency(o.totalAmount),
+                  },
+                  {
+                    header: "Dibuat",
+                    render: (o) => formatDateTime(o.createdAt),
+                  },
+                  {
+                    header: "Aksi",
                     render: (o) => {
                       const nextStatus = getNextStatus(o.status);
                       return (
@@ -497,7 +591,11 @@ export default function OrdersPage() {
                                 className="btn btn-primary btn-sm"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  void updateOrderStatus(o.id, o.status, nextStatus);
+                                  void updateOrderStatus(
+                                    o.id,
+                                    o.status,
+                                    nextStatus,
+                                  );
                                 }}
                               >
                                 <i className="fas fa-arrow-right me-1"></i>
@@ -510,17 +608,34 @@ export default function OrdersPage() {
                                 aria-expanded="false"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <span className="visually-hidden">Toggle Dropdown</span>
+                                <span className="visually-hidden">
+                                  Toggle Dropdown
+                                </span>
                               </button>
                               <ul className="dropdown-menu dropdown-menu-end">
-                                <li><h6 className="dropdown-header">Ubah Status</h6></li>
-                                {['QUEUED', 'WASHING', 'DRYING', 'IRONING', 'READY', 'TAKEN'].map((status) => (
+                                <li>
+                                  <h6 className="dropdown-header">
+                                    Ubah Status
+                                  </h6>
+                                </li>
+                                {[
+                                  "QUEUED",
+                                  "WASHING",
+                                  "DRYING",
+                                  "IRONING",
+                                  "READY",
+                                  "TAKEN",
+                                ].map((status) => (
                                   <li key={status}>
                                     <button
-                                      className={`dropdown-item ${o.status === status ? 'active' : ''}`}
+                                      className={`dropdown-item ${o.status === status ? "active" : ""}`}
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        void updateOrderStatus(o.id, o.status, status as OrderStatus);
+                                        void updateOrderStatus(
+                                          o.id,
+                                          o.status,
+                                          status as OrderStatus,
+                                        );
                                       }}
                                       disabled={o.status === status}
                                     >
@@ -544,7 +659,10 @@ export default function OrdersPage() {
                 emptyState={
                   <div className="text-center py-4">
                     <div className="text-muted">Tidak ada order.</div>
-                    <Link href="/dashboard/orders/new" className="btn btn-primary btn-sm mt-2">
+                    <Link
+                      href="/dashboard/orders/new"
+                      className="btn btn-primary btn-sm mt-2"
+                    >
                       Buat Order Baru
                     </Link>
                   </div>
@@ -559,7 +677,9 @@ export default function OrdersPage() {
                             <code>{o.trackingCode}</code>
                           </div>
                         </div>
-                        <span className={`badge ${statusBadge(o.status)}`}>{labelStatus(o.status)}</span>
+                        <span className={`badge ${statusBadge(o.status)}`}>
+                          {labelStatus(o.status)}
+                        </span>
                       </div>
 
                       {isGlobalMode && o.outletName && (
@@ -570,12 +690,22 @@ export default function OrdersPage() {
 
                       <div className="mt-2">
                         <div className="text-muted small">Pelanggan</div>
-                        <div className="fw-semibold">{o.customerName || '—'}</div>
+                        <div className="fw-semibold">
+                          {o.customerName || "—"}
+                        </div>
                       </div>
 
                       <div className="d-flex flex-wrap gap-2 mt-3">
-                        <span className={`badge ${paymentBadge(o.paymentStatus)}`}>{labelPayment(o.paymentStatus)}</span>
-                        {o.paidAt ? <span className="text-muted small">{formatDateTime(o.paidAt)}</span> : null}
+                        <span
+                          className={`badge ${paymentBadge(o.paymentStatus)}`}
+                        >
+                          {labelPayment(o.paymentStatus)}
+                        </span>
+                        {o.paidAt ? (
+                          <span className="text-muted small">
+                            {formatDateTime(o.paidAt)}
+                          </span>
+                        ) : null}
                       </div>
 
                       <hr className="my-3" />
@@ -583,11 +713,15 @@ export default function OrdersPage() {
                       <div className="d-flex justify-content-between align-items-center">
                         <div>
                           <div className="text-muted small">Total</div>
-                          <div className="fw-semibold">{formatCurrency(o.totalAmount)}</div>
+                          <div className="fw-semibold">
+                            {formatCurrency(o.totalAmount)}
+                          </div>
                         </div>
                         <div className="text-end">
                           <div className="text-muted small">Dibuat</div>
-                          <div className="fw-semibold">{formatDateTime(o.createdAt)}</div>
+                          <div className="fw-semibold">
+                            {formatDateTime(o.createdAt)}
+                          </div>
                         </div>
                       </div>
 
@@ -606,7 +740,13 @@ export default function OrdersPage() {
                               <button
                                 type="button"
                                 className="btn btn-primary btn-sm flex-fill"
-                                onClick={() => void updateOrderStatus(o.id, o.status, nextStatus)}
+                                onClick={() =>
+                                  void updateOrderStatus(
+                                    o.id,
+                                    o.status,
+                                    nextStatus,
+                                  )
+                                }
                               >
                                 <i className="fas fa-arrow-right me-1"></i>
                                 {labelStatus(nextStatus)}
@@ -621,12 +761,29 @@ export default function OrdersPage() {
                                   <i className="fas fa-ellipsis-v"></i>
                                 </button>
                                 <ul className="dropdown-menu dropdown-menu-end">
-                                  <li><h6 className="dropdown-header">Ubah Status</h6></li>
-                                  {['QUEUED', 'WASHING', 'DRYING', 'IRONING', 'READY', 'TAKEN'].map((status) => (
+                                  <li>
+                                    <h6 className="dropdown-header">
+                                      Ubah Status
+                                    </h6>
+                                  </li>
+                                  {[
+                                    "QUEUED",
+                                    "WASHING",
+                                    "DRYING",
+                                    "IRONING",
+                                    "READY",
+                                    "TAKEN",
+                                  ].map((status) => (
                                     <li key={status}>
                                       <button
-                                        className={`dropdown-item ${o.status === status ? 'active' : ''}`}
-                                        onClick={() => void updateOrderStatus(o.id, o.status, status as OrderStatus)}
+                                        className={`dropdown-item ${o.status === status ? "active" : ""}`}
+                                        onClick={() =>
+                                          void updateOrderStatus(
+                                            o.id,
+                                            o.status,
+                                            status as OrderStatus,
+                                          )
+                                        }
                                         disabled={o.status === status}
                                       >
                                         {labelStatus(status as OrderStatus)}
@@ -658,12 +815,21 @@ export default function OrdersPage() {
             </div>
             <div className="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
               <div className="text-muted small">
-                Total: <span className="fw-semibold">{pagination.total}</span> • Halaman{' '}
-                <span className="fw-semibold">{pagination.page}</span> dari{' '}
+                Total: <span className="fw-semibold">{pagination.total}</span> •
+                Halaman <span className="fw-semibold">{pagination.page}</span>{" "}
+                dari{" "}
                 <span className="fw-semibold">{pagination.totalPages}</span>
               </div>
-              <div className="btn-group btn-group-sm" role="group" aria-label="Pagination">
-                <button className="btn btn-outline-secondary" disabled={pagination.page <= 1} onClick={() => setPage(1)}>
+              <div
+                className="btn-group btn-group-sm"
+                role="group"
+                aria-label="Pagination"
+              >
+                <button
+                  className="btn btn-outline-secondary"
+                  disabled={pagination.page <= 1}
+                  onClick={() => setPage(1)}
+                >
                   <i className="fas fa-angle-double-left"></i>
                 </button>
                 <button
@@ -676,7 +842,11 @@ export default function OrdersPage() {
                 <button
                   className="btn btn-outline-secondary"
                   disabled={pagination.page >= pagination.totalPages}
-                  onClick={() => setPage(Math.min(pagination.totalPages, pagination.page + 1))}
+                  onClick={() =>
+                    setPage(
+                      Math.min(pagination.totalPages, pagination.page + 1),
+                    )
+                  }
                 >
                   <i className="fas fa-angle-right"></i>
                 </button>
@@ -695,4 +865,3 @@ export default function OrdersPage() {
     </div>
   );
 }
-
