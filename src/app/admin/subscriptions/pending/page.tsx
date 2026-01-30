@@ -10,8 +10,6 @@ import { useState, useEffect } from 'react';
 
 interface PendingPayment {
     id: string;
-    outletId: string;
-    outletName: string;
     amount: number;
     proofUrl: string | null;
     createdAt: string;
@@ -19,6 +17,10 @@ interface PendingPayment {
         bankName: string;
         accountNumber: string;
     } | null;
+    userId: string;
+    userName: string;
+    userPhone: string;
+    packageName: string | null;
 }
 
 export default function PendingPaymentsPage() {
@@ -40,8 +42,8 @@ export default function PendingPaymentsPage() {
             setLoading(true);
             const res = await fetch('/api/admin/subscriptions/pending');
             if (res.ok) {
-                const data = await res.json();
-                setPayments(data.data);
+                const json = await res.json();
+                setPayments(json.data);
             }
         } catch (error) {
             console.error('Failed to fetch payments:', error);
@@ -146,7 +148,8 @@ export default function PendingPaymentsPage() {
                                     <thead>
                                         <tr>
                                             <th>Date</th>
-                                            <th>Outlet</th>
+                                            <th>Owner</th>
+                                            <th>Package</th>
                                             <th>Amount</th>
                                             <th>Bank</th>
                                             <th>Proof</th>
@@ -159,7 +162,16 @@ export default function PendingPaymentsPage() {
                                                 <td>
                                                     {new Date(payment.createdAt).toLocaleDateString('id-ID')}
                                                 </td>
-                                                <td>{payment.outletName}</td>
+                                                <td>
+                                                    <strong>{payment.userName}</strong>
+                                                    <br />
+                                                    <small className="text-muted">{payment.userPhone}</small>
+                                                </td>
+                                                <td>
+                                                    <span className="badge badge-info text-white">
+                                                        {payment.packageName || 'N/A'}
+                                                    </span>
+                                                </td>
                                                 <td>Rp {payment.amount.toLocaleString('id-ID')}</td>
                                                 <td>
                                                     {payment.bankAccount
@@ -227,7 +239,10 @@ export default function PendingPaymentsPage() {
                             </div>
                             <div className="modal-body">
                                 <p>
-                                    <strong>Outlet:</strong> {selectedPayment.outletName}
+                                    <strong>Owner:</strong> {selectedPayment.userName}
+                                </p>
+                                <p>
+                                    <strong>Package:</strong> {selectedPayment.packageName || '-'}
                                 </p>
                                 <p>
                                     <strong>Amount:</strong> Rp {selectedPayment.amount.toLocaleString('id-ID')}
@@ -286,7 +301,7 @@ export default function PendingPaymentsPage() {
                             </div>
                             <div className="modal-body">
                                 <p>
-                                    <strong>Outlet:</strong> {selectedPayment.outletName}
+                                    <strong>Owner:</strong> {selectedPayment.userName}
                                 </p>
                                 <div className="form-group">
                                     <label>Reason for rejection</label>

@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { Role, User } from '@/generated/prisma';
 import { formatPhoneNumber, isValidPhoneNumber, normalizePhoneNumber } from '@/lib/utils';
 import { UserRepository } from '@/repositories/UserRepository';
+import { PackageFeatureService } from '@/services/PackageFeatureService';
 
 export type StaffUser = User;
 
@@ -28,7 +29,8 @@ export class StaffServiceError extends Error {
       | 'VALIDATION'
       | 'DUPLICATE_PHONE'
       | 'NOT_FOUND'
-      | 'SELF_DEACTIVATE_NOT_ALLOWED',
+      | 'SELF_DEACTIVATE_NOT_ALLOWED'
+      | 'LIMIT_REACHED',
     message: string
   ) {
     super(message);
@@ -37,7 +39,11 @@ export class StaffServiceError extends Error {
 }
 
 export class StaffService {
-  constructor(private userRepository: UserRepository = new UserRepository()) {}
+  private packageFeatureService: PackageFeatureService;
+
+  constructor(private userRepository: UserRepository = new UserRepository()) {
+    this.packageFeatureService = new PackageFeatureService();
+  }
 
   async listStaffByOutletId(outletId: string) {
     const result = await this.userRepository.findAll(
@@ -56,6 +62,15 @@ export class StaffService {
   }
 
   async createStaff(input: CreateStaffInput) {
+    // Check package limits
+    const canAdd = await this.packageFeatureService.canAddStaff(input.outletId);
+    if (!canAdd) {
+      throw new StaffServiceError(
+        'LIMIT_REACHED',
+        'Batas maksimum staff untuk paket Anda telah tercapai. Upgrade paket untuk menambah staff.'
+      );
+    }
+
     const name = input.name.trim();
     if (name.length < 2) {
       throw new StaffServiceError('VALIDATION', 'Nama minimal 2 karakter');

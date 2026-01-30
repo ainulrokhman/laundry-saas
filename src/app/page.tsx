@@ -18,7 +18,7 @@ export default function HomePage() {
                 <i className="fas fa-shirt me-1"></i>
                 Ainul
               </span>
-              <span className="fw-bold text-dark">Ainul Laundry</span>
+              <span className="fw-bold text-dark">Kasirlondri</span>
             </div>
           </Link>
           <div className="d-flex gap-2">
@@ -141,7 +141,7 @@ export default function HomePage() {
 
       <footer className="border-top bg-white">
         <div className="container py-3 d-flex align-items-center justify-content-between flex-wrap gap-2 text-muted small">
-          <div>© {new Date().getFullYear()} Ainul Laundry</div>
+          <div>© {new Date().getFullYear()} Kasirlondri</div>
           <div>
             <i className="fas fa-shield-alt me-2"></i>
             Tanpa klaim berlebihan: hanya menampilkan data yang tersedia

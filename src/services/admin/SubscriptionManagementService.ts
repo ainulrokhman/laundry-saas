@@ -5,19 +5,18 @@
  */
 
 import { prisma } from '@/lib/prisma';
-import { PaymentStatus, TransType } from '@/generated/prisma';
+import { PaymentStatus, TransType, Role } from '@/generated/prisma';
 
 export interface SubscriptionListItem {
-    outletId: string;
-    outletName: string;
-    outletSlug: string;
-    tier: string | null;
+    userId: string; // Changed from outletId to userId (Owner)
+    ownerName: string;
+    ownerPhone: string;
+    packageName: string;
     expiresAt: Date | null;
     startedAt: Date | null;
     daysRemaining: number | null;
     isExpired: boolean;
-    ownerName: string | null;
-    ownerPhone: string | null;
+    outletCount: number;
 }
 
 export interface PendingPayment {
@@ -40,7 +39,7 @@ export interface PendingPayment {
 }
 
 export interface SubscriptionStats {
-    totalOutlets: number;
+    totalOwners: number;
     activeSubscriptions: number;
     expiredSubscriptions: number;
     pendingPayments: number;
@@ -49,42 +48,42 @@ export interface SubscriptionStats {
 
 export class SubscriptionManagementService {
     /**
-     * Get all outlet subscriptions
+     * Get all owner subscriptions
      */
     async getAllSubscriptions(): Promise<SubscriptionListItem[]> {
-        const outlets = await prisma.outlet.findMany({
+        const owners = await prisma.user.findMany({
+            where: {
+                role: Role.OWNER,
+            },
             include: {
-                owner: {
-                    select: {
-                        name: true,
-                        phone: true,
-                    },
+                package: true,
+                _count: {
+                    select: { ownedOutlets: true },
                 },
             },
             orderBy: {
-                subscriptionExpiresAt: 'asc',
+                subscriptionExpiresAt: 'asc', // Soonest expiry first
             },
         });
 
         const now = new Date();
 
-        return outlets.map((outlet) => {
-            const expiresAt = outlet.subscriptionExpiresAt;
+        return owners.map((owner) => {
+            const expiresAt = owner.subscriptionExpiresAt;
             const daysRemaining = expiresAt
                 ? Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
                 : null;
 
             return {
-                outletId: outlet.id,
-                outletName: outlet.name,
-                outletSlug: outlet.slug,
-                tier: outlet.subscriptionTier,
-                expiresAt: outlet.subscriptionExpiresAt,
-                startedAt: outlet.subscriptionStartedAt,
+                userId: owner.id,
+                ownerName: owner.name,
+                ownerPhone: owner.phone,
+                packageName: owner.package?.name || 'No Package',
+                expiresAt: owner.subscriptionExpiresAt,
+                startedAt: owner.subscriptionStartedAt,
                 daysRemaining,
                 isExpired: expiresAt ? expiresAt < now : false,
-                ownerName: outlet.owner?.name || null,
-                ownerPhone: outlet.owner?.phone || null,
+                outletCount: owner._count.ownedOutlets,
             };
         });
     }
@@ -241,22 +240,24 @@ export class SubscriptionManagementService {
         const now = new Date();
 
         const [
-            totalOutlets,
+            totalOwners,
             activeSubscriptions,
             expiredSubscriptions,
             pendingPayments,
             totalRevenue,
         ] = await Promise.all([
-            prisma.outlet.count(),
-            prisma.outlet.count({
+            prisma.user.count({ where: { role: Role.OWNER } }),
+            prisma.user.count({
                 where: {
+                    role: Role.OWNER,
                     subscriptionExpiresAt: {
                         gte: now,
                     },
                 },
             }),
-            prisma.outlet.count({
+            prisma.user.count({
                 where: {
+                    role: Role.OWNER,
                     subscriptionExpiresAt: {
                         lt: now,
                     },
@@ -280,7 +281,7 @@ export class SubscriptionManagementService {
         ]);
 
         return {
-            totalOutlets,
+            totalOwners,
             activeSubscriptions,
             expiredSubscriptions,
             pendingPayments,

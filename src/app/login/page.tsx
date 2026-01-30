@@ -93,7 +93,7 @@ export default function LoginPage() {
                 <div className="text-center mb-4">
                   <h2 className="fw-bold text-primary mb-1">
                     <i className="fas fa-tshirt me-2"></i>
-                    Ainul Laundry
+                    Kasirlondri
                   </h2>
                   <p className="text-muted small">Masuk ke akun Anda</p>
                 </div>

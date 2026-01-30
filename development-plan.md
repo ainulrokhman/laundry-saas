@@ -8,7 +8,7 @@ This document is a detailed development plan to build the Laundry SaaS system ba
 
 ## 🎯 Overview
 
-**Project**: Laundry SaaS Platform (Ainul Laundry)
+**Project**: Laundry SaaS Platform (Kasirlondri)
 **Framework**: Next.js 16.x LTS (App Router)
 **UI**: AdminLTE v4 (Bootstrap 5)
 **Database**: PostgreSQL (Neon.tech)

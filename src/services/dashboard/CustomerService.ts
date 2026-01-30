@@ -1,7 +1,12 @@
 import { CustomerRepository } from "@/repositories/CustomerRepository";
+import { PackageFeatureService } from "@/services/PackageFeatureService";
 
 export class CustomerService {
-  constructor(private customerRepo: CustomerRepository) {}
+  private packageFeatureService: PackageFeatureService;
+
+  constructor(private customerRepo: CustomerRepository) {
+    this.packageFeatureService = new PackageFeatureService();
+  }
 
   async listCustomers(
     outletId: string,
@@ -25,6 +30,14 @@ export class CustomerService {
     outletId: string,
     data: { name: string; phone?: string; email?: string; address?: string },
   ) {
+    // Check package limits
+    const canAdd = await this.packageFeatureService.canAddCustomer(outletId);
+    if (!canAdd) {
+      throw new Error(
+        "Batas jumlah pelanggan untuk paket Anda telah tercapai. Upgrade paket untuk menambah lebih banyak pelanggan.",
+      );
+    }
+
     // Normalize phone if present
     const phone = data.phone?.trim() ? data.phone.trim() : undefined;
 

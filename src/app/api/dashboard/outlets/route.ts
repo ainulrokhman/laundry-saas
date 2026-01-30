@@ -10,11 +10,13 @@ import { withAuth } from '@/lib/proxy/route-proxy';
 import { Role } from '@/generated/prisma';
 import { OutletRepository } from '@/repositories/OutletRepository';
 import { OutletDTO } from '@/dto/OutletDTO';
+import { PackageFeatureService } from '@/services/PackageFeatureService';
 
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
 const outletRepository = new OutletRepository();
+const packageFeatureService = new PackageFeatureService();
 
 // Validation schema
 const createOutletSchema = z.object({
@@ -76,32 +78,12 @@ export const POST = withAuth(
       }
 
       // 3. Subscription Quota Check
-      // Fetch User with Package info and current outlet count
-      const user = await prisma.user.findUnique({
-        where: { id: session.userId },
-        include: {
-          package: true,
-          _count: {
-            select: { ownedOutlets: true }
-          }
-        }
-      });
-
-      if (!user) {
-        return Response.json({ success: false, error: 'User not found' }, { status: 404 });
-      }
-
-      // Default limits if no package (e.g., allow 1 for trial or block)
-      // Determining policy: For now, if no package, allow max 1 (Trial)
-      const isUnlimited = user.package?.maxOutlets === -1;
-      const maxOutlets = user.package?.maxOutlets ?? 1;
-      const currentOutlets = user._count.ownedOutlets;
-
-      if (!isUnlimited && currentOutlets >= maxOutlets) {
+      const canCreate = await packageFeatureService.canCreateOutlet(session.userId);
+      if (!canCreate) {
         return Response.json(
           {
             success: false,
-            error: `Batas maksimum outlet tercapai (${maxOutlets}). Upgrade paket Anda untuk menambah outlet.`
+            error: `Batas maksimum outlet untuk paket Anda telah tercapai. Upgrade paket untuk menambah outlet.`
           },
           { status: 403 }
         );

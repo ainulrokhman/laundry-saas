@@ -10,20 +10,19 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface SubscriptionItem {
-    outletId: string;
-    outletName: string;
-    outletSlug: string;
-    tier: string | null;
+    userId: string;
+    ownerName: string;
+    ownerPhone: string;
+    packageName: string;
     expiresAt: string | null;
     startedAt: string | null;
     daysRemaining: number | null;
     isExpired: boolean;
-    ownerName: string | null;
-    ownerPhone: string | null;
+    outletCount: number;
 }
 
 interface Stats {
-    totalOutlets: number;
+    totalOwners: number;
     activeSubscriptions: number;
     expiredSubscriptions: number;
     pendingPayments: number;
@@ -49,13 +48,13 @@ export default function AdminSubscriptionsPage() {
             ]);
 
             if (subsRes.ok) {
-                const data = await subsRes.json();
-                setSubscriptions(data.data);
+                const json = await subsRes.json();
+                setSubscriptions(json.data);
             }
 
             if (statsRes.ok) {
-                const data = await statsRes.json();
-                setStats(data.data);
+                const json = await statsRes.json();
+                setStats(json.data);
             }
         } catch (error) {
             console.error('Failed to fetch data:', error);
@@ -105,11 +104,11 @@ export default function AdminSubscriptionsPage() {
                             <div className="col-lg-3 col-6">
                                 <div className="small-box bg-info">
                                     <div className="inner">
-                                        <h3>{stats.totalOutlets}</h3>
-                                        <p>Total Outlets</p>
+                                        <h3>{stats.totalOwners}</h3>
+                                        <p>Total Owners</p>
                                     </div>
                                     <div className="icon">
-                                        <i className="fas fa-store"></i>
+                                        <i className="fas fa-users"></i>
                                     </div>
                                 </div>
                             </div>
@@ -152,15 +151,15 @@ export default function AdminSubscriptionsPage() {
                     {/* Subscriptions Table */}
                     <div className="card">
                         <div className="card-header">
-                            <h3 className="card-title">All Outlet Subscriptions</h3>
+                            <h3 className="card-title">All Owner Subscriptions</h3>
                         </div>
                         <div className="card-body">
                             <table className="table table-bordered table-hover">
                                 <thead>
                                     <tr>
-                                        <th>Outlet</th>
                                         <th>Owner</th>
-                                        <th>Tier</th>
+                                        <th>Package</th>
+                                        <th>Outlets</th>
                                         <th>Expires At</th>
                                         <th>Days Remaining</th>
                                         <th>Status</th>
@@ -170,27 +169,24 @@ export default function AdminSubscriptionsPage() {
                                     {subscriptions.length === 0 ? (
                                         <tr>
                                             <td colSpan={6} className="text-center">
-                                                No subscriptions
+                                                No subscriptions found
                                             </td>
                                         </tr>
                                     ) : (
                                         subscriptions.map((sub) => (
-                                            <tr key={sub.outletId}>
+                                            <tr key={sub.userId}>
                                                 <td>
-                                                    <strong>{sub.outletName}</strong>
+                                                    <strong>{sub.ownerName || 'Unknown'}</strong>
                                                     <br />
-                                                    <small className="text-muted">{sub.outletSlug}</small>
+                                                    <small className="text-muted">{sub.ownerPhone || 'No Phone'}</small>
                                                 </td>
                                                 <td>
-                                                    {sub.ownerName || 'N/A'}
-                                                    {sub.ownerPhone && (
-                                                        <><br /><small className="text-muted">{sub.ownerPhone}</small></>
-                                                    )}
-                                                </td>
-                                                <td>
-                                                    <span className={`badge ${sub.tier === 'PRO' ? 'badge-primary' : 'badge-secondary'}`}>
-                                                        {sub.tier || 'FREE'}
+                                                    <span className="badge badge-info">
+                                                        {sub.packageName || 'No Package'}
                                                     </span>
+                                                </td>
+                                                <td>
+                                                    {sub.outletCount} Outlet(s)
                                                 </td>
                                                 <td>
                                                     {sub.expiresAt

@@ -441,7 +441,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             onClick={closeSidebarIfMobileOpen}
           >
             {/* Brand Text */}
-            <span className="brand-text fw-light">Ainul Laundry</span>
+            <img
+              src="/images/logo.png"
+              alt="Kasirlondri Logo"
+              className="brand-image img-circle elevation-3"
+              style={{ opacity: 0.9, maxHeight: '100%' }}
+            />
             {/* End Brand Text */}
           </Link>
           {/* End Brand Link */}
@@ -708,7 +713,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <strong>
           Copyright &copy; 2026&nbsp;
           <a href="https://ainullaundry.com" className="text-decoration-none">
-            Ainul Laundry
+            Kasirlondri
           </a>
           .
         </strong>

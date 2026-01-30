@@ -1,4 +1,4 @@
-📘 Blueprint Arsitektur: Laundry SaaS Platform (Project: Ainul Laundry)
+📘 Blueprint Arsitektur: Laundry SaaS Platform (Project: Kasirlondri)
 
 Dokumen ini adalah panduan teknis utama untuk membangun sistem manajemen laundry multi-tenant yang dioptimalkan untuk Vercel, menggunakan prinsip SOLID, dan berbasis UI AdminLTE v4 (Bootstrap 5). Semua teknologi menggunakan versi LTS atau versi stabil/konservatif untuk stabilitas jangka panjang.
 

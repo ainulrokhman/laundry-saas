@@ -22,13 +22,13 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXTAUTH_URL ?? "http://localhost:3000"),
   title: {
-    default: "Ainul Laundry",
-    template: "%s | Ainul Laundry",
+    default: "Kasirlondri",
+    template: "%s | Kasirlondri",
   },
   description:
     "Cari outlet laundry, lihat layanan & harga (jika tersedia), dan lacak pesanan Anda dengan tracking code.",
   openGraph: {
-    title: "Ainul Laundry",
+    title: "Kasirlondri",
     description:
       "Cari outlet laundry, lihat layanan & harga (jika tersedia), dan lacak pesanan Anda dengan tracking code.",
     url: "/",
@@ -36,10 +36,11 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Ainul Laundry",
+    title: "Kasirlondri",
     description:
       "Cari outlet laundry, lihat layanan & harga (jika tersedia), dan lacak pesanan Anda dengan tracking code.",
   },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({

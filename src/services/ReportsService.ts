@@ -4,17 +4,21 @@ import { SessionUser } from '@/lib/session';
 import { ReportsResponseDTO, GlobalReportsResponseDTO } from '@/dto/ReportsDTO';
 import { Role } from '@/generated/prisma';
 import { prisma } from '@/lib/prisma';
+import { PackageFeatureService } from '@/services/PackageFeatureService';
+import { PackageFeature } from '@/constants/packageFeatures';
 
 import { ExpenseRepository } from '@/repositories/ExpenseRepository';
 
 export class ReportsService extends BaseService {
     private orderRepository: OrderRepository;
     private expenseRepository: ExpenseRepository;
+    private packageFeatureService: PackageFeatureService;
 
     constructor() {
         super();
         this.orderRepository = new OrderRepository();
         this.expenseRepository = new ExpenseRepository();
+        this.packageFeatureService = new PackageFeatureService();
     }
 
     /**
@@ -27,6 +31,9 @@ export class ReportsService extends BaseService {
     ): Promise<ReportsResponseDTO> {
         this.requireRole(user, [Role.OWNER, Role.SUPERADMIN]);
         const outletId = this.getOutletId(user);
+
+        // Check features
+        const hasPL = await this.packageFeatureService.hasFeature(outletId, PackageFeature.REPORT_SIMPLE_PL);
 
         // Get aggregated stats
         const stats = await this.orderRepository.getStatsByDateRange(
@@ -42,8 +49,10 @@ export class ReportsService extends BaseService {
             endDate
         );
 
-        // Get total expenses
-        const totalExpense = await this.expenseRepository.getTotalExpenses(outletId, startDate, endDate);
+        // Get total expenses (Only if has PL feature)
+        const totalExpense = hasPL
+            ? await this.expenseRepository.getTotalExpenses(outletId, startDate, endDate)
+            : 0;
 
         // Get payment method stats
         const paymentMethods = await this.orderRepository.getPaymentMethodStats(outletId, startDate, endDate);
@@ -101,6 +110,22 @@ export class ReportsService extends BaseService {
 
         if (!user) {
             throw new Error('Authentication required');
+        }
+
+        // Check if user (via one of their outlets or directly) has Consolidated Report feature
+        // Since it's global, we check the owner's package directly or via any outlet. 
+        // Best to check via one outlet ID since hasFeature takes outletId.
+        // Let's get one outlet to check feature.
+        const firstOutlet = await prisma.outlet.findFirst({
+            where: { ownerId: user.userId },
+            select: { id: true }
+        });
+
+        if (firstOutlet) {
+            const hasConsolidated = await this.packageFeatureService.hasFeature(firstOutlet.id, PackageFeature.REPORT_CONSOLIDATED);
+            if (!hasConsolidated) {
+                throw new Error('Upgrade paket Anda untuk mengakses Laporan Laba Rugi Gabungan.');
+            }
         }
 
         // Get all outlets owned by this user
