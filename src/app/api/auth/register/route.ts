@@ -14,6 +14,7 @@ import { OtpType, Role } from '@/generated/prisma';
 import { normalizePhoneNumber, formatPhoneNumber, isValidPhoneNumber, generateSlug } from '@/lib/utils';
 import { ApiResponse } from '@/types';
 import bcrypt from 'bcryptjs';
+import { PackageManagementService } from '@/services/admin/PackageManagementService';
 
 const registerSchema = z.object({
   phone: z.string().min(10, 'Phone number is required'),
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
     // Format and validate phone number
     const formattedPhone: string = formatPhoneNumber(phone);
     const normalizedPhone: string = normalizePhoneNumber(phone);
-    
+
     if (!isValidPhoneNumber(formattedPhone)) {
       const response: ApiResponse = {
         success: false,
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
         type: OtpType.REGISTER,
         now: now.toISOString(),
       });
-      
+
       return NextResponse.json<ApiResponse>(
         {
           success: false,
@@ -133,6 +134,10 @@ export async function POST(request: NextRequest) {
 
     // Create outlet and user in transaction
     const result = await prisma.$transaction(async (tx) => {
+      // Get default package
+      const packageService = new PackageManagementService();
+      const defaultPackage = await packageService.getDefaultPackage();
+
       // Create user (store phone without + prefix)
       const user = await tx.user.create({
         data: {
@@ -144,6 +149,7 @@ export async function POST(request: NextRequest) {
           isActive: true,
           isPinSet: true,
           pinChangedAt: new Date(),
+          packageId: defaultPackage?.id, // Assign default package if available
         },
       });
 

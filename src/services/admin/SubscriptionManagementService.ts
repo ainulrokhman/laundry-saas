@@ -288,4 +288,48 @@ export class SubscriptionManagementService {
             totalRevenue: totalRevenue._sum.amount || 0,
         };
     }
+
+
+    /**
+     * Manually update subscription
+     */
+    async updateSubscription(
+        userId: string,
+        packageId: string,
+        expiresAt: Date | null
+    ) {
+        // Validate package exists
+        const pkg = await prisma.subscriptionPackage.findUnique({
+            where: { id: packageId },
+        });
+
+        if (!pkg) {
+            throw new Error('Package not found');
+        }
+
+        // Validate user exists and is owner
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+        });
+
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        if (user.role !== Role.OWNER) {
+            throw new Error('User is not an owner');
+        }
+
+        // Update user subscription
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                packageId,
+                subscriptionExpiresAt: expiresAt,
+                subscriptionStartedAt: user.subscriptionStartedAt || new Date(),
+            },
+        });
+
+        return updatedUser;
+    }
 }

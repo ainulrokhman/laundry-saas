@@ -12,7 +12,7 @@
 
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
@@ -675,7 +675,24 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 {/* Logout */}
                 <li className="py-1">
                   <a
-                    href="/api/auth/signout"
+                    href="#"
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      const result = await Swal.fire({
+                        title: 'Apakah Anda yakin?',
+                        text: "Anda akan keluar dari aplikasi.",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'Ya, Keluar',
+                        cancelButtonText: 'Batal'
+                      });
+
+                      if (result.isConfirmed) {
+                        await signOut({ callbackUrl: '/login' });
+                      }
+                    }}
                     className="dropdown-item py-2 px-3 d-flex align-items-center text-danger"
                   >
                     <i className="fas fa-sign-out-alt me-3" style={{ width: '20px' }}></i>

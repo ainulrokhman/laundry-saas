@@ -22,6 +22,7 @@ interface Package {
     isActive: boolean;
     sortOrder: number;
     subscriberCount: number;
+    isDefault: boolean;
 }
 
 export default function PackagesPage() {
@@ -42,6 +43,7 @@ export default function PackagesPage() {
         maxOutlets: 1,
         sortOrder: 0,
         isActive: true,
+        isDefault: false,
     });
     const [formSaving, setFormSaving] = useState(false);
 
@@ -76,6 +78,7 @@ export default function PackagesPage() {
             maxOutlets: 1,
             sortOrder: 0,
             isActive: true,
+            isDefault: false,
         });
         setShowModal(true);
     };
@@ -92,6 +95,7 @@ export default function PackagesPage() {
             maxOutlets: pkg.maxOutlets,
             sortOrder: pkg.sortOrder,
             isActive: pkg.isActive,
+            isDefault: pkg.isDefault,
         });
         setShowModal(true);
     };
@@ -250,7 +254,12 @@ export default function PackagesPage() {
                                 <div key={pkg.id} className="col-md-4 mb-4">
                                     <div className={`card ${!pkg.isActive ? 'bg-light' : ''} h-100`}>
                                         <div className="card-header">
-                                            <h3 className="card-title font-weight-bold">{pkg.name}</h3>
+                                            <div className="d-flex justify-content-between align-items-center mb-1">
+                                                <h3 className="card-title font-weight-bold">{pkg.name}</h3>
+                                                {pkg.isDefault && (
+                                                    <span className="badge badge-warning text-dark"><i className="fas fa-star mr-1"></i>Default</span>
+                                                )}
+                                            </div>
                                             <div className="card-tools">
                                                 {pkg.isActive ? (
                                                     <span className="badge badge-success">Active</span>
@@ -318,7 +327,7 @@ export default function PackagesPage() {
                                                     <button
                                                         className="btn btn-danger"
                                                         onClick={() => deletePackage(pkg.id, pkg.name)}
-                                                        disabled={pkg.subscriberCount > 0}
+                                                        disabled={pkg.subscriberCount > 0 || pkg.isDefault}
                                                     >
                                                         <i className="fas fa-trash mr-1"></i>
                                                         Delete
@@ -347,6 +356,20 @@ export default function PackagesPage() {
                                 <form onSubmit={handleSubmit}>
                                     <div className="modal-body">
                                         <div className="row g-3">
+                                            <div className="col-12">
+                                                <div className="form-check form-switch bg-light p-2 rounded">
+                                                    <input
+                                                        className="form-check-input"
+                                                        type="checkbox"
+                                                        id="isDefault"
+                                                        checked={formData.isDefault}
+                                                        onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
+                                                    />
+                                                    <label className="form-check-label fw-bold" htmlFor="isDefault">
+                                                        Set as Default Package for New Registrations
+                                                    </label>
+                                                </div>
+                                            </div>
                                             <div className="col-md-6">
                                                 <label className="form-label">Package Name</label>
                                                 <input

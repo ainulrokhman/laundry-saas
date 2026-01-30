@@ -34,9 +34,18 @@ export default function AdminSubscriptionsPage() {
     const [subscriptions, setSubscriptions] = useState<SubscriptionItem[]>([]);
     const [stats, setStats] = useState<Stats | null>(null);
     const [loading, setLoading] = useState(true);
+    const [updating, setUpdating] = useState(false);
+    const [showModal, setShowModal] = useState(false);
+    const [selectedUser, setSelectedUser] = useState<SubscriptionItem | null>(null);
+    const [packages, setPackages] = useState<any[]>([]); // Should be Package[] but using any for brevity or imported type
+    const [updateForm, setUpdateForm] = useState({
+        packageId: '',
+        expiresAt: '',
+    });
 
     useEffect(() => {
         fetchData();
+        fetchPackages();
     }, []);
 
     const fetchData = async () => {
@@ -60,6 +69,67 @@ export default function AdminSubscriptionsPage() {
             console.error('Failed to fetch data:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchPackages = async () => {
+        try {
+            // Reusing existing API (even if intended for package management page)
+            const res = await fetch('/api/admin/packages');
+            if (res.ok) {
+                const data = await res.json();
+                setPackages(data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch packages:', error);
+        }
+    };
+
+    const handleManage = (sub: SubscriptionItem) => {
+        setSelectedUser(sub);
+        // Find current package ID if possible (backend currently sends name, might need ID or just select based on name match if unique, 
+        // ideally backend sends packageId. For now, default invalid or match by name)
+        // Since we don't have packageId in SubscriptionItem interface yet (oops), we might need to update the API or just let admin pick new one.
+        // Let's assume we start empty or default to first.
+        // Actually, let's update SubscriptionItem to include packageId in the service first? 
+        // No, let's just let them select.
+
+        setUpdateForm({
+            packageId: '', // They must select one
+            expiresAt: sub.expiresAt ? new Date(sub.expiresAt).toISOString().split('T')[0] : '',
+        });
+        setShowModal(true);
+    };
+
+    const handleUpdate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedUser) return;
+
+        setUpdating(true);
+        try {
+            const res = await fetch(`/api/admin/subscriptions/${selectedUser.userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    packageId: updateForm.packageId,
+                    expiresAt: updateForm.expiresAt || null,
+                }),
+            });
+
+            const json = await res.json();
+
+            if (res.ok) {
+                alert('Subscription updated successfully');
+                setShowModal(false);
+                fetchData();
+            } else {
+                alert(json.error || 'Failed to update subscription');
+            }
+        } catch (error) {
+            console.error('Update error:', error);
+            alert('Failed to update subscription');
+        } finally {
+            setUpdating(false);
         }
     };
 
@@ -163,12 +233,13 @@ export default function AdminSubscriptionsPage() {
                                         <th>Expires At</th>
                                         <th>Days Remaining</th>
                                         <th>Status</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {subscriptions.length === 0 ? (
                                         <tr>
-                                            <td colSpan={6} className="text-center">
+                                            <td colSpan={7} className="text-center">
                                                 No subscriptions found
                                             </td>
                                         </tr>
@@ -217,6 +288,14 @@ export default function AdminSubscriptionsPage() {
                                                         <span className="badge badge-secondary">No Subscription</span>
                                                     )}
                                                 </td>
+                                                <td>
+                                                    <button
+                                                        className="btn btn-sm btn-outline-primary"
+                                                        onClick={() => handleManage(sub)}
+                                                    >
+                                                        Manage
+                                                    </button>
+                                                </td>
                                             </tr>
                                         ))
                                     )}
@@ -226,6 +305,59 @@ export default function AdminSubscriptionsPage() {
                     </div>
                 </div>
             </section>
+
+            {/* Manage Modal */}
+            {showModal && selectedUser && (
+                <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <div className="modal-dialog">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">Manage Subscription</h5>
+                                <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
+                            </div>
+                            <form onSubmit={handleUpdate}>
+                                <div className="modal-body">
+                                    <p>Owner: <strong>{selectedUser.ownerName}</strong></p>
+
+                                    <div className="mb-3">
+                                        <label className="form-label">Subscription Package</label>
+                                        <select
+                                            className="form-control"
+                                            required
+                                            value={updateForm.packageId}
+                                            onChange={(e) => setUpdateForm({ ...updateForm, packageId: e.target.value })}
+                                        >
+                                            <option value="">Select Package</option>
+                                            {packages.map(pkg => (
+                                                <option key={pkg.id} value={pkg.id}>
+                                                    {pkg.name} ({pkg.price.toLocaleString('id-ID')}/mo)
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="mb-3">
+                                        <label className="form-label">Expiry Date</label>
+                                        <input
+                                            type="date"
+                                            className="form-control"
+                                            value={updateForm.expiresAt}
+                                            onChange={(e) => setUpdateForm({ ...updateForm, expiresAt: e.target.value })}
+                                        />
+                                        <small className="text-muted">Leave empty for no expiry (or manual control logic)</small>
+                                    </div>
+                                </div>
+                                <div className="modal-footer">
+                                    <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
+                                    <button type="submit" className="btn btn-primary" disabled={updating}>
+                                        {updating ? 'Saving...' : 'Save Changes'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

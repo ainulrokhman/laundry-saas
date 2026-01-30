@@ -16,6 +16,7 @@ export interface PackageData {
     maxStaff: number;
     maxOutlets: number;
     sortOrder?: number;
+    isDefault?: boolean;
 }
 
 export class PackageManagementService {
@@ -25,7 +26,7 @@ export class PackageManagementService {
     async getAllPackages(includeInactive = false) {
         const packages = await prisma.subscriptionPackage.findMany({
             where: includeInactive ? {} : { isActive: true },
-            orderBy: { sortOrder: 'asc' },
+            orderBy: [{ isDefault: 'desc' }, { sortOrder: 'asc' }],
             include: {
                 _count: {
                     select: { users: true },
@@ -83,6 +84,15 @@ export class PackageManagementService {
     }
 
     /**
+     * Get the default package
+     */
+    async getDefaultPackage() {
+        return prisma.subscriptionPackage.findFirst({
+            where: { isDefault: true, isActive: true },
+        });
+    }
+
+    /**
      * Create new package
      */
     async createPackage(data: PackageData) {
@@ -95,23 +105,35 @@ export class PackageManagementService {
             throw new Error('Package with this slug already exists');
         }
 
-        const pkg = await prisma.subscriptionPackage.create({
-            data: {
-                name: data.name,
-                slug: data.slug,
-                price: data.price,
-                description: data.description,
-                features: data.features,
-                maxStaff: data.maxStaff,
-                maxOutlets: data.maxOutlets,
-                sortOrder: data.sortOrder ?? 0,
-            },
-        });
+        // Transaction to ensure single default
+        return prisma.$transaction(async (tx) => {
+            if (data.isDefault) {
+                // Unset other defaults
+                await tx.subscriptionPackage.updateMany({
+                    where: { isDefault: true },
+                    data: { isDefault: false },
+                });
+            }
 
-        return {
-            ...pkg,
-            features: pkg.features as PackageFeature[],
-        };
+            const pkg = await tx.subscriptionPackage.create({
+                data: {
+                    name: data.name,
+                    slug: data.slug,
+                    price: data.price,
+                    description: data.description,
+                    features: data.features,
+                    maxStaff: data.maxStaff,
+                    maxOutlets: data.maxOutlets,
+                    sortOrder: data.sortOrder ?? 0,
+                    isDefault: data.isDefault ?? false,
+                },
+            });
+
+            return {
+                ...pkg,
+                features: pkg.features as PackageFeature[],
+            };
+        });
     }
 
     /**
@@ -137,24 +159,36 @@ export class PackageManagementService {
             }
         }
 
-        const updated = await prisma.subscriptionPackage.update({
-            where: { id },
-            data: {
-                name: data.name,
-                slug: data.slug,
-                price: data.price,
-                description: data.description,
-                features: data.features,
-                maxStaff: data.maxStaff,
-                maxOutlets: data.maxOutlets,
-                sortOrder: data.sortOrder,
-            },
-        });
+        // Transaction to ensure single default
+        return prisma.$transaction(async (tx) => {
+            if (data.isDefault) {
+                // Unset other defaults
+                await tx.subscriptionPackage.updateMany({
+                    where: { isDefault: true, id: { not: id } },
+                    data: { isDefault: false },
+                });
+            }
 
-        return {
-            ...updated,
-            features: updated.features as PackageFeature[],
-        };
+            const updated = await tx.subscriptionPackage.update({
+                where: { id },
+                data: {
+                    name: data.name,
+                    slug: data.slug,
+                    price: data.price,
+                    description: data.description,
+                    features: data.features,
+                    maxStaff: data.maxStaff,
+                    maxOutlets: data.maxOutlets,
+                    sortOrder: data.sortOrder,
+                    isDefault: data.isDefault,
+                },
+            });
+
+            return {
+                ...updated,
+                features: updated.features as PackageFeature[],
+            };
+        });
     }
 
     /**
@@ -181,6 +215,42 @@ export class PackageManagementService {
     }
 
     /**
+     * Toggle package default status
+     */
+    async setAsDefault(id: string) {
+        const pkg = await prisma.subscriptionPackage.findUnique({
+            where: { id },
+        });
+
+        if (!pkg) {
+            throw new Error('Package not found');
+        }
+
+        if (!pkg.isActive) {
+            throw new Error('Cannot set inactive package as default');
+        }
+
+        return prisma.$transaction(async (tx) => {
+            // Unset current default
+            await tx.subscriptionPackage.updateMany({
+                where: { isDefault: true },
+                data: { isDefault: false },
+            });
+
+            // Set new default
+            const updated = await tx.subscriptionPackage.update({
+                where: { id },
+                data: { isDefault: true },
+            });
+
+            return {
+                ...updated,
+                features: updated.features as PackageFeature[],
+            };
+        });
+    }
+
+    /**
      * Delete package (soft delete by deactivating)
      */
     async deletePackage(id: string) {
@@ -202,6 +272,10 @@ export class PackageManagementService {
             throw new Error(`Cannot delete package: ${pkg._count.users} user(s) are using it`);
         }
 
+        if (pkg.isDefault) {
+            throw new Error('Cannot delete default package');
+        }
+
         await prisma.subscriptionPackage.delete({
             where: { id },
         });
@@ -216,11 +290,16 @@ export class PackageManagementService {
         const packages = Object.values(PACKAGE_DEFINITIONS);
         const results = [];
 
+        // Determine which one should be default if none set (e.g. KUCEK)
+        const defaultSlug = 'kucek';
+
         for (const pkg of packages) {
             // Upsert (Create or Update) logic
             const existing = await prisma.subscriptionPackage.findUnique({
                 where: { slug: pkg.slug },
             });
+
+            const isDefault = pkg.slug === defaultSlug;
 
             if (existing) {
                 // Update existing
@@ -234,6 +313,7 @@ export class PackageManagementService {
                         maxStaff: pkg.maxStaff,
                         maxOutlets: pkg.maxOutlets,
                         sortOrder: pkg.sortOrder,
+                        // Don't override isDefault on seed update unless necessary logic added
                     },
                 });
                 results.push({ ...updated, status: 'updated' });
@@ -250,9 +330,22 @@ export class PackageManagementService {
                         maxOutlets: pkg.maxOutlets,
                         sortOrder: pkg.sortOrder,
                         isActive: true,
+                        isDefault: isDefault,
                     },
                 });
                 results.push({ ...created, status: 'created' });
+            }
+        }
+
+        // Ensure at least one default exists
+        const hasDefault = await prisma.subscriptionPackage.findFirst({ where: { isDefault: true } });
+        if (!hasDefault) {
+            const kucek = await prisma.subscriptionPackage.findUnique({ where: { slug: 'kucek' } });
+            if (kucek) {
+                await prisma.subscriptionPackage.update({
+                    where: { id: kucek.id },
+                    data: { isDefault: true }
+                });
             }
         }
 
@@ -278,6 +371,7 @@ export class PackageManagementService {
             price: pkg.price,
             subscriberCount: pkg._count.users,
             isActive: pkg.isActive,
+            isDefault: pkg.isDefault,
         }));
     }
 }

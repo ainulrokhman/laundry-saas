@@ -124,6 +124,7 @@ model SubscriptionPackage {
   maxStaff    Int      @default(3) // Maximum staff members (-1 = unlimited)
   maxOutlets  Int      @default(1) // Maximum outlets allowed (NEW)
   isActive    Boolean  @default(true)
+  isDefault   Boolean  @default(false)
   sortOrder   Int      @default(0) // Display order
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -132,6 +133,7 @@ model SubscriptionPackage {
   
   @@index([slug])
   @@index([isActive])
+  @@index([isDefault])
   @@index([sortOrder])
 
   transactions Transaction[] // History pembelian paket ini
