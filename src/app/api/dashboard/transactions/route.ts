@@ -119,7 +119,7 @@ export const GET = withAuth(
 
             // Single Outlet Mode
             const result = await transactionService.getTransactions(
-                session.outletId,
+                session.outletId!,
                 filters
             );
 

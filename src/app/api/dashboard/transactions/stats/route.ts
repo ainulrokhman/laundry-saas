@@ -90,7 +90,7 @@ export const GET = withAuth(
 
             // Single Outlet Mode
             const stats = await transactionService.getTransactionStats(
-                session.outletId,
+                session.outletId!,
                 filters
             );
 

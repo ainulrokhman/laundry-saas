@@ -205,10 +205,10 @@ export class TransactionManagementService {
             'Status',
             'Payment Method',
             'Bank',
-            'Description',
+            // 'Description',
         ];
 
-        const rows = transactions.map((t) => [
+        const rows = transactions.map((t: any) => [
             t.id,
             new Date(t.createdAt).toISOString(),
             t.type,
@@ -216,7 +216,7 @@ export class TransactionManagementService {
             t.status,
             t.paymentMethod || 'N/A',
             t.bankAccount?.bankName || 'N/A',
-            t.description || '',
+            // t.description || '', // Removed as field does not exist
         ]);
 
         // Convert to CSV string

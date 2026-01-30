@@ -417,9 +417,9 @@ export class OrderRepository extends BaseRepository {
         gte: startDate,
         lte: endDate,
       },
-      status: {
-        not: OrderStatus.CANCELLED,
-      },
+      // status: {
+      //   not: OrderStatus.CANCELLED,
+      // },
     });
 
     const [countResult, revenueResult, customersResult] = await Promise.all([

@@ -114,7 +114,7 @@ export default function ReportsPage() {
             headers = hasOutletName
                 ? ['Outlet', 'Tracking Code', 'Customer', 'Status', 'Payment Status', 'Total Amount', 'Paid Amount', 'Remaining']
                 : ['Tracking Code', 'Customer', 'Status', 'Payment Status', 'Total Amount', 'Paid Amount', 'Remaining'];
-            rows = data.unpaidOrders.map(o => 
+            rows = data.unpaidOrders.map(o =>
                 hasOutletName
                     ? [o.outletName || '', o.trackingCode, o.customerName, o.status, o.paymentStatus, o.totalAmount, o.paidAmount, o.remainingAmount]
                     : [o.trackingCode, o.customerName, o.status, o.paymentStatus, o.totalAmount, o.paidAmount, o.remainingAmount]
@@ -166,7 +166,7 @@ export default function ReportsPage() {
             <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
                 <div>
                     <h1 className="h3 mb-0 text-gray-800">Laporan Keuangan</h1>
-                    {mode === 'global' && isGlobalReports(data) && (
+                    {mode === 'global' && data && isGlobalReports(data) && (
                         <small className="text-muted">
                             <i className="fas fa-globe me-1"></i>
                             Gabungan dari {data.totalOutlets} outlet
@@ -304,7 +304,7 @@ export default function ReportsPage() {
                     </button>
                 </li>
                 {/* Outlet Breakdown Tab - Only in Global Mode */}
-                {mode === 'global' && isGlobalReports(data) && (
+                {mode === 'global' && data && isGlobalReports(data) && (
                     <li className="nav-item">
                         <button
                             className={`nav-link ${activeTab === 'outlets' ? 'active' : ''}`}
@@ -356,7 +356,7 @@ export default function ReportsPage() {
                 )}
 
                 {/* Outlet Breakdown Tab (Global Mode Only) */}
-                {activeTab === 'outlets' && mode === 'global' && isGlobalReports(data) && (
+                {activeTab === 'outlets' && mode === 'global' && data && isGlobalReports(data) && (
                     <div className="card shadow-sm">
                         <div className="card-header border-0">
                             <h3 className="card-title">

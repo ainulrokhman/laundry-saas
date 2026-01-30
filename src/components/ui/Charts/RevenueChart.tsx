@@ -146,7 +146,7 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({
         callbacks: {
           label: function (context) {
             const label = context.dataset.label || "";
-            const value = context.parsed.y;
+            const value = context.parsed.y || 0;
             if (label.includes("Pendapatan")) {
               return `${label}: Rp ${value.toLocaleString("id-ID")}`;
             }

@@ -115,7 +115,7 @@ export const PUT = withAuth(
           {
             success: false,
             error:
-              (error as z.ZodError).errors[0]?.message || "Validation error",
+              (error as any).errors?.[0]?.message || "Validation error",
           },
           { status: 400 },
         );

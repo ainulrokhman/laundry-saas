@@ -149,7 +149,7 @@ export const POST = withAuth(
                 return Response.json(
                     {
                         success: false,
-                        error: (error as z.ZodError).errors[0]?.message || 'Validation error',
+                        error: (error as any).errors?.[0]?.message || 'Validation error',
                     },
                     { status: 400 }
                 );
