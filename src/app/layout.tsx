@@ -7,6 +7,7 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import "admin-lte/dist/css/adminlte.min.css";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
+import { SWRegistration } from "@/components/pwa/SWRegistration";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -54,6 +55,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased layout-fixed sidebar-expand-lg`}
       >
         <SessionProvider>
+          <SWRegistration />
           {children}
         </SessionProvider>
       </body>

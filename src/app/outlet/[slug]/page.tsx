@@ -10,6 +10,7 @@ import { ServiceDTO } from '@/dto/ServiceDTO';
 import { formatCurrency } from '@/lib/utils';
 import { OwnerPublicBar } from '@/components/public/OwnerPublicBar';
 import { TrackOrderInline } from '@/components/public/TrackOrderInline';
+import { PWAInstallAlert } from '@/components/public/PWAInstallAlert';
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -356,6 +357,9 @@ export default async function OutletLandingPage({ params }: PageProps) {
           <i className="fab fa-whatsapp fa-2x"></i>
         </a>
       )}
+
+      {/* PWA Install Alert */}
+      <PWAInstallAlert />
     </div>
   );
 }
