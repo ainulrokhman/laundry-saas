@@ -10,16 +10,40 @@ export const metadata: Metadata = {
 export default function HomePage() {
   const packages = Object.values(PACKAGE_DEFINITIONS).sort((a, b) => a.sortOrder - b.sortOrder);
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'Kasirlondri',
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Web',
+    description: 'Sistem manajemen laundry modern dengan POS, laporan keuangan, dan aplikasi kasir.',
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'IDR',
+    },
+    author: {
+      '@type': 'Organization',
+      name: 'Kasirlondri',
+      url: 'https://kasirlondri.vercel.app/',
+    },
+  };
+
   return (
     <div className="min-h-screen bg-white text-slate-800 font-sans">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Navbar */}
       <nav className="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
         <div className="container mx-auto px-4 h-16 d-flex align-items-center justify-content-between">
           <Link href="/" className="text-decoration-none d-flex align-items-center gap-2">
-            <span className="bg-luxury-gold text-white w-8 h-8 d-flex align-items-center justify-content-center rounded-lg shadow-sm">
-              <i className="fas fa-layer-group text-sm"></i>
-            </span>
-            <span className="font-bold text-xl tracking-tight text-slate-900">Kasirlondri</span>
+            <img
+              src="/images/logo.png"
+              alt="Kasirlondri Logo"
+              className="h-14 w-auto object-contain"
+            />
           </Link>
 
           <div className="d-none d-md-flex align-items-center gap-8">

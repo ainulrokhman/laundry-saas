@@ -118,10 +118,40 @@ export default async function OutletLandingPage({ params }: PageProps) {
     if (ia === -1) return 1;
     if (ib === -1) return -1;
     return ia - ib;
+
   });
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'DryCleaningOrLaundry',
+    name: outletPublic.name,
+    image: outletPublic.coverUrl || outletPublic.logoUrl,
+    description: outletPublic.description || `Layanan laundry terbaik di ${outletPublic.address}`,
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: outletPublic.address,
+      addressCountry: 'ID',
+    },
+    telephone: outletPublic.contactPhone,
+    openingHoursSpecification: outletPublic.businessHours ? [
+      {
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: [
+          "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
+        ],
+        opens: "08:00",
+        closes: "21:00"
+      }
+    ] : undefined,
+    url: `https://kasirlondri.com/outlet/${slug}`,
+  };
 
   return (
     <div className="bg-light min-vh-100 font-sans tracking-wide">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Owner Bar */}
       <div className="bg-luxury-dark border-bottom border-white border-opacity-10">
         <div className="container py-2">
