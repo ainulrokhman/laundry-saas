@@ -13,6 +13,11 @@
   background: white;
 }
 
+/* Ensure SweetAlert appears above POS container */
+:global(.swal2-container) {
+  z-index: 99999 !important;
+}
+
 /* Landscape orientation hint for mobile */
 .landscapeHint {
   display: none;
@@ -43,7 +48,6 @@
   }
 
   @keyframes rotate {
-
     0%,
     100% {
       transform: rotate(0deg);
@@ -76,10 +80,10 @@
   text-align: center;
 }
 
-/* Main content grid */
+/* Main content grid - Cart section prioritized */
 .mainContent {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 45% 55%;
   gap: 0;
   flex: 1;
   overflow: hidden;
@@ -87,14 +91,14 @@
   /* Fill remaining space */
 }
 
-/* Services grid scrollable */
+/* Services grid scrollable (Compact) */
 .servicesGrid {
   flex: 1;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 1rem;
-  padding: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.5rem;
+  padding: 0.5rem;
   align-content: start;
 }
 
@@ -127,62 +131,72 @@
   background: #999;
 }
 
-/* Service Card Style (Text Only) */
+/* Service Card Style (Compact) */
 .serviceCard {
   background: white;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 1rem;
-  transition: all 0.2s ease;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  transition: all 0.15s ease;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   height: 100%;
-  min-height: 100px;
+  min-height: 60px;
 }
 
 .serviceCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   border-color: #3b82f6;
   background-color: #f8f9ff;
 }
 
+.serviceCard:active {
+  transform: scale(0.98);
+}
+
 .serviceCardName {
-  font-weight: 600;
+  font-weight: 500;
   color: #1e293b;
-  font-size: 0.95rem;
-  line-height: 1.3;
-  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  margin-bottom: 0.25rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .serviceCardPrice {
   display: inline-block;
   background: #3b82f6;
   color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 6px;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.7rem;
   align-self: flex-start;
 }
 
-/* Cart Item Layout */
+/* Cart Item Layout (Compact) */
 .cartItem {
   border-bottom: 1px solid #f1f5f9;
-  padding: 1rem 0;
+  padding: 0.5rem 0;
 }
 
 .cartItemTitle {
   font-weight: 500;
   color: #334155;
-  margin-bottom: 0.25rem;
+  font-size: 0.8rem;
+  margin-bottom: 0.15rem;
 }
 
 .cartItemPrice {
-  font-weight: 700;
+  font-weight: 600;
   color: #334155;
+  font-size: 0.75rem;
 }
 
 /* Responsive */
@@ -192,90 +206,259 @@
   }
 }
 
-/* Force 2 columns in Landscape Mobile */
+/* Force 2 columns in Landscape Mobile - Cart prioritized */
 @media screen and (max-width: 768px) and (orientation: landscape) {
   .mainContent {
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: 40% 60% !important;
   }
 }
 
-/* Compact Mode for Mobile Landscape */
-/* Compact Mode for Mobile Landscape */
-@media screen and (max-height: 600px) and (orientation: landscape) {
+/* Customer Modal - Compact on Mobile */
+.customerModal .modal-dialog {
+  margin: 0.5rem;
+}
 
-  /* Smaller Header */
-  .posContainer>div:first-child {
-    padding: 0.15rem 0.5rem !important;
-    min-height: 40px !important;
+.customerModal .modal-content {
+  max-height: 85vh;
+}
+
+.customerModal .list-group-item {
+  padding: 0.4rem 0.5rem;
+}
+
+@media screen and (max-width: 768px) and (orientation: landscape) {
+  .customerModal .modal-dialog {
+    max-width: 50%;
+    margin: 0.25rem auto;
   }
 
-  .posContainer h1 {
-    font-size: 0.85rem !important;
+  .customerModal .modal-content {
+    max-height: 95vh;
   }
 
-  .posContainer button {
-    padding: 0.1rem 0.5rem !important;
-    font-size: 0.75rem !important;
+  .customerModal .modal-body {
+    max-height: 70vh !important;
+  }
+}
+
+/* Summary & Payment Section */
+.summarySection {
+  flex-shrink: 0;
+  background: linear-gradient(to top, #667eea 0%, #764ba2 100%);
+  padding: 0.5rem;
+  border-radius: 8px 8px 0 0;
+  margin: 0 0.25rem;
+}
+
+.paymentButton {
+  background: #27ae60;
+  color: white;
+  font-size: 0.9rem;
+  padding: 0.5rem;
+  margin: 0 0.25rem 0.25rem;
+  border-radius: 0 0 8px 8px;
+  border: none;
+  font-weight: bold;
+  width: calc(100% - 0.5rem);
+}
+
+.paymentButton:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
+}
+
+/* Mobile Landscape - Compact Summary & Payment */
+@media screen and (max-width: 768px) and (orientation: landscape) {
+  .summarySection {
+    padding: 0.2rem 0.4rem;
   }
 
-  /* Compact Services Grid */
-  .serviceItem {
-    padding: 0.35rem 0.5rem !important;
+  .paymentButton {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    margin-bottom: 0.2rem;
+    min-height: 32px;
+  }
+}
+
+/* Extra Compact Mode for very small Mobile Landscape */
+@media screen and (max-height: 450px) and (orientation: landscape) {
+  /* Even smaller services grid */
+  .servicesGrid {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 0.25rem;
+    padding: 0.25rem;
   }
 
-  .serviceItem [class*="fw-semibold"] {
-    font-size: 0.8rem !important;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  .serviceCard {
+    padding: 0.35rem 0.5rem;
+    min-height: 45px;
   }
 
-  .serviceItem [class*="badge"] {
-    font-size: 0.65rem !important;
-    padding: 0.15rem 0.3rem !important;
+  .serviceCardName {
+    font-size: 0.65rem;
   }
 
-  /* Compact Cart Section */
-  .cartSection {
-    margin-top: 0.25rem !important;
-    margin-left: 0.25rem !important;
-    margin-right: 0.25rem !important;
+  .serviceCardPrice {
+    font-size: 0.6rem;
+    padding: 0.1rem 0.35rem;
   }
 
-  .cartSection>div.p-3 {
-    padding: 0.35rem 0.5rem !important;
+  /* Even smaller cart items */
+  .cartItem {
+    padding: 0.35rem 0;
   }
 
-  /* Target customer section specifically */
-  .posContainer .d-flex.flex-column.h-100>div:first-child {
-    padding: 0.35rem 0.5rem !important;
+  .cartItemTitle {
+    font-size: 0.7rem;
   }
 
-  .posContainer .d-flex.flex-column.h-100>div:first-child .text-uppercase {
-    margin-bottom: 0 !important;
-    font-size: 0.65rem !important;
+  .cartItemPrice {
+    font-size: 0.65rem;
   }
 
   .quantityInput {
-    font-size: 0.8rem !important;
-    width: 25px !important;
-    height: 24px !important;
+    font-size: 0.65rem !important;
+    width: 28px !important;
+    height: 18px !important;
   }
 
-  /* Compact Summary & Button */
-  .posContainer .bg-white.rounded.shadow-sm {
-    margin: 0.25rem !important;
-    padding: 0.35rem !important;
+  /* Very compact summary & payment */
+  .summarySection {
+    padding: 0.15rem 0.3rem;
+    border-radius: 4px 4px 0 0;
   }
 
-  .posContainer .bg-white.rounded.shadow-sm>div {
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
+  .paymentButton {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.75rem;
+    margin-bottom: 0.1rem;
+    border-radius: 0 0 4px 4px;
+    min-height: 28px;
+  }
+}
+
+/* ============================================
+   MOBILE COMPACT - Buttons & Inputs
+   ============================================ */
+
+/* Mobile Landscape - Compact all buttons and inputs */
+@media screen and (max-width: 768px) and (orientation: landscape) {
+  /* All buttons in POS container */
+  .posContainer :global(.btn) {
+    font-size: 0.65rem !important;
+    padding: 0.2rem 0.4rem !important;
+    min-height: auto !important;
   }
 
-  .posContainer button[class*="btn-lg"] {
-    padding: 0.25rem 1rem !important;
-    font-size: 0.9rem !important;
-    margin-bottom: 0.1rem !important;
+  .posContainer :global(.btn-sm) {
+    font-size: 0.6rem !important;
+    padding: 0.15rem 0.35rem !important;
+  }
+
+  .posContainer :global(.btn) i,
+  .posContainer :global(.btn) :global(.fas),
+  .posContainer :global(.btn) :global(.far) {
+    font-size: 0.55rem !important;
+  }
+
+  /* All form controls */
+  .posContainer :global(.form-control),
+  .posContainer :global(.form-select) {
+    font-size: 0.65rem !important;
+    padding: 0.2rem 0.4rem !important;
+    height: auto !important;
+    min-height: auto !important;
+  }
+
+  .posContainer :global(.form-label) {
+    font-size: 0.6rem !important;
+    margin-bottom: 0.15rem !important;
+  }
+
+  .posContainer :global(.input-group-text) {
+    font-size: 0.6rem !important;
+    padding: 0.2rem 0.35rem !important;
+  }
+
+  /* Modal specific */
+  .posContainer :global(.modal-header) {
+    padding: 0.4rem 0.6rem !important;
+    min-height: auto !important;
+  }
+
+  .posContainer :global(.modal-title) {
+    font-size: 0.75rem !important;
+  }
+
+  .posContainer :global(.modal-body) {
+    padding: 0.5rem !important;
+  }
+
+  .posContainer :global(.modal-footer) {
+    padding: 0.3rem 0.5rem !important;
+  }
+
+  .posContainer :global(.btn-close) {
+    font-size: 0.5rem !important;
+    padding: 0.3rem !important;
+  }
+
+  /* Alert/Petunjuk section */
+  .posContainer :global(.alert) {
+    padding: 0.4rem 0.5rem !important;
+    font-size: 0.6rem !important;
+  }
+
+  .posContainer :global(.alert) h6 {
+    font-size: 0.65rem !important;
+  }
+
+  .posContainer :global(.alert) ul {
+    font-size: 0.55rem !important;
+    padding-left: 1rem !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* List group items */
+  .posContainer :global(.list-group-item) {
+    font-size: 0.65rem !important;
+    padding: 0.3rem 0.4rem !important;
+  }
+
+  /* Badges */
+  .posContainer :global(.badge) {
+    font-size: 0.55rem !important;
+    padding: 0.15rem 0.3rem !important;
+  }
+
+  /* Textarea */
+  .posContainer :global(textarea.form-control) {
+    min-height: 40px !important;
+  }
+
+  /* Row gaps */
+  .posContainer :global(.row.g-2) {
+    --bs-gutter-y: 0.3rem;
+    --bs-gutter-x: 0.3rem;
+  }
+
+  /* Modal dialog sizing */
+  .posContainer :global(.modal-dialog) {
+    margin: 0.25rem auto !important;
+    max-width: 95% !important;
+  }
+
+  .posContainer :global(.modal-lg) {
+    max-width: 70% !important;
+  }
+
+  /* Modal less rounded */
+  .posContainer :global(.modal-content) {
+    border-radius: 6px !important;
+  }
+
+  .posContainer :global(.modal-header) {
+    border-radius: 6px 6px 0 0 !important;
   }
 }

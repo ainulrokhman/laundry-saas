@@ -4,13 +4,14 @@
  * Business logic untuk pembuatan & pengelolaan order laundry (bookkeeping pembayaran).
  */
 
-import { BaseService } from './BaseService';
-import { SessionUser } from '@/lib/session';
-import { OrderStatus, PaymentStatus, Prisma } from '@/generated/prisma';
-import { generateTrackingCode, normalizePhoneNumber } from '@/lib/utils';
-import { OrderRepository } from '@/repositories/OrderRepository';
-import { OrderStatusHistoryRepository } from '@/repositories/OrderStatusHistoryRepository';
-import { ServiceRepository } from '@/repositories/ServiceRepository';
+import { BaseService } from "./BaseService";
+import { SessionUser } from "@/lib/session";
+import { OrderStatus, PaymentStatus, Prisma } from "@/generated/prisma";
+import { generateTrackingCode, normalizePhoneNumber } from "@/lib/utils";
+import { OrderRepository } from "@/repositories/OrderRepository";
+import { OrderStatusHistoryRepository } from "@/repositories/OrderStatusHistoryRepository";
+import { ServiceRepository } from "@/repositories/ServiceRepository";
+import { CustomerRepository } from "@/repositories/CustomerRepository";
 
 export type CreateOrderItemInput = {
   serviceId: string;
@@ -19,6 +20,7 @@ export type CreateOrderItemInput = {
 };
 
 export type CreateOrderInput = {
+  customerId?: string; // Relasi ke Customer (opsional, null = pelanggan umum)
   customerName?: string;
   customerPhone?: string;
   notes?: string;
@@ -55,17 +57,17 @@ export class OrderService extends BaseService {
   constructor(
     private orderRepository: OrderRepository = new OrderRepository(),
     private serviceRepository: ServiceRepository = new ServiceRepository(),
-    private orderStatusHistoryRepository: OrderStatusHistoryRepository = new OrderStatusHistoryRepository()
+    private orderStatusHistoryRepository: OrderStatusHistoryRepository = new OrderStatusHistoryRepository(),
   ) {
     super();
   }
 
   async createOrder(user: SessionUser | null, input: CreateOrderInput) {
-    this.requireRole(user, ['OWNER', 'STAFF']);
+    this.requireRole(user, ["OWNER", "STAFF"]);
     const outletId = this.getOutletId(user);
 
     if (!input.items || input.items.length === 0) {
-      throw new Error('Minimal satu layanan harus dipilih');
+      throw new Error("Minimal satu layanan harus dipilih");
     }
 
     const customerName = input.customerName?.trim() || undefined;
@@ -73,7 +75,9 @@ export class OrderService extends BaseService {
     const notes = input.notes?.trim() || undefined;
     const paymentNote = input.paymentNote?.trim() || undefined;
 
-    const customerPhone = customerPhoneRaw ? normalizePhoneNumber(customerPhoneRaw) : undefined;
+    const customerPhone = customerPhoneRaw
+      ? normalizePhoneNumber(customerPhoneRaw)
+      : undefined;
 
     // Validasi + build items dengan snapshot data dari Service
     const items: Prisma.OrderItemCreateWithoutOrderInput[] = [];
@@ -82,24 +86,30 @@ export class OrderService extends BaseService {
     for (const rawItem of input.items) {
       const qty = Number(rawItem.quantity);
       if (!Number.isFinite(qty) || qty <= 0) {
-        throw new Error('Qty layanan tidak valid');
+        throw new Error("Qty layanan tidak valid");
       }
 
-      const service = await this.serviceRepository.findById(outletId, rawItem.serviceId);
+      const service = await this.serviceRepository.findById(
+        outletId,
+        rawItem.serviceId,
+      );
       if (!service) {
-        throw new Error('Layanan tidak ditemukan');
+        throw new Error("Layanan tidak ditemukan");
       }
       if (!service.isActive) {
-        throw new Error('Layanan tidak aktif');
+        throw new Error("Layanan tidak aktif");
       }
 
-      if (service.type !== 'KILOAN' && !isIntegerLike(qty)) {
-        throw new Error('Qty untuk layanan satuan/paket harus bilangan bulat');
+      if (service.type !== "KILOAN" && !isIntegerLike(qty)) {
+        throw new Error("Qty untuk layanan satuan/paket harus bilangan bulat");
       }
 
-      const unitPrice = rawItem.unitPrice !== undefined ? Number(rawItem.unitPrice) : Number(service.price);
+      const unitPrice =
+        rawItem.unitPrice !== undefined
+          ? Number(rawItem.unitPrice)
+          : Number(service.price);
       if (!Number.isFinite(unitPrice) || unitPrice < 0) {
-        throw new Error('Harga layanan tidak valid');
+        throw new Error("Harga layanan tidak valid");
       }
 
       const subtotal = roundIdr(qty * unitPrice);
@@ -141,10 +151,25 @@ export class OrderService extends BaseService {
       paymentStatus = PaymentStatus.UNPAID;
     }
 
+    // Validasi customerId jika diberikan
+    const customerId = input.customerId?.trim() || null;
+    if (customerId) {
+      const customerRepo = new CustomerRepository();
+      const customer = await customerRepo.findById(outletId, customerId);
+      if (!customer) {
+        throw new Error(
+          "Pelanggan tidak ditemukan. Silakan pilih pelanggan yang valid.",
+        );
+      }
+    }
+
     // Create order + items. trackingCode harus unik.
     for (let attempt = 0; attempt < 10; attempt++) {
       const trackingCode = generateTrackingCode(8);
-      const exists = await this.orderRepository.findByTrackingCode(outletId, trackingCode);
+      const exists = await this.orderRepository.findByTrackingCode(
+        outletId,
+        trackingCode,
+      );
       if (exists) continue;
 
       try {
@@ -152,7 +177,7 @@ export class OrderService extends BaseService {
           outletId,
           {
             trackingCode,
-            status: 'QUEUED',
+            status: "QUEUED",
             paymentStatus,
             paymentMethod: null,
             paidAt,
@@ -161,36 +186,48 @@ export class OrderService extends BaseService {
             dpAmount,
             dpPaidAt,
             dpNote,
+            customerId, // Relasi ke Customer (null = pelanggan umum)
             customerName,
             customerPhone,
             notes,
             completedAt: null,
           } as any,
-          items
+          items,
         );
       } catch (e) {
-        const msg = e instanceof Error ? e.message : '';
-        if (msg.toLowerCase().includes('unique') || msg.toLowerCase().includes('trackingcode')) {
+        const msg = e instanceof Error ? e.message : "";
+        // Hanya retry jika error spesifik terkait trackingCode unique constraint
+        const isTrackingCodeConflict =
+          msg.toLowerCase().includes("trackingcode") ||
+          (msg.toLowerCase().includes("unique") &&
+            msg.toLowerCase().includes("tracking"));
+        if (isTrackingCodeConflict) {
           continue;
         }
         throw e;
       }
     }
 
-    throw new Error('Gagal membuat tracking code unik. Silakan coba lagi.');
+    throw new Error("Gagal membuat tracking code unik. Silakan coba lagi.");
   }
 
-  async setPaymentStatus(user: SessionUser | null, orderId: string, input: UpdateOrderPaymentInput) {
-    this.requireRole(user, ['OWNER', 'STAFF']);
+  async setPaymentStatus(
+    user: SessionUser | null,
+    orderId: string,
+    input: UpdateOrderPaymentInput,
+  ) {
+    this.requireRole(user, ["OWNER", "STAFF"]);
     const outletId = this.getOutletId(user);
 
     const paidAt = input.paid
-      ? (input.paidAt ? new Date(input.paidAt) : new Date())
+      ? input.paidAt
+        ? new Date(input.paidAt)
+        : new Date()
       : null;
 
     const existing = await this.orderRepository.findById(outletId, orderId);
     if (!existing) {
-      throw new Error('Order tidak ditemukan');
+      throw new Error("Order tidak ditemukan");
     }
     const existingDpAmount = roundIdr(Number((existing as any).dpAmount ?? 0));
 
@@ -210,32 +247,37 @@ export class OrderService extends BaseService {
     } as any);
   }
 
-  async setDownPayment(user: SessionUser | null, orderId: string, input: UpdateOrderDpInput) {
-    this.requireRole(user, ['OWNER', 'STAFF']);
+  async setDownPayment(
+    user: SessionUser | null,
+    orderId: string,
+    input: UpdateOrderDpInput,
+  ) {
+    this.requireRole(user, ["OWNER", "STAFF"]);
     const outletId = this.getOutletId(user);
 
     const order = await this.orderRepository.findById(outletId, orderId);
     if (!order) {
-      throw new Error('Order tidak ditemukan');
+      throw new Error("Order tidak ditemukan");
     }
 
     const totalAmount = roundIdr(Number(order.totalAmount));
     const dpAmount = roundIdr(Number(input.dpAmount));
     if (!Number.isFinite(dpAmount) || dpAmount < 0) {
-      throw new Error('Nominal DP tidak valid');
+      throw new Error("Nominal DP tidak valid");
     }
     if (dpAmount > totalAmount) {
-      throw new Error('DP tidak boleh melebihi total');
+      throw new Error("DP tidak boleh melebihi total");
     }
 
     const dpNote = input.dpNote?.trim() ? input.dpNote.trim() : null;
 
-    const existingDpPaidAt = ((order as any).dpPaidAt as Date | null | undefined) ?? null;
+    const existingDpPaidAt =
+      ((order as any).dpPaidAt as Date | null | undefined) ?? null;
     const dpPaidAt =
       dpAmount > 0
         ? input.dpPaidAt
           ? new Date(input.dpPaidAt)
-          : existingDpPaidAt ?? new Date()
+          : (existingDpPaidAt ?? new Date())
         : null;
 
     // Aturan paymentStatus:
@@ -244,7 +286,8 @@ export class OrderService extends BaseService {
     // - Jika dpAmount > 0 dan belum lunas: PENDING
     // - Jika dpAmount == total (membayar penuh via DP): otomatis SETTLEMENT
     let nextPaymentStatus = order.paymentStatus as PaymentStatus;
-    let nextPaidAt: Date | null = ((order as any).paidAt as Date | null | undefined) ?? null;
+    let nextPaidAt: Date | null =
+      ((order as any).paidAt as Date | null | undefined) ?? null;
 
     if (dpAmount > 0 && dpAmount >= totalAmount && totalAmount > 0) {
       nextPaymentStatus = PaymentStatus.SETTLEMENT;
@@ -269,13 +312,17 @@ export class OrderService extends BaseService {
     } as any);
   }
 
-  async setOrderStatus(user: SessionUser | null, orderId: string, nextStatus: OrderStatus) {
-    this.requireRole(user, ['OWNER', 'STAFF']);
+  async setOrderStatus(
+    user: SessionUser | null,
+    orderId: string,
+    nextStatus: OrderStatus,
+  ) {
+    this.requireRole(user, ["OWNER", "STAFF"]);
     const outletId = this.getOutletId(user);
 
     const order = await this.orderRepository.findById(outletId, orderId);
     if (!order) {
-      throw new Error('Order tidak ditemukan');
+      throw new Error("Order tidak ditemukan");
     }
 
     const fromStatus = order.status as OrderStatus;
@@ -308,9 +355,9 @@ export class OrderService extends BaseService {
       paymentStatus?: any;
       page?: number;
       limit?: number;
-    } = {}
+    } = {},
   ) {
-    this.requireRole(user, ['OWNER', 'STAFF']);
+    this.requireRole(user, ["OWNER", "STAFF"]);
     const outletId = this.getOutletId(user);
     return await this.orderRepository.findPagedByOutletId(outletId, {
       q: query.q,
@@ -318,7 +365,7 @@ export class OrderService extends BaseService {
       paymentStatus: query.paymentStatus,
       page: query.page,
       limit: query.limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     } as any);
   }
 
@@ -334,17 +381,16 @@ export class OrderService extends BaseService {
       paymentStatus?: any;
       page?: number;
       limit?: number;
-    } = {}
+    } = {},
   ) {
-    this.requireRole(user, ['OWNER']);
+    this.requireRole(user, ["OWNER"]);
     return await this.orderRepository.findPagedByOutletIds(outletIds, {
       q: query.q,
       status: query.status,
       paymentStatus: query.paymentStatus,
       page: query.page,
       limit: query.limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     } as any);
   }
 }
-

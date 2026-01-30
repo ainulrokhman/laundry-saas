@@ -5,13 +5,13 @@
  * - POST: create order (POS)
  */
 
-import { z } from 'zod';
-import { withAuth } from '@/lib/proxy/route-proxy';
-import { ExtendedSession } from '@/lib/auth';
-import { Role, OrderStatus, PaymentStatus } from '@/generated/prisma';
-import { OrderService } from '@/services/OrderService';
-import { OrderDTO } from '@/dto/OrderDTO';
-import { prisma } from '@/lib/prisma';
+import { z } from "zod";
+import { withAuth } from "@/lib/proxy/route-proxy";
+import { ExtendedSession } from "@/lib/auth";
+import { Role, OrderStatus, PaymentStatus } from "@/generated/prisma";
+import { OrderService } from "@/services/OrderService";
+import { OrderDTO } from "@/dto/OrderDTO";
+import { prisma } from "@/lib/prisma";
 
 const orderService = new OrderService();
 
@@ -25,25 +25,54 @@ const querySchema = z.object({
 
 const createSchema = z
   .object({
-    customerName: z.string().trim().max(100, 'Nama maksimal 100 karakter').optional(),
-    customerPhone: z.string().trim().max(20, 'Nomor telepon maksimal 20 digit').optional(),
-    notes: z.string().trim().max(500, 'Catatan maksimal 500 karakter').optional(),
+    customerId: z.string().uuid("customerId tidak valid").optional(), // Relasi ke Customer (opsional)
+    customerName: z
+      .string()
+      .trim()
+      .max(100, "Nama maksimal 100 karakter")
+      .optional(),
+    customerPhone: z
+      .string()
+      .trim()
+      .max(20, "Nomor telepon maksimal 20 digit")
+      .optional(),
+    notes: z
+      .string()
+      .trim()
+      .max(500, "Catatan maksimal 500 karakter")
+      .optional(),
     items: z
       .array(
         z
           .object({
-            serviceId: z.string().uuid('serviceId tidak valid'),
-            quantity: z.coerce.number().finite().positive('Qty harus > 0'),
-            unitPrice: z.coerce.number().finite().min(0, 'Harga tidak boleh negatif').optional(),
+            serviceId: z.string().uuid("serviceId tidak valid"),
+            quantity: z.coerce.number().finite().positive("Qty harus > 0"),
+            unitPrice: z.coerce
+              .number()
+              .finite()
+              .min(0, "Harga tidak boleh negatif")
+              .optional(),
           })
-          .strict()
+          .strict(),
       )
-      .min(1, 'Minimal satu layanan harus dipilih'),
+      .min(1, "Minimal satu layanan harus dipilih"),
     paid: z.boolean(),
     paidAt: z.string().datetime().optional(),
-    paymentNote: z.string().trim().max(200, 'Catatan pembayaran maksimal 200 karakter').optional(),
-    dpAmount: z.coerce.number().finite().min(0, 'Nominal DP minimal 0').optional(),
-    dpNote: z.string().trim().max(200, 'Catatan DP maksimal 200 karakter').optional(),
+    paymentNote: z
+      .string()
+      .trim()
+      .max(200, "Catatan pembayaran maksimal 200 karakter")
+      .optional(),
+    dpAmount: z.coerce
+      .number()
+      .finite()
+      .min(0, "Nominal DP minimal 0")
+      .optional(),
+    dpNote: z
+      .string()
+      .trim()
+      .max(200, "Catatan DP maksimal 200 karakter")
+      .optional(),
   })
   .strict();
 
@@ -52,11 +81,11 @@ export const GET = withAuth(
     try {
       const url = new URL(request.url);
       const parsed = querySchema.parse({
-        q: url.searchParams.get('q') ?? undefined,
-        status: url.searchParams.get('status') ?? undefined,
-        paymentStatus: url.searchParams.get('paymentStatus') ?? undefined,
-        page: url.searchParams.get('page') ?? undefined,
-        limit: url.searchParams.get('limit') ?? undefined,
+        q: url.searchParams.get("q") ?? undefined,
+        status: url.searchParams.get("status") ?? undefined,
+        paymentStatus: url.searchParams.get("paymentStatus") ?? undefined,
+        page: url.searchParams.get("page") ?? undefined,
+        limit: url.searchParams.get("limit") ?? undefined,
       });
 
       const sessionUser = {
@@ -75,26 +104,35 @@ export const GET = withAuth(
           where: { ownerId: session.userId },
           select: { id: true },
         });
-        const outletIds = ownedOutlets.map(o => o.id);
+        const outletIds = ownedOutlets.map((o) => o.id);
 
         if (outletIds.length === 0) {
           return Response.json({
             success: true,
             data: {
               items: [],
-              pagination: { total: 0, page: 1, limit: parsed.limit, totalPages: 0 },
+              pagination: {
+                total: 0,
+                page: 1,
+                limit: parsed.limit,
+                totalPages: 0,
+              },
             },
             isGlobalMode: true,
           });
         }
 
-        const result = await orderService.listGlobalOrders(sessionUser, outletIds, {
-          q: parsed.q,
-          status: parsed.status,
-          paymentStatus: parsed.paymentStatus,
-          page: parsed.page,
-          limit: parsed.limit,
-        });
+        const result = await orderService.listGlobalOrders(
+          sessionUser,
+          outletIds,
+          {
+            q: parsed.q,
+            status: parsed.status,
+            paymentStatus: parsed.paymentStatus,
+            page: parsed.page,
+            limit: parsed.limit,
+          },
+        );
 
         // Map with outlet info
         const items = result.data.map((order: any) => ({
@@ -121,8 +159,8 @@ export const GET = withAuth(
       // Single Outlet Mode
       if (!session.outletId) {
         return Response.json(
-          { success: false, error: 'Outlet context required' },
-          { status: 400 }
+          { success: false, error: "Outlet context required" },
+          { status: 400 },
         );
       }
 
@@ -148,27 +186,28 @@ export const GET = withAuth(
         isGlobalMode: false,
       });
     } catch (error) {
-      console.error('Error listing orders:', error);
+      console.error("Error listing orders:", error);
       if (error instanceof z.ZodError) {
         return Response.json(
           {
             success: false,
-            error: 'Invalid query parameters',
-            message: error.issues.map((i) => i.message).join(', '),
+            error: "Invalid query parameters",
+            message: error.issues.map((i) => i.message).join(", "),
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
       return Response.json(
         {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to list orders',
+          error:
+            error instanceof Error ? error.message : "Failed to list orders",
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
   },
-  { roles: [Role.OWNER, Role.STAFF], requireOutlet: false }
+  { roles: [Role.OWNER, Role.STAFF], requireOutlet: false },
 );
 
 export const POST = withAuth(
@@ -200,35 +239,39 @@ export const POST = withAuth(
         {
           success: true,
           data: OrderDTO.toResponse(created as any),
-          message: 'Order berhasil dibuat',
+          message: "Order berhasil dibuat",
         },
-        { status: 201 }
+        { status: 201 },
       );
     } catch (error) {
-      console.error('Error creating order:', error);
+      console.error("Error creating order:", error);
 
       if (error instanceof z.ZodError) {
         return Response.json(
           {
             success: false,
-            error: 'Validation error',
-            message: error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', '),
-            errors: error.issues.map((i) => ({ field: i.path.join('.'), message: i.message })),
+            error: "Validation error",
+            message: error.issues
+              .map((i) => `${i.path.join(".")}: ${i.message}`)
+              .join(", "),
+            errors: error.issues.map((i) => ({
+              field: i.path.join("."),
+              message: i.message,
+            })),
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       return Response.json(
         {
           success: false,
-          error: 'Failed to create order',
-          message: error instanceof Error ? error.message : 'Unknown error',
+          error: "Failed to create order",
+          message: error instanceof Error ? error.message : "Unknown error",
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
   },
-  { roles: [Role.OWNER, Role.STAFF], requireOutlet: true }
+  { roles: [Role.OWNER, Role.STAFF], requireOutlet: true },
 );
-

@@ -298,11 +298,26 @@ export default function OrdersPage() {
         </div>
         <div className="content">
           <div className="container-fluid">
-            <div className="text-center py-5">
-              <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Loading...</span>
+            <div className="d-flex flex-column align-items-center justify-content-center py-5">
+              <div
+                className="spinner-border mb-3"
+                role="status"
+                style={{
+                  color: "var(--md-sys-color-primary)",
+                  width: "48px",
+                  height: "48px",
+                }}
+              >
+                <span className="visually-hidden">Memuat...</span>
               </div>
-              <p className="text-muted mt-2">Memuat daftar order...</p>
+              <p
+                style={{
+                  color: "var(--md-sys-color-on-surface-variant)",
+                  font: "var(--md-sys-typescale-body-medium)",
+                }}
+              >
+                Memuat daftar order...
+              </p>
             </div>
           </div>
         </div>
@@ -320,29 +335,44 @@ export default function OrdersPage() {
         </div>
         <div className="content">
           <div className="container-fluid">
-            <div
-              className="alert alert-danger alert-dismissible fade show"
-              role="alert"
-            >
-              <h4 className="alert-heading">
-                <i className="fas fa-exclamation-triangle me-2"></i>
-                Error!
-              </h4>
-              <p>{error}</p>
-              <hr />
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={() => setRefreshKey((k) => k + 1)}
-              >
-                <i className="fas fa-redo me-1"></i>
-                Coba Lagi
-              </button>
+            <div className="alert alert-danger" role="alert">
+              <div className="d-flex align-items-start gap-3">
+                <i className="fas fa-exclamation-circle fa-lg mt-1"></i>
+                <div className="flex-grow-1">
+                  <strong>Terjadi Kesalahan</strong>
+                  <p className="mb-2 mt-1">{error}</p>
+                  <button
+                    className="btn btn-sm btn-outline-danger"
+                    onClick={() => setRefreshKey((k) => k + 1)}
+                  >
+                    <i className="fas fa-redo me-1"></i>
+                    Coba Lagi
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     );
   }
+
+  // Status chips for mobile filter
+  const statusChips = [
+    { value: "ALL", label: "Semua" },
+    { value: "QUEUED", label: "Antri" },
+    { value: "WASHING", label: "Cuci" },
+    { value: "DRYING", label: "Kering" },
+    { value: "IRONING", label: "Setrika" },
+    { value: "READY", label: "Siap" },
+    { value: "TAKEN", label: "Diambil" },
+  ];
+
+  const paymentChips = [
+    { value: "ALL", label: "Semua" },
+    { value: "UNPAID", label: "Belum Bayar" },
+    { value: "SETTLEMENT", label: "Lunas" },
+  ];
 
   return (
     <div className="content-wrapper">
@@ -366,28 +396,17 @@ export default function OrdersPage() {
 
       <div className="content">
         <div className="container-fluid">
-          <div className="row mb-3 g-2 align-items-end">
-            <div className="col-12 col-md-auto">
-              <Link
-                href="/dashboard/orders/new"
-                className="btn btn-primary btn-sm"
-              >
-                <i className="fas fa-plus me-1"></i>
-                Buat Order Baru
-              </Link>
-            </div>
-            <div className="col-12 col-md-4">
-              <label className="form-label small text-muted mb-1" htmlFor="q">
-                Pencarian
-              </label>
-              <div className="input-group input-group-sm">
+          {/* Mobile: Search Bar + Filter Chips */}
+          <div className="d-md-none mb-3">
+            {/* Search */}
+            <div className="mb-3">
+              <div className="input-group">
                 <span className="input-group-text">
                   <i className="fas fa-search"></i>
                 </span>
                 <input
-                  id="q"
                   className="form-control"
-                  placeholder="Cari tracking code / nama / telepon..."
+                  placeholder="Cari tracking / nama / telepon..."
                   value={query}
                   onChange={(e) => {
                     setQuery(e.target.value);
@@ -408,72 +427,175 @@ export default function OrdersPage() {
                 )}
               </div>
             </div>
-            <div className="col-6 col-md-2">
-              <label
-                className="form-label small text-muted mb-1"
-                htmlFor="status"
-              >
-                Status
-              </label>
-              <select
-                id="status"
-                className="form-select form-select-sm"
-                value={filterStatus}
-                onChange={(e) => {
-                  setFilterStatus(e.target.value as any);
-                  setPage(1);
+
+            {/* Status Filter Chips */}
+            <div className="mb-2">
+              <div
+                className="form-label mb-2"
+                style={{
+                  font: "var(--md-sys-typescale-label-medium)",
+                  color: "var(--md-sys-color-on-surface-variant)",
                 }}
               >
-                <option value="ALL">Semua</option>
-                <option value="QUEUED">Antri</option>
-                <option value="WASHING">Cuci</option>
-                <option value="DRYING">Kering</option>
-                <option value="IRONING">Setrika</option>
-                <option value="READY">Siap</option>
-                <option value="TAKEN">Diambil</option>
-              </select>
+                Status Order
+              </div>
+              <div className="d-flex flex-wrap gap-2">
+                {statusChips.map((chip) => (
+                  <button
+                    key={chip.value}
+                    type="button"
+                    className={`md-chip ${filterStatus === chip.value ? "active" : ""}`}
+                    onClick={() => {
+                      setFilterStatus(chip.value as any);
+                      setPage(1);
+                    }}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="col-6 col-md-2">
-              <label
-                className="form-label small text-muted mb-1"
-                htmlFor="payment"
+
+            {/* Payment Filter Chips */}
+            <div>
+              <div
+                className="form-label mb-2"
+                style={{
+                  font: "var(--md-sys-typescale-label-medium)",
+                  color: "var(--md-sys-color-on-surface-variant)",
+                }}
               >
                 Pembayaran
-              </label>
-              <select
-                id="payment"
-                className="form-select form-select-sm"
-                value={filterPayment}
-                onChange={(e) => {
-                  setFilterPayment(e.target.value as any);
-                  setPage(1);
-                }}
-              >
-                <option value="ALL">Semua</option>
-                <option value="UNPAID">Belum dibayar</option>
-                <option value="SETTLEMENT">Lunas</option>
-              </select>
+              </div>
+              <div className="d-flex flex-wrap gap-2">
+                {paymentChips.map((chip) => (
+                  <button
+                    key={chip.value}
+                    type="button"
+                    className={`md-chip ${filterPayment === chip.value ? "active" : ""}`}
+                    onClick={() => {
+                      setFilterPayment(chip.value as any);
+                      setPage(1);
+                    }}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="col-12 col-md-2">
-              <label
-                className="form-label small text-muted mb-1"
-                htmlFor="limit"
-              >
-                Baris/halaman
-              </label>
-              <select
-                id="limit"
-                className="form-select form-select-sm"
-                value={limit}
-                onChange={(e) => {
-                  setLimit(Number(e.target.value));
-                  setPage(1);
-                }}
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-              </select>
+          </div>
+
+          {/* Desktop: Traditional Filters */}
+          <div className="d-none d-md-block">
+            <div className="row mb-3 g-2 align-items-end">
+              <div className="col-md-auto">
+                <Link
+                  href="/dashboard/orders/new"
+                  className="btn btn-primary btn-sm"
+                >
+                  <i className="fas fa-plus me-1"></i>
+                  Buat Order Baru
+                </Link>
+              </div>
+              <div className="col-md-4">
+                <label className="form-label small text-muted mb-1" htmlFor="q">
+                  Pencarian
+                </label>
+                <div className="input-group input-group-sm">
+                  <span className="input-group-text">
+                    <i className="fas fa-search"></i>
+                  </span>
+                  <input
+                    id="q"
+                    className="form-control"
+                    placeholder="Cari tracking code / nama / telepon..."
+                    value={query}
+                    onChange={(e) => {
+                      setQuery(e.target.value);
+                      setPage(1);
+                    }}
+                  />
+                  {query.trim().length > 0 && (
+                    <button
+                      className="btn btn-outline-secondary"
+                      type="button"
+                      onClick={() => {
+                        setQuery("");
+                        setPage(1);
+                      }}
+                    >
+                      <i className="fas fa-times"></i>
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="col-md-2">
+                <label
+                  className="form-label small text-muted mb-1"
+                  htmlFor="status"
+                >
+                  Status
+                </label>
+                <select
+                  id="status"
+                  className="form-select form-select-sm"
+                  value={filterStatus}
+                  onChange={(e) => {
+                    setFilterStatus(e.target.value as any);
+                    setPage(1);
+                  }}
+                >
+                  <option value="ALL">Semua</option>
+                  <option value="QUEUED">Antri</option>
+                  <option value="WASHING">Cuci</option>
+                  <option value="DRYING">Kering</option>
+                  <option value="IRONING">Setrika</option>
+                  <option value="READY">Siap</option>
+                  <option value="TAKEN">Diambil</option>
+                </select>
+              </div>
+              <div className="col-md-2">
+                <label
+                  className="form-label small text-muted mb-1"
+                  htmlFor="payment"
+                >
+                  Pembayaran
+                </label>
+                <select
+                  id="payment"
+                  className="form-select form-select-sm"
+                  value={filterPayment}
+                  onChange={(e) => {
+                    setFilterPayment(e.target.value as any);
+                    setPage(1);
+                  }}
+                >
+                  <option value="ALL">Semua</option>
+                  <option value="UNPAID">Belum dibayar</option>
+                  <option value="SETTLEMENT">Lunas</option>
+                </select>
+              </div>
+              <div className="col-md-2">
+                <label
+                  className="form-label small text-muted mb-1"
+                  htmlFor="limit"
+                >
+                  Baris/halaman
+                </label>
+                <select
+                  id="limit"
+                  className="form-select form-select-sm"
+                  value={limit}
+                  onChange={(e) => {
+                    setLimit(Number(e.target.value));
+                    setPage(1);
+                  }}
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -576,19 +698,26 @@ export default function OrdersPage() {
                     render: (o) => {
                       const nextStatus = getNextStatus(o.status);
                       return (
-                        <div className="d-flex gap-2 flex-wrap align-items-center">
+                        <div className="btn-group">
+                          <Link
+                            href={`/dashboard/orders/${encodeURIComponent(o.id)}`}
+                            className="btn btn-sm btn-outline-info"
+                            title="Lihat Detail"
+                          >
+                            <i className="fas fa-eye"></i>
+                          </Link>
                           <Link
                             href={`/dashboard/orders/${encodeURIComponent(o.id)}/invoice`}
-                            className="btn btn-sm btn-success"
+                            className="btn btn-sm btn-outline-success"
+                            title="Lihat Struk"
                           >
-                            <i className="fas fa-receipt me-1"></i>
-                            Struk
+                            <i className="fas fa-receipt"></i>
                           </Link>
                           {nextStatus ? (
-                            <div className="btn-group">
+                            <>
                               <button
                                 type="button"
-                                className="btn btn-primary btn-sm"
+                                className="btn btn-sm btn-outline-primary"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   void updateOrderStatus(
@@ -597,16 +726,17 @@ export default function OrdersPage() {
                                     nextStatus,
                                   );
                                 }}
+                                title={`Update ke ${labelStatus(nextStatus)}`}
                               >
-                                <i className="fas fa-arrow-right me-1"></i>
-                                {labelStatus(nextStatus)}
+                                <i className="fas fa-arrow-right"></i>
                               </button>
                               <button
                                 type="button"
-                                className="btn btn-primary btn-sm dropdown-toggle dropdown-toggle-split"
+                                className="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split"
                                 data-bs-toggle="dropdown"
                                 aria-expanded="false"
                                 onClick={(e) => e.stopPropagation()}
+                                title="Pilih Status"
                               >
                                 <span className="visually-hidden">
                                   Toggle Dropdown
@@ -644,11 +774,13 @@ export default function OrdersPage() {
                                   </li>
                                 ))}
                               </ul>
-                            </div>
+                            </>
                           ) : (
-                            <span className="badge bg-dark">
-                              <i className="fas fa-check-circle me-1"></i>
-                              Selesai
+                            <span
+                              className="btn btn-sm btn-outline-dark disabled"
+                              title="Order Selesai"
+                            >
+                              <i className="fas fa-check"></i>
                             </span>
                           )}
                         </div>
@@ -751,16 +883,17 @@ export default function OrdersPage() {
                                 <i className="fas fa-arrow-right me-1"></i>
                                 {labelStatus(nextStatus)}
                               </button>
-                              <div className="btn-group">
+                              <div className="btn-group dropup">
                                 <button
                                   type="button"
                                   className="btn btn-outline-secondary btn-sm dropdown-toggle"
                                   data-bs-toggle="dropdown"
+                                  data-bs-display="static"
                                   aria-expanded="false"
                                 >
                                   <i className="fas fa-ellipsis-v"></i>
                                 </button>
-                                <ul className="dropdown-menu dropdown-menu-end">
+                                <ul className="dropdown-menu dropdown-menu-end shadow">
                                   <li>
                                     <h6 className="dropdown-header">
                                       Ubah Status
@@ -862,6 +995,15 @@ export default function OrdersPage() {
           </div>
         </div>
       </div>
+
+      {/* FAB - Floating Action Button for Mobile */}
+      <Link
+        href="/dashboard/orders/new"
+        className="md-fab d-md-none"
+        title="Buat Order Baru"
+      >
+        <i className="fas fa-plus"></i>
+      </Link>
     </div>
   );
 }

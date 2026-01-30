@@ -1,9 +1,16 @@
+/* Material Design 3 Theme System - MUST BE BEFORE @tailwind */
+@import "../styles/material3.css";
+@import "../styles/material3-components.css";
+@import "../styles/material3-layout.css";
+@import "../styles/material3-polish.css";
+
 /* Override font paths to use public/fonts */
 @font-face {
   font-display: block;
   font-family: "bootstrap-icons";
-  src: url("/fonts/bootstrap-icons.woff2") format("woff2"),
-       url("/fonts/bootstrap-icons.woff") format("woff");
+  src:
+    url("/fonts/bootstrap-icons.woff2") format("woff2"),
+    url("/fonts/bootstrap-icons.woff") format("woff");
 }
 
 /* Note: CSS libraries (Bootstrap, FontAwesome, Bootstrap Icons, AdminLTE) 

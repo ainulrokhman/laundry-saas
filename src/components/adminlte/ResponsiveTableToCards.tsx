@@ -1,4 +1,11 @@
-import React from 'react';
+/**
+ * Responsive Table to Cards Component
+ *
+ * Shows data as table on desktop and Material 3 styled cards on mobile.
+ * Mobile-first approach with touch-friendly interactions.
+ */
+
+import React from "react";
 
 export type ResponsiveColumn<T> = {
   header: React.ReactNode;
@@ -25,30 +32,51 @@ export function ResponsiveTableToCards<T>({
   renderMobileCard,
   getRowKey,
   emptyState,
-  tableClassName = 'table table-striped table-hover text-nowrap mb-0',
-  theadClassName = 'table-light',
-  mobileContainerClassName = 'p-3',
-  desktopContainerClassName = '',
+  tableClassName = "table table-striped table-hover text-nowrap mb-0",
+  theadClassName = "table-light",
+  mobileContainerClassName = "p-3",
+  desktopContainerClassName = "",
 }: ResponsiveTableToCardsProps<T>) {
   const hasItems = Array.isArray(items) && items.length > 0;
   const keyFn = getRowKey ?? ((item: T, idx: number) => idx);
 
+  // Empty state component with M3 styling
+  const emptyStateContent = emptyState ?? (
+    <div
+      className="text-center py-5"
+      style={{ color: "var(--md-sys-color-on-surface-variant)" }}
+    >
+      <i className="fas fa-inbox fa-3x mb-3 opacity-50"></i>
+      <p
+        className="mb-0"
+        style={{ font: "var(--md-sys-typescale-body-medium)" }}
+      >
+        Tidak ada data.
+      </p>
+    </div>
+  );
+
   return (
     <>
-      {/* Mobile: cards/list */}
+      {/* Mobile: Material 3 Cards/List */}
       <div className={`d-md-none ${mobileContainerClassName}`}>
         {hasItems ? (
-          <div className="vstack gap-2">
+          <div
+            className="md-card-list"
+            style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+          >
             {items.map((it, idx) => (
-              <React.Fragment key={keyFn(it, idx)}>{renderMobileCard(it)}</React.Fragment>
+              <div key={keyFn(it, idx)} className="md-list-item">
+                {renderMobileCard(it)}
+              </div>
             ))}
           </div>
         ) : (
-          emptyState ?? <div className="text-muted text-center py-4">Tidak ada data.</div>
+          emptyStateContent
         )}
       </div>
 
-      {/* Desktop: table */}
+      {/* Desktop: Table with M3 styling */}
       <div className={`d-none d-md-block ${desktopContainerClassName}`}>
         {hasItems ? (
           <div className="table-responsive">
@@ -76,12 +104,9 @@ export function ResponsiveTableToCards<T>({
             </table>
           </div>
         ) : (
-          <div className="text-muted text-center py-4">
-            {emptyState ?? 'Tidak ada data.'}
-          </div>
+          emptyStateContent
         )}
       </div>
     </>
   );
 }
-

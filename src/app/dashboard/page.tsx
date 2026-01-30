@@ -172,23 +172,77 @@ export default function DashboardPage() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="text-center py-5">
-        <div className="spinner-border" role="status">
-          <span className="sr-only">Loading...</span>
+      <div className="d-flex flex-column align-items-center justify-content-center py-5">
+        <div
+          className="spinner-border mb-3"
+          role="status"
+          style={{
+            color: "var(--md-sys-color-primary)",
+            width: "48px",
+            height: "48px",
+          }}
+        >
+          <span className="visually-hidden">Memuat...</span>
         </div>
+        <p
+          style={{
+            color: "var(--md-sys-color-on-surface-variant)",
+            font: "var(--md-sys-typescale-body-medium)",
+          }}
+        >
+          Memuat dashboard...
+        </p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="alert alert-danger" role="alert">
-        <h4 className="alert-heading">Error!</h4>
-        <p>{error}</p>
-        <hr />
-        <button className="btn btn-primary" onClick={fetchDashboardData}>
-          Coba Lagi
-        </button>
+      <div
+        className="card md-outlined"
+        style={{ maxWidth: "500px", margin: "24px auto" }}
+      >
+        <div className="card-body text-center py-5">
+          <div
+            className="mb-3"
+            style={{
+              width: "64px",
+              height: "64px",
+              borderRadius: "var(--md-sys-shape-corner-full)",
+              backgroundColor: "var(--md-sys-color-error-container)",
+              color: "var(--md-sys-color-on-error-container)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto",
+              fontSize: "28px",
+            }}
+          >
+            <i className="fas fa-exclamation-triangle"></i>
+          </div>
+          <h4
+            style={{
+              font: "var(--md-sys-typescale-headline-small)",
+              color: "var(--md-sys-color-on-surface)",
+              marginBottom: "8px",
+            }}
+          >
+            Terjadi Kesalahan
+          </h4>
+          <p
+            style={{
+              font: "var(--md-sys-typescale-body-medium)",
+              color: "var(--md-sys-color-on-surface-variant)",
+              marginBottom: "24px",
+            }}
+          >
+            {error}
+          </p>
+          <button className="btn btn-primary" onClick={fetchDashboardData}>
+            <i className="fas fa-redo me-2"></i>
+            Coba Lagi
+          </button>
+        </div>
       </div>
     );
   }

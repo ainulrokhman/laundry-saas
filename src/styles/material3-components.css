@@ -1,0 +1,832 @@
+/**
+ * Material Design 3 Component Styles
+ * 
+ * Override AdminLTE/Bootstrap components with M3 styling
+ * Mobile-first approach
+ */
+
+/* ============================================
+   1. CARDS - Material 3 Style
+   ============================================ */
+
+/* Base Card Override */
+.card {
+  background-color: var(--md-sys-color-surface-container-low);
+  border: none;
+  border-radius: var(--md-sys-shape-corner-large);
+  box-shadow: var(--md-sys-elevation-level1);
+  transition: box-shadow var(--md-sys-motion-duration-short4)
+    var(--md-sys-motion-easing-standard);
+  /* overflow: visible untuk memungkinkan dropdown tampil penuh */
+}
+
+.card:hover {
+  box-shadow: var(--md-sys-elevation-level2);
+}
+
+.card-header {
+  background-color: transparent;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  padding: var(--md-sys-spacing-4);
+  font: var(--md-sys-typescale-title-medium);
+  color: var(--md-sys-color-on-surface);
+}
+
+.card-header .card-title {
+  font: var(--md-sys-typescale-title-medium);
+  margin: 0;
+  color: var(--md-sys-color-on-surface);
+}
+
+.card-body {
+  padding: var(--md-sys-spacing-4);
+  color: var(--md-sys-color-on-surface);
+}
+
+.card-footer {
+  background-color: transparent;
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+  padding: var(--md-sys-spacing-3) var(--md-sys-spacing-4);
+}
+
+/* Elevated Card Variant */
+.card.md-elevated {
+  background-color: var(--md-sys-color-surface-container-low);
+  box-shadow: var(--md-sys-elevation-level2);
+}
+
+/* Filled Card Variant */
+.card.md-filled {
+  background-color: var(--md-sys-color-surface-container-highest);
+  box-shadow: none;
+}
+
+/* Outlined Card Variant */
+.card.md-outlined {
+  background-color: var(--md-sys-color-surface);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  box-shadow: none;
+}
+
+/* ============================================
+   2. BUTTONS - Use Bootstrap/AdminLTE defaults
+   ============================================ */
+
+/* Only add centering - keep Bootstrap/AdminLTE colors and styling */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Floating Action Button (FAB) - Custom for mobile */
+.md-fab {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--md-sys-shape-corner-large);
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  box-shadow: var(--md-sys-elevation-level3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  z-index: 1000;
+  transition: all var(--md-sys-motion-duration-medium1)
+    var(--md-sys-motion-easing-standard);
+}
+
+.md-fab:hover {
+  box-shadow: var(--md-sys-elevation-level4);
+}
+
+.md-fab:active {
+  box-shadow: var(--md-sys-elevation-level2);
+}
+
+.md-fab i,
+.md-fab .fas,
+.md-fab .far {
+  font-size: 24px;
+}
+
+/* Extended FAB */
+.md-fab-extended {
+  width: auto;
+  padding: 0 20px;
+  gap: 12px;
+}
+
+.md-fab-extended span {
+  font: var(--md-sys-typescale-label-large);
+}
+
+/* ============================================
+   3. FORM INPUTS - Material 3 Style
+   ============================================ */
+
+/* Form Control Base */
+.form-control,
+.form-select {
+  background-color: var(--md-sys-color-surface-container-highest);
+  border: none;
+  border-bottom: 1px solid var(--md-sys-color-on-surface-variant);
+  border-radius: var(--md-sys-shape-corner-extra-small)
+    var(--md-sys-shape-corner-extra-small) 0 0;
+  padding: 16px;
+  min-height: var(--md-sys-touch-target-min);
+  font: var(--md-sys-typescale-body-large);
+  color: var(--md-sys-color-on-surface);
+  transition: all var(--md-sys-motion-duration-short4)
+    var(--md-sys-motion-easing-standard);
+}
+
+.form-control:focus,
+.form-select:focus {
+  background-color: var(--md-sys-color-surface-container-highest);
+  border-bottom: 2px solid var(--md-sys-color-primary);
+  box-shadow: none;
+  outline: none;
+}
+
+.form-control::placeholder {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Outlined Form Control */
+.form-control.md-outlined,
+.form-select.md-outlined {
+  background-color: transparent;
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-sys-shape-corner-extra-small);
+}
+
+.form-control.md-outlined:focus,
+.form-select.md-outlined:focus {
+  border: 2px solid var(--md-sys-color-primary);
+}
+
+/* Small Form Control */
+.form-control-sm,
+.form-select-sm {
+  min-height: 40px;
+  padding: 8px 12px;
+  font: var(--md-sys-typescale-body-medium);
+}
+
+/* Form Label */
+.form-label {
+  font: var(--md-sys-typescale-label-medium);
+  color: var(--md-sys-color-on-surface-variant);
+  margin-bottom: var(--md-sys-spacing-1);
+}
+
+/* Input Group */
+.input-group {
+  background-color: var(--md-sys-color-surface-container-highest);
+  border-radius: var(--md-sys-shape-corner-extra-small)
+    var(--md-sys-shape-corner-extra-small) 0 0;
+  overflow: hidden;
+}
+
+.input-group .form-control {
+  border-radius: 0;
+}
+
+.input-group-text {
+  background-color: transparent;
+  border: none;
+  color: var(--md-sys-color-on-surface-variant);
+  padding: 16px;
+}
+
+/* ============================================
+   4. BADGES/CHIPS - Material 3 Style
+   ============================================ */
+
+/* Base Badge as Chip */
+.badge {
+  font: var(--md-sys-typescale-label-medium);
+  padding: 6px 12px;
+  border-radius: var(--md-sys-shape-corner-small);
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Primary/Info Badge */
+.badge.bg-primary,
+.badge.bg-info {
+  background-color: var(--md-sys-color-primary-container) !important;
+  color: var(--md-sys-color-on-primary-container);
+}
+
+/* Success Badge */
+.badge.bg-success {
+  background-color: var(--md-sys-color-success-container) !important;
+  color: var(--md-sys-color-on-success-container);
+}
+
+/* Danger Badge */
+.badge.bg-danger {
+  background-color: var(--md-sys-color-error-container) !important;
+  color: var(--md-sys-color-on-error-container);
+}
+
+/* Warning Badge */
+.badge.bg-warning {
+  background-color: var(--md-sys-color-warning-container) !important;
+  color: var(--md-sys-color-on-warning-container);
+}
+
+/* Secondary Badge */
+.badge.bg-secondary {
+  background-color: var(--md-sys-color-surface-container-highest) !important;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Dark Badge */
+.badge.bg-dark {
+  background-color: var(--md-sys-color-inverse-surface) !important;
+  color: var(--md-sys-color-inverse-on-surface);
+}
+
+/* Light Badge */
+.badge.bg-light {
+  background-color: var(--md-sys-color-surface-container) !important;
+  color: var(--md-sys-color-on-surface);
+}
+
+/* Filter Chip */
+.md-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: var(--md-sys-shape-corner-small);
+  background-color: transparent;
+  border: 1px solid var(--md-sys-color-outline);
+  color: var(--md-sys-color-on-surface-variant);
+  font: var(--md-sys-typescale-label-large);
+  cursor: pointer;
+  min-height: 32px;
+  transition: all var(--md-sys-motion-duration-short4)
+    var(--md-sys-motion-easing-standard);
+}
+
+.md-chip:hover {
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+.md-chip.active,
+.md-chip.selected {
+  background-color: var(--md-sys-color-secondary-container);
+  border-color: transparent;
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+/* ============================================
+   5. ALERTS - Material 3 Style
+   ============================================ */
+
+.alert {
+  border-radius: var(--md-sys-shape-corner-medium);
+  border: none;
+  padding: var(--md-sys-spacing-4);
+  font: var(--md-sys-typescale-body-medium);
+}
+
+.alert-primary,
+.alert-info {
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.alert-success {
+  background-color: var(--md-sys-color-success-container);
+  color: var(--md-sys-color-on-success-container);
+}
+
+.alert-warning {
+  background-color: var(--md-sys-color-warning-container);
+  color: var(--md-sys-color-on-warning-container);
+}
+
+.alert-danger {
+  background-color: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+/* ============================================
+   6. TABLES - Material 3 Style
+   ============================================ */
+
+.table {
+  color: var(--md-sys-color-on-surface);
+}
+
+.table thead th {
+  font: var(--md-sys-typescale-title-small);
+  color: var(--md-sys-color-on-surface-variant);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  padding: var(--md-sys-spacing-4);
+  background-color: transparent;
+}
+
+.table tbody td {
+  font: var(--md-sys-typescale-body-medium);
+  padding: var(--md-sys-spacing-4);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  vertical-align: middle;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: var(--md-sys-color-surface-container-lowest);
+}
+
+.table-hover tbody tr:hover {
+  background-color: var(--md-sys-color-surface-container);
+}
+
+.table-light,
+.table thead.table-light th {
+  background-color: var(--md-sys-color-surface-container) !important;
+}
+
+/* ============================================
+   7. DROPDOWNS - Material 3 Style
+   ============================================ */
+
+.dropdown-menu {
+  background-color: var(--md-sys-color-surface-container);
+  border: none;
+  border-radius: var(--md-sys-shape-corner-extra-small);
+  box-shadow: var(--md-sys-elevation-level2);
+  padding: var(--md-sys-spacing-2) 0;
+  min-width: 200px;
+}
+
+.dropdown-item {
+  font: var(--md-sys-typescale-body-medium);
+  color: var(--md-sys-color-on-surface);
+  padding: var(--md-sys-spacing-3) var(--md-sys-spacing-4);
+  min-height: var(--md-sys-touch-target-min);
+  display: flex;
+  align-items: center;
+  transition: background-color var(--md-sys-motion-duration-short3)
+    var(--md-sys-motion-easing-standard);
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+}
+
+.dropdown-item.active,
+.dropdown-item:active {
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+.dropdown-header {
+  font: var(--md-sys-typescale-label-medium);
+  color: var(--md-sys-color-on-surface-variant);
+  padding: var(--md-sys-spacing-2) var(--md-sys-spacing-4);
+}
+
+.dropdown-divider {
+  border-color: var(--md-sys-color-outline-variant);
+  margin: var(--md-sys-spacing-2) 0;
+}
+
+/* ============================================
+   8. MODALS - Material 3 Style
+   ============================================ */
+
+.modal-content {
+  background-color: var(--md-sys-color-surface-container-high);
+  border: none;
+  border-radius: var(--md-sys-shape-corner-small);
+  box-shadow: var(--md-sys-elevation-level3);
+}
+
+.modal-header {
+  border-bottom: none;
+  padding: var(--md-sys-spacing-6) var(--md-sys-spacing-6)
+    var(--md-sys-spacing-4);
+}
+
+.modal-title {
+  font: var(--md-sys-typescale-headline-small);
+  color: var(--md-sys-color-on-surface);
+}
+
+.modal-body {
+  padding: var(--md-sys-spacing-4) var(--md-sys-spacing-6);
+  color: var(--md-sys-color-on-surface-variant);
+  font: var(--md-sys-typescale-body-medium);
+}
+
+.modal-footer {
+  border-top: none;
+  padding: var(--md-sys-spacing-4) var(--md-sys-spacing-6)
+    var(--md-sys-spacing-6);
+  gap: var(--md-sys-spacing-2);
+}
+
+.modal-backdrop.show {
+  background-color: var(--md-sys-color-scrim);
+  opacity: 1;
+}
+
+/* ============================================
+   9. LIST GROUP - Material 3 Style
+   ============================================ */
+
+.list-group {
+  border-radius: var(--md-sys-shape-corner-medium);
+  overflow: hidden;
+}
+
+.list-group-item {
+  background-color: var(--md-sys-color-surface);
+  border: none;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  padding: var(--md-sys-spacing-4);
+  font: var(--md-sys-typescale-body-medium);
+  color: var(--md-sys-color-on-surface);
+  min-height: var(--md-sys-touch-target-min);
+  display: flex;
+  align-items: center;
+}
+
+.list-group-item:last-child {
+  border-bottom: none;
+}
+
+.list-group-item-success {
+  background-color: var(--md-sys-color-success-container);
+  color: var(--md-sys-color-on-success-container);
+}
+
+.list-group-item-action:hover {
+  background-color: var(--md-sys-color-surface-container);
+}
+
+/* ============================================
+   10. PROGRESS - Material 3 Style
+   ============================================ */
+
+.progress {
+  height: 4px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--md-sys-color-surface-container-highest);
+  overflow: hidden;
+}
+
+.progress-bar {
+  background-color: var(--md-sys-color-primary);
+  border-radius: var(--md-sys-shape-corner-full);
+}
+
+/* ============================================
+   11. PAGINATION - Material 3 Style
+   ============================================ */
+
+.pagination {
+  gap: var(--md-sys-spacing-1);
+}
+
+.page-link {
+  border: none;
+  border-radius: var(--md-sys-shape-corner-full);
+  color: var(--md-sys-color-on-surface);
+  font: var(--md-sys-typescale-label-large);
+  min-width: var(--md-sys-touch-target-min);
+  min-height: var(--md-sys-touch-target-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--md-sys-spacing-3);
+  background-color: transparent;
+  transition: background-color var(--md-sys-motion-duration-short4)
+    var(--md-sys-motion-easing-standard);
+}
+
+.page-link:hover {
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+}
+
+.page-item.active .page-link {
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+.page-item.disabled .page-link {
+  color: var(--md-sys-color-on-surface);
+  opacity: 0.38;
+  background-color: transparent;
+}
+
+/* ============================================
+   12. SMALL BOX (AdminLTE Stats) - M3 Style
+   ============================================ */
+
+.small-box {
+  border-radius: var(--md-sys-shape-corner-large);
+  overflow: hidden;
+  box-shadow: var(--md-sys-elevation-level1);
+  transition: box-shadow var(--md-sys-motion-duration-short4)
+    var(--md-sys-motion-easing-standard);
+}
+
+.small-box:hover {
+  box-shadow: var(--md-sys-elevation-level2);
+}
+
+.small-box .inner {
+  padding: var(--md-sys-spacing-4);
+}
+
+.small-box .inner h3 {
+  font: var(--md-sys-typescale-headline-medium);
+  margin-bottom: var(--md-sys-spacing-1);
+}
+
+.small-box .inner p {
+  font: var(--md-sys-typescale-body-medium);
+  margin: 0;
+  opacity: 0.9;
+}
+
+.small-box .small-box-footer {
+  padding: var(--md-sys-spacing-2) var(--md-sys-spacing-4);
+  font: var(--md-sys-typescale-label-medium);
+}
+
+/* Color variants with M3 colors */
+.small-box.text-bg-primary {
+  background-color: var(--md-sys-color-primary);
+}
+
+.small-box.text-bg-success {
+  background-color: var(--md-sys-color-success);
+}
+
+.small-box.text-bg-warning {
+  background-color: var(--md-sys-color-warning);
+}
+
+.small-box.text-bg-danger {
+  background-color: var(--md-sys-color-error);
+}
+
+.small-box.text-bg-info {
+  background-color: var(--md-sys-color-info);
+}
+
+/* ============================================
+   13. INFO BOX (AdminLTE) - M3 Style
+   ============================================ */
+
+.info-box {
+  background-color: var(--md-sys-color-surface-container-low);
+  border-radius: var(--md-sys-shape-corner-large);
+  box-shadow: var(--md-sys-elevation-level1);
+  min-height: auto;
+  padding: var(--md-sys-spacing-4);
+}
+
+.info-box-icon {
+  border-radius: var(--md-sys-shape-corner-medium);
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.info-box-content {
+  padding: 0 var(--md-sys-spacing-3);
+}
+
+.info-box-text {
+  font: var(--md-sys-typescale-label-medium);
+  color: var(--md-sys-color-on-surface-variant);
+  text-transform: none;
+}
+
+.info-box-number {
+  font: var(--md-sys-typescale-headline-small);
+  color: var(--md-sys-color-on-surface);
+}
+
+/* ============================================
+   14. BREADCRUMB - Material 3 Style
+   ============================================ */
+
+.breadcrumb {
+  background-color: transparent;
+  padding: 0;
+  margin: 0;
+  font: var(--md-sys-typescale-label-large);
+}
+
+.breadcrumb-item a {
+  color: var(--md-sys-color-primary);
+  text-decoration: none;
+}
+
+.breadcrumb-item.active {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* ============================================
+   15. MOBILE CARD LIST (ResponsiveTableToCards)
+   ============================================ */
+
+.md-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-sys-spacing-3);
+}
+
+.md-list-item .card {
+  background-color: var(--md-sys-color-surface-container-low);
+  border-radius: var(--md-sys-shape-corner-medium);
+  box-shadow: var(--md-sys-elevation-level1);
+  transition: all var(--md-sys-motion-duration-short4)
+    var(--md-sys-motion-easing-standard);
+  overflow: visible;
+}
+
+/* Dropdown di dalam card mobile - pastikan z-index tinggi */
+.md-list-item .card .dropdown-menu {
+  z-index: 1050;
+}
+
+/* Pastikan btn-group tidak hidden overflow */
+.md-list-item .card .btn-group {
+  overflow: visible;
+}
+
+.md-list-item .card:active {
+  background-color: var(--md-sys-color-surface-container);
+  transform: scale(0.99);
+}
+
+.md-list-item .card-body {
+  padding: var(--md-sys-spacing-4);
+}
+
+/* Mobile card sections */
+.md-list-item .card .text-muted.small {
+  font: var(--md-sys-typescale-label-small);
+  color: var(--md-sys-color-on-surface-variant);
+  margin-bottom: 2px;
+}
+
+.md-list-item .card .fw-semibold {
+  font: var(--md-sys-typescale-body-medium);
+  color: var(--md-sys-color-on-surface);
+}
+
+.md-list-item .card code {
+  font: var(--md-sys-typescale-label-large);
+  color: var(--md-sys-color-primary);
+  background-color: var(--md-sys-color-primary-container);
+  padding: 2px 8px;
+  border-radius: var(--md-sys-shape-corner-extra-small);
+}
+
+.md-list-item .card hr {
+  border-color: var(--md-sys-color-outline-variant);
+  opacity: 1;
+  margin: var(--md-sys-spacing-3) 0;
+}
+
+/* ============================================
+   16. MOBILE SPECIFIC STYLES
+   ============================================ */
+
+@media (max-width: 767.98px) {
+  /* Increase touch targets on mobile */
+  .btn {
+    min-height: var(--md-sys-touch-target-min);
+  }
+
+  .form-control,
+  .form-select {
+    min-height: var(--md-sys-touch-target-min);
+  }
+
+  .dropdown-item {
+    min-height: 56px;
+    padding: var(--md-sys-spacing-4);
+  }
+
+  .list-group-item {
+    min-height: 56px;
+    padding: var(--md-sys-spacing-4);
+  }
+
+  /* Cards with less padding on mobile */
+  .card-body {
+    padding: var(--md-sys-spacing-3);
+  }
+
+  .card-header {
+    padding: var(--md-sys-spacing-3);
+  }
+
+  /* FAB positioning for mobile */
+  .md-fab {
+    bottom: 24px;
+    right: 16px;
+  }
+
+  /* Full width buttons on mobile for primary actions */
+  .btn-block-mobile {
+    width: 100%;
+  }
+}
+
+/* ============================================
+   16. RIPPLE EFFECT (CSS Only)
+   ============================================ */
+
+.md-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.md-ripple::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background-color: currentColor;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  transition:
+    width 0.3s ease-out,
+    height 0.3s ease-out,
+    opacity 0.3s ease-out;
+}
+
+.md-ripple:active::after {
+  width: 200%;
+  height: 200%;
+  opacity: 0.1;
+}
+
+/* Apply ripple to interactive elements (excluding .btn to preserve Bootstrap styling) */
+.dropdown-item,
+.list-group-item-action,
+.page-link {
+  position: relative;
+  overflow: hidden;
+}
+
+.dropdown-item::after,
+.list-group-item-action::after,
+.page-link::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background-color: currentColor;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  transition:
+    width 0.3s ease-out,
+    height 0.3s ease-out,
+    opacity 0.3s ease-out;
+}
+
+.dropdown-item:active::after,
+.list-group-item-action:active::after,
+.page-link:active::after {
+  width: 200%;
+  height: 200%;
+  opacity: 0.12;
+}

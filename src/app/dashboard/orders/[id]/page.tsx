@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Order Detail (OWNER/STAFF)
@@ -6,16 +6,22 @@
  * Menampilkan ringkasan order, timeline workflow, tombol update status, dan riwayat status.
  */
 
-import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import Swal from 'sweetalert2';
-import 'sweetalert2/dist/sweetalert2.min.css';
-import { formatCurrency, formatDateTime } from '@/lib/utils';
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import Swal from "sweetalert2";
+import "sweetalert2/dist/sweetalert2.min.css";
+import { formatCurrency, formatDateTime } from "@/lib/utils";
 
-type OrderStatus = 'QUEUED' | 'WASHING' | 'DRYING' | 'IRONING' | 'READY' | 'TAKEN';
-type PaymentStatus = 'UNPAID' | 'PENDING' | 'SETTLEMENT' | 'FAILURE';
+type OrderStatus =
+  | "QUEUED"
+  | "WASHING"
+  | "DRYING"
+  | "IRONING"
+  | "READY"
+  | "TAKEN";
+type PaymentStatus = "UNPAID" | "PENDING" | "SETTLEMENT" | "FAILURE";
 
 type OrderItemRow = {
   id: string;
@@ -61,24 +67,24 @@ type ApiDetailResponse = {
 };
 
 const steps: Array<{ key: OrderStatus; label: string; icon: string }> = [
-  { key: 'QUEUED', label: 'Antrian', icon: 'fas fa-receipt' },
-  { key: 'WASHING', label: 'Dicuci', icon: 'fas fa-soap' },
-  { key: 'DRYING', label: 'Dikeringkan', icon: 'fas fa-wind' },
-  { key: 'IRONING', label: 'Disetrika', icon: 'fas fa-tshirt' },
-  { key: 'READY', label: 'Siap Diambil', icon: 'fas fa-box-open' },
-  { key: 'TAKEN', label: 'Sudah Diambil', icon: 'fas fa-check-circle' },
+  { key: "QUEUED", label: "Antrian", icon: "fas fa-receipt" },
+  { key: "WASHING", label: "Dicuci", icon: "fas fa-soap" },
+  { key: "DRYING", label: "Dikeringkan", icon: "fas fa-wind" },
+  { key: "IRONING", label: "Disetrika", icon: "fas fa-tshirt" },
+  { key: "READY", label: "Siap Diambil", icon: "fas fa-box-open" },
+  { key: "TAKEN", label: "Sudah Diambil", icon: "fas fa-check-circle" },
 ];
 
 function statusBadge(status: OrderStatus): string {
   const map: Record<OrderStatus, string> = {
-    QUEUED: 'bg-info',
-    WASHING: 'bg-warning',
-    DRYING: 'bg-primary',
-    IRONING: 'bg-secondary',
-    READY: 'bg-success',
-    TAKEN: 'bg-dark',
+    QUEUED: "bg-info",
+    WASHING: "bg-warning",
+    DRYING: "bg-primary",
+    IRONING: "bg-secondary",
+    READY: "bg-success",
+    TAKEN: "bg-dark",
   };
-  return map[status] || 'bg-secondary';
+  return map[status] || "bg-secondary";
 }
 
 function labelStatus(status: OrderStatus): string {
@@ -87,18 +93,18 @@ function labelStatus(status: OrderStatus): string {
 }
 
 function labelPayment(status: PaymentStatus): string {
-  if (status === 'SETTLEMENT') return 'Lunas';
-  if (status === 'UNPAID') return 'Belum dibayar';
-  if (status === 'PENDING') return 'Menunggu';
-  if (status === 'FAILURE') return 'Gagal';
+  if (status === "SETTLEMENT") return "Lunas";
+  if (status === "UNPAID") return "Belum dibayar";
+  if (status === "PENDING") return "Menunggu";
+  if (status === "FAILURE") return "Gagal";
   return status;
 }
 
 function paymentBadge(status: PaymentStatus): string {
-  if (status === 'SETTLEMENT') return 'bg-success';
-  if (status === 'UNPAID') return 'bg-danger';
-  if (status === 'PENDING') return 'bg-warning';
-  return 'bg-secondary';
+  if (status === "SETTLEMENT") return "bg-success";
+  if (status === "UNPAID") return "bg-danger";
+  if (status === "PENDING") return "bg-warning";
+  return "bg-secondary";
 }
 
 export default function OrderDetailPage() {
@@ -117,24 +123,24 @@ export default function OrderDetailPage() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
+    if (status === "unauthenticated") {
+      router.push("/login");
       return;
     }
 
-    if (status === 'authenticated') {
-      if (role !== 'OWNER' && role !== 'STAFF') {
-        router.push('/dashboard');
+    if (status === "authenticated") {
+      if (role !== "OWNER" && role !== "STAFF") {
+        router.push("/dashboard");
         return;
       }
       if (!user?.outletId) {
-        setError('Outlet context required. Silakan hubungi admin.');
+        setError("Outlet context required. Silakan hubungi admin.");
         setLoading(false);
         return;
       }
 
       if (!orderId) {
-        setError('ID order tidak ditemukan.');
+        setError("ID order tidak ditemukan.");
         setLoading(false);
         return;
       }
@@ -153,14 +159,21 @@ export default function OrderDetailPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`/api/dashboard/orders/${encodeURIComponent(String(orderId))}`, { method: 'GET' });
-      const json = (await res.json().catch(() => null)) as ApiDetailResponse | null;
+      const res = await fetch(
+        `/api/dashboard/orders/${encodeURIComponent(String(orderId))}`,
+        { method: "GET" },
+      );
+      const json = (await res
+        .json()
+        .catch(() => null)) as ApiDetailResponse | null;
       if (!res.ok || !json?.success) {
-        throw new Error(json?.message || json?.error || 'Gagal memuat detail order');
+        throw new Error(
+          json?.message || json?.error || "Gagal memuat detail order",
+        );
       }
       setDetail(json.data || null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Gagal memuat detail order');
+      setError(e instanceof Error ? e.message : "Gagal memuat detail order");
       setDetail(null);
     } finally {
       setLoading(false);
@@ -172,51 +185,56 @@ export default function OrderDetailPage() {
     if (detail.status === next) return;
 
     const result = await Swal.fire({
-      icon: 'warning',
-      title: 'Ubah Status Order?',
+      icon: "warning",
+      title: "Ubah Status Order?",
       text: `Ubah status dari ${labelStatus(detail.status)} menjadi ${labelStatus(next)}.`,
       showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Ya, ubah',
-      cancelButtonText: 'Batal',
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Ya, ubah",
+      cancelButtonText: "Batal",
     });
 
     if (!result.isConfirmed) return;
 
     try {
-      const res = await fetch(`/api/dashboard/orders/${encodeURIComponent(String(detail.id))}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: next }),
-      });
+      const res = await fetch(
+        `/api/dashboard/orders/${encodeURIComponent(String(detail.id))}/status`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: next }),
+        },
+      );
       const json = await res.json().catch(() => null);
       if (!res.ok || !json?.success) {
-        throw new Error(json?.message || json?.error || 'Gagal memperbarui status order');
+        throw new Error(
+          json?.message || json?.error || "Gagal memperbarui status order",
+        );
       }
 
       setRefreshKey((k) => k + 1);
       await Swal.fire({
-        icon: 'success',
-        title: 'Berhasil!',
-        text: 'Status order berhasil diperbarui.',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#3085d6',
+        icon: "success",
+        title: "Berhasil!",
+        text: "Status order berhasil diperbarui.",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#3085d6",
         timer: 1200,
         timerProgressBar: true,
       });
     } catch (e) {
       await Swal.fire({
-        icon: 'error',
-        title: 'Gagal',
-        text: e instanceof Error ? e.message : 'Gagal memperbarui status order',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#3085d6',
+        icon: "error",
+        title: "Gagal",
+        text: e instanceof Error ? e.message : "Gagal memperbarui status order",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#3085d6",
       });
     }
   }
 
-  if (status === 'loading' || loading) {
+  if (status === "loading" || loading) {
     return (
       <div className="content-wrapper">
         <div className="content-header pt-3">
@@ -226,11 +244,26 @@ export default function OrderDetailPage() {
         </div>
         <div className="content">
           <div className="container-fluid">
-            <div className="text-center py-5">
-              <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Loading...</span>
+            <div className="d-flex flex-column align-items-center justify-content-center py-5">
+              <div
+                className="spinner-border mb-3"
+                role="status"
+                style={{
+                  color: "var(--md-sys-color-primary)",
+                  width: "48px",
+                  height: "48px",
+                }}
+              >
+                <span className="visually-hidden">Memuat...</span>
               </div>
-              <p className="text-muted mt-2">Memuat detail order...</p>
+              <p
+                style={{
+                  color: "var(--md-sys-color-on-surface-variant)",
+                  font: "var(--md-sys-typescale-body-medium)",
+                }}
+              >
+                Memuat detail order...
+              </p>
             </div>
           </div>
         </div>
@@ -248,22 +281,29 @@ export default function OrderDetailPage() {
         </div>
         <div className="content">
           <div className="container-fluid">
-            <div className="alert alert-danger alert-dismissible fade show" role="alert">
-              <h4 className="alert-heading">
-                <i className="fas fa-exclamation-triangle me-2"></i>
-                Error!
-              </h4>
-              <p>{error}</p>
-              <hr />
-              <div className="d-flex gap-2 flex-wrap">
-                <Link href="/dashboard/orders" className="btn btn-outline-secondary btn-sm">
-                  <i className="fas fa-arrow-left me-1"></i>
-                  Kembali
-                </Link>
-                <button className="btn btn-primary btn-sm" onClick={() => setRefreshKey((k) => k + 1)}>
-                  <i className="fas fa-redo me-1"></i>
-                  Coba Lagi
-                </button>
+            <div className="alert alert-danger" role="alert">
+              <div className="d-flex align-items-start gap-3">
+                <i className="fas fa-exclamation-circle fa-lg mt-1"></i>
+                <div className="flex-grow-1">
+                  <strong>Terjadi Kesalahan</strong>
+                  <p className="mb-2 mt-1">{error}</p>
+                  <div className="d-flex gap-2 flex-wrap">
+                    <Link
+                      href="/dashboard/orders"
+                      className="btn btn-sm btn-outline-danger"
+                    >
+                      <i className="fas fa-arrow-left me-1"></i>
+                      Kembali
+                    </Link>
+                    <button
+                      className="btn btn-sm btn-danger"
+                      onClick={() => setRefreshKey((k) => k + 1)}
+                    >
+                      <i className="fas fa-redo me-1"></i>
+                      Coba Lagi
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -283,10 +323,15 @@ export default function OrderDetailPage() {
         <div className="content">
           <div className="container-fluid">
             <div className="alert alert-warning" role="alert">
-              <i className="fas fa-info-circle me-2"></i>
-              Order tidak ditemukan.
+              <div className="d-flex align-items-center gap-2">
+                <i className="fas fa-info-circle"></i>
+                <span>Order tidak ditemukan.</span>
+              </div>
             </div>
-            <Link href="/dashboard/orders" className="btn btn-outline-secondary btn-sm">
+            <Link
+              href="/dashboard/orders"
+              className="btn btn-outline-secondary btn-sm"
+            >
               <i className="fas fa-arrow-left me-1"></i>
               Kembali
             </Link>
@@ -297,7 +342,9 @@ export default function OrderDetailPage() {
   }
 
   const items = Array.isArray(detail.items) ? detail.items : [];
-  const history = Array.isArray(detail.statusHistory) ? detail.statusHistory : [];
+  const history = Array.isArray(detail.statusHistory)
+    ? detail.statusHistory
+    : [];
 
   return (
     <div className="content-wrapper">
@@ -332,15 +379,25 @@ export default function OrderDetailPage() {
               </div>
             </div>
             <div className="d-flex gap-2 flex-wrap">
-              <Link href="/dashboard/orders" className="btn btn-outline-secondary btn-sm">
+              <Link
+                href="/dashboard/orders"
+                className="btn btn-outline-secondary btn-sm"
+              >
                 <i className="fas fa-arrow-left me-1"></i>
                 Kembali
               </Link>
-              <Link href={`/dashboard/orders/${encodeURIComponent(detail.id)}/invoice`} className="btn btn-primary btn-sm">
+              <Link
+                href={`/dashboard/orders/${encodeURIComponent(detail.id)}/invoice`}
+                className="btn btn-primary btn-sm"
+              >
                 <i className="fas fa-receipt me-1"></i>
                 Invoice / Struk
               </Link>
-              <button className="btn btn-outline-secondary btn-sm" onClick={() => setRefreshKey((k) => k + 1)} title="Refresh">
+              <button
+                className="btn btn-outline-secondary btn-sm"
+                onClick={() => setRefreshKey((k) => k + 1)}
+                title="Refresh"
+              >
                 <i className="fas fa-sync-alt me-1"></i>
                 Refresh
               </button>
@@ -360,14 +417,26 @@ export default function OrderDetailPage() {
                   <div className="d-flex justify-content-between flex-wrap gap-3">
                     <div>
                       <div className="text-muted small">Status</div>
-                      <span className={`badge ${statusBadge(detail.status)}`}>{labelStatus(detail.status)}</span>
+                      <span className={`badge ${statusBadge(detail.status)}`}>
+                        {labelStatus(detail.status)}
+                      </span>
                       <div className="text-muted small mt-3">Pembayaran</div>
-                      <span className={`badge ${paymentBadge(detail.paymentStatus)}`}>{labelPayment(detail.paymentStatus)}</span>
-                      {detail.paidAt ? <div className="text-muted small mt-1">{formatDateTime(detail.paidAt)}</div> : null}
+                      <span
+                        className={`badge ${paymentBadge(detail.paymentStatus)}`}
+                      >
+                        {labelPayment(detail.paymentStatus)}
+                      </span>
+                      {detail.paidAt ? (
+                        <div className="text-muted small mt-1">
+                          {formatDateTime(detail.paidAt)}
+                        </div>
+                      ) : null}
                     </div>
                     <div className="text-end">
                       <div className="text-muted small">Total</div>
-                      <div className="h5 mb-0 text-primary">{formatCurrency(Number(detail.totalAmount) || 0)}</div>
+                      <div className="h5 mb-0 text-primary">
+                        {formatCurrency(Number(detail.totalAmount) || 0)}
+                      </div>
                     </div>
                   </div>
 
@@ -376,20 +445,30 @@ export default function OrderDetailPage() {
                   <div className="row g-2">
                     <div className="col-6">
                       <div className="text-muted small">Dibuat</div>
-                      <div className="fw-semibold">{formatDateTime(detail.createdAt)}</div>
+                      <div className="fw-semibold">
+                        {formatDateTime(detail.createdAt)}
+                      </div>
                     </div>
                     <div className="col-6">
                       <div className="text-muted small">Selesai</div>
-                      <div className="fw-semibold">{detail.completedAt ? formatDateTime(detail.completedAt) : '—'}</div>
+                      <div className="fw-semibold">
+                        {detail.completedAt
+                          ? formatDateTime(detail.completedAt)
+                          : "—"}
+                      </div>
                     </div>
                   </div>
 
                   <hr className="my-3" />
 
                   <div className="text-muted small">Pelanggan</div>
-                  <div className="fw-semibold">{detail.customerName || '—'}</div>
+                  <div className="fw-semibold">
+                    {detail.customerName || "—"}
+                  </div>
                   <div className="text-muted small mt-2">Telepon</div>
-                  <div className="fw-semibold">{detail.customerPhone || '—'}</div>
+                  <div className="fw-semibold">
+                    {detail.customerPhone || "—"}
+                  </div>
 
                   {detail.notes ? (
                     <>
@@ -421,14 +500,20 @@ export default function OrderDetailPage() {
                         <li
                           key={s.key}
                           className={`list-group-item d-flex justify-content-between align-items-center ${
-                            done ? 'list-group-item-success' : ''
+                            done ? "list-group-item-success" : ""
                           }`}
                         >
                           <div className="d-flex align-items-center gap-2">
-                            <i className={`${s.icon} ${done ? 'text-success' : 'text-muted'}`}></i>
-                            <span className={isCurrent ? 'fw-bold' : ''}>{s.label}</span>
+                            <i
+                              className={`${s.icon} ${done ? "text-success" : "text-muted"}`}
+                            ></i>
+                            <span className={isCurrent ? "fw-bold" : ""}>
+                              {s.label}
+                            </span>
                           </div>
-                          {isCurrent ? <span className="badge bg-primary">Saat ini</span> : null}
+                          {isCurrent ? (
+                            <span className="badge bg-primary">Saat ini</span>
+                          ) : null}
                         </li>
                       );
                     })}
@@ -448,10 +533,12 @@ export default function OrderDetailPage() {
                         <button
                           key={s.key}
                           type="button"
-                          className={`btn btn-sm ${active ? 'btn-primary' : 'btn-outline-primary'}`}
+                          className={`btn btn-sm ${active ? "btn-primary" : "btn-outline-primary"}`}
                           onClick={() => void updateStatus(s.key)}
                           disabled={active}
-                          title={active ? 'Status saat ini' : `Ubah ke ${s.label}`}
+                          title={
+                            active ? "Status saat ini" : `Ubah ke ${s.label}`
+                          }
                         >
                           <i className={`${s.icon} me-1`}></i>
                           {s.label}
@@ -484,7 +571,10 @@ export default function OrderDetailPage() {
                     <tbody>
                       {items.length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="text-center py-4 text-muted">
+                          <td
+                            colSpan={4}
+                            className="text-center py-4 text-muted"
+                          >
                             Tidak ada item.
                           </td>
                         </tr>
@@ -492,15 +582,21 @@ export default function OrderDetailPage() {
                         items.map((it) => (
                           <tr key={it.id}>
                             <td>
-                              <div className="fw-semibold">{it.serviceName}</div>
+                              <div className="fw-semibold">
+                                {it.serviceName}
+                              </div>
                               <div className="text-muted small">
                                 {it.serviceType}
-                                {it.serviceUnit ? ` • ${it.serviceUnit}` : ''}
+                                {it.serviceUnit ? ` • ${it.serviceUnit}` : ""}
                               </div>
                             </td>
                             <td className="text-end">{it.quantity}</td>
-                            <td className="text-end">{formatCurrency(Number(it.unitPrice) || 0)}</td>
-                            <td className="text-end">{formatCurrency(Number(it.subtotal) || 0)}</td>
+                            <td className="text-end">
+                              {formatCurrency(Number(it.unitPrice) || 0)}
+                            </td>
+                            <td className="text-end">
+                              {formatCurrency(Number(it.subtotal) || 0)}
+                            </td>
                           </tr>
                         ))
                       )}
@@ -510,7 +606,9 @@ export default function OrderDetailPage() {
                         <th colSpan={3} className="text-end">
                           Total
                         </th>
-                        <th className="text-end">{formatCurrency(Number(detail.totalAmount) || 0)}</th>
+                        <th className="text-end">
+                          {formatCurrency(Number(detail.totalAmount) || 0)}
+                        </th>
                       </tr>
                     </tfoot>
                   </table>
@@ -542,17 +640,27 @@ export default function OrderDetailPage() {
                         <tbody>
                           {history.map((h) => (
                             <tr key={h.id}>
-                              <td className="text-nowrap">{formatDateTime(h.createdAt)}</td>
+                              <td className="text-nowrap">
+                                {formatDateTime(h.createdAt)}
+                              </td>
                               <td>
-                                <span className="badge bg-secondary me-2">{labelStatus(h.fromStatus)}</span>
+                                <span className="badge bg-secondary me-2">
+                                  {labelStatus(h.fromStatus)}
+                                </span>
                                 <i className="fas fa-arrow-right text-muted me-2"></i>
-                                <span className="badge bg-primary">{labelStatus(h.toStatus)}</span>
+                                <span className="badge bg-primary">
+                                  {labelStatus(h.toStatus)}
+                                </span>
                               </td>
                               <td>
                                 {h.changedByUser ? (
                                   <div>
-                                    <div className="fw-semibold">{h.changedByUser.name}</div>
-                                    <div className="text-muted small">{h.changedByUser.phone}</div>
+                                    <div className="fw-semibold">
+                                      {h.changedByUser.name}
+                                    </div>
+                                    <div className="text-muted small">
+                                      {h.changedByUser.phone}
+                                    </div>
                                   </div>
                                 ) : (
                                   <span className="text-muted">—</span>
@@ -573,4 +681,3 @@ export default function OrderDetailPage() {
     </div>
   );
 }
-
