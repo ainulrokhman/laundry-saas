@@ -19,6 +19,7 @@ const updatePackageSchema = z.object({
     maxStaff: z.number().int().optional(),
     maxOutlets: z.number().int().optional(),
     sortOrder: z.number().int().optional(),
+    isDefault: z.boolean().optional(),
 });
 
 export const GET = withAdminAuth(async (req, session, context: { params: { id: string } }) => {

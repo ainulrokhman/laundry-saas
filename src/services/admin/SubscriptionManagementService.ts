@@ -11,6 +11,7 @@ export interface SubscriptionListItem {
     userId: string; // Changed from outletId to userId (Owner)
     ownerName: string;
     ownerPhone: string;
+    packageId: string | null;
     packageName: string;
     expiresAt: Date | null;
     startedAt: Date | null;
@@ -78,6 +79,7 @@ export class SubscriptionManagementService {
                 userId: owner.id,
                 ownerName: owner.name,
                 ownerPhone: owner.phone,
+                packageId: owner.package?.id || null,
                 packageName: owner.package?.name || 'No Package',
                 expiresAt: owner.subscriptionExpiresAt,
                 startedAt: owner.subscriptionStartedAt,
@@ -298,6 +300,12 @@ export class SubscriptionManagementService {
         packageId: string,
         expiresAt: Date | null
     ) {
+        console.log(`Updating subscription for user ${userId}, package ${packageId}, expires ${expiresAt}`);
+
+        if (!userId || !packageId) {
+            throw new Error('User ID and Package ID are required');
+        }
+
         // Validate package exists
         const pkg = await prisma.subscriptionPackage.findUnique({
             where: { id: packageId },

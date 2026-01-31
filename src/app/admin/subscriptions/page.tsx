@@ -8,11 +8,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Swal from 'sweetalert2';
 
 interface SubscriptionItem {
     userId: string;
     ownerName: string;
     ownerPhone: string;
+    packageId: string | null;
     packageName: string;
     expiresAt: string | null;
     startedAt: string | null;
@@ -87,15 +89,8 @@ export default function AdminSubscriptionsPage() {
 
     const handleManage = (sub: SubscriptionItem) => {
         setSelectedUser(sub);
-        // Find current package ID if possible (backend currently sends name, might need ID or just select based on name match if unique, 
-        // ideally backend sends packageId. For now, default invalid or match by name)
-        // Since we don't have packageId in SubscriptionItem interface yet (oops), we might need to update the API or just let admin pick new one.
-        // Let's assume we start empty or default to first.
-        // Actually, let's update SubscriptionItem to include packageId in the service first? 
-        // No, let's just let them select.
-
         setUpdateForm({
-            packageId: '', // They must select one
+            packageId: sub.packageId || '', // Pre-select current package
             expiresAt: sub.expiresAt ? new Date(sub.expiresAt).toISOString().split('T')[0] : '',
         });
         setShowModal(true);
@@ -104,6 +99,17 @@ export default function AdminSubscriptionsPage() {
     const handleUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedUser) return;
+
+        if (!updateForm.packageId) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validation Error',
+                text: 'Please select a package',
+            });
+            return;
+        }
+
+        console.log('Submitting update:', { userId: selectedUser.userId, ...updateForm });
 
         setUpdating(true);
         try {
@@ -119,15 +125,27 @@ export default function AdminSubscriptionsPage() {
             const json = await res.json();
 
             if (res.ok) {
-                alert('Subscription updated successfully');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: 'Subscription updated successfully',
+                });
                 setShowModal(false);
                 fetchData();
             } else {
-                alert(json.error || 'Failed to update subscription');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: json.error || 'Failed to update subscription',
+                });
             }
         } catch (error) {
             console.error('Update error:', error);
-            alert('Failed to update subscription');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to update subscription',
+            });
         } finally {
             setUpdating(false);
         }
@@ -252,7 +270,7 @@ export default function AdminSubscriptionsPage() {
                                                     <small className="text-muted">{sub.ownerPhone || 'No Phone'}</small>
                                                 </td>
                                                 <td>
-                                                    <span className="badge badge-info">
+                                                    <span className="badge bg-primary-subtle text-primary-emphasis px-3 py-2 border border-primary-subtle">
                                                         {sub.packageName || 'No Package'}
                                                     </span>
                                                 </td>
@@ -281,11 +299,11 @@ export default function AdminSubscriptionsPage() {
                                                 </td>
                                                 <td>
                                                     {sub.isExpired ? (
-                                                        <span className="badge badge-danger">Expired</span>
+                                                        <span className="badge bg-danger-subtle text-danger-emphasis px-3 py-2 border border-danger-subtle">Expired</span>
                                                     ) : sub.expiresAt ? (
-                                                        <span className="badge badge-success">Active</span>
+                                                        <span className="badge bg-success-subtle text-success-emphasis px-3 py-2 border border-success-subtle">Active</span>
                                                     ) : (
-                                                        <span className="badge badge-secondary">No Subscription</span>
+                                                        <span className="badge bg-secondary-subtle text-secondary-emphasis px-3 py-2 border border-secondary-subtle">No Subscription</span>
                                                     )}
                                                 </td>
                                                 <td>

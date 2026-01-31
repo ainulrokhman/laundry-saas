@@ -19,6 +19,7 @@ const createPackageSchema = z.object({
     maxStaff: z.number().int(),
     maxOutlets: z.number().int(),
     sortOrder: z.number().int().optional(),
+    isDefault: z.boolean().optional(),
 });
 
 export const POST = withAdminAuth(async (req) => {

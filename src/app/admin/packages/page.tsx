@@ -191,6 +191,29 @@ export default function PackagesPage() {
         }
     };
 
+    const handleSetDefault = async (pkg: Package) => {
+        if (!confirm(`Set "${pkg.name}" as the default package for new registrations?`)) return;
+
+        try {
+            const res = await fetch(`/api/admin/packages/${pkg.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isDefault: true }),
+            });
+
+            if (res.ok) {
+                alert(`"${pkg.name}" is now the default package.`);
+                fetchPackages();
+            } else {
+                const data = await res.json();
+                alert(data.error || 'Failed to set default package');
+            }
+        } catch (error) {
+            console.error('Error setting default package:', error);
+            alert('An error occurred');
+        }
+    };
+
     return (
         <div className="content-wrapper">
             {/* Content Header */}
@@ -252,12 +275,12 @@ export default function PackagesPage() {
                         <div className="row">
                             {packages.map((pkg) => (
                                 <div key={pkg.id} className="col-md-4 mb-4">
-                                    <div className={`card ${!pkg.isActive ? 'bg-light' : ''} h-100`}>
-                                        <div className="card-header">
+                                    <div className={`card ${!pkg.isActive ? 'bg-light' : ''} ${pkg.isDefault ? 'border-primary shadow-sm' : ''} h-100`}>
+                                        <div className={`card-header ${pkg.isDefault ? 'bg-primary text-white' : ''}`}>
                                             <div className="d-flex justify-content-between align-items-center mb-1">
                                                 <h3 className="card-title font-weight-bold">{pkg.name}</h3>
                                                 {pkg.isDefault && (
-                                                    <span className="badge badge-warning text-dark"><i className="fas fa-star mr-1"></i>Default</span>
+                                                    <span className="badge badge-light text-primary"><i className="fas fa-star mr-1"></i>Default</span>
                                                 )}
                                             </div>
                                             <div className="card-tools">
@@ -270,7 +293,7 @@ export default function PackagesPage() {
                                         </div>
                                         <div className="card-body">
                                             <div className="text-center mb-4">
-                                                <h2 className="text-primary font-weight-bold mb-0">
+                                                <h2 className={`font-weight-bold mb-0 ${pkg.isDefault ? 'text-primary' : 'text-primary'}`}>
                                                     Rp {pkg.price.toLocaleString('id-ID')}
                                                 </h2>
                                                 <small className="text-muted">/bulan</small>
@@ -333,6 +356,14 @@ export default function PackagesPage() {
                                                         Delete
                                                     </button>
                                                 </div>
+                                                {!pkg.isDefault && pkg.isActive && (
+                                                    <button
+                                                        className="btn btn-outline-warning mt-2"
+                                                        onClick={() => handleSetDefault(pkg)}
+                                                    >
+                                                        <i className="fas fa-star mr-1"></i> Set as Default
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

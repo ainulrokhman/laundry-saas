@@ -19,14 +19,15 @@ const updateSchema = z.object({
 });
 
 // Using Request type to match withAdminAuth signature, but it receives NextRequest at runtime
-export const PUT = withAdminAuth(async (request: Request, session: ExtendedSession, { params }: { params: { userId: string } }) => {
+export const PUT = withAdminAuth(async (request: Request, session: ExtendedSession, context: { params: Promise<{ userId: string }> }) => {
     try {
         const body = await request.json();
         const { packageId, expiresAt } = updateSchema.parse(body);
+        const { userId } = await context.params;
 
         const expiryDate = expiresAt ? new Date(expiresAt) : null;
 
-        await subscriptionService.updateSubscription(params.userId, packageId, expiryDate);
+        await subscriptionService.updateSubscription(userId, packageId, expiryDate);
 
         return NextResponse.json({
             success: true,
