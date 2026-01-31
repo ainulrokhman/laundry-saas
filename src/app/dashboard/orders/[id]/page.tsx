@@ -245,25 +245,10 @@ export default function OrderDetailPage() {
         <div className="content">
           <div className="container-fluid">
             <div className="d-flex flex-column align-items-center justify-content-center py-5">
-              <div
-                className="spinner-border mb-3"
-                role="status"
-                style={{
-                  color: "var(--md-sys-color-primary)",
-                  width: "48px",
-                  height: "48px",
-                }}
-              >
+              <div className="spinner-border text-primary mb-3" role="status" style={{ width: "3rem", height: "3rem" }}>
                 <span className="visually-hidden">Memuat...</span>
               </div>
-              <p
-                style={{
-                  color: "var(--md-sys-color-on-surface-variant)",
-                  font: "var(--md-sys-typescale-body-medium)",
-                }}
-              >
-                Memuat detail order...
-              </p>
+              <p className="text-muted">Memuat detail order...</p>
             </div>
           </div>
         </div>
@@ -499,9 +484,8 @@ export default function OrderDetailPage() {
                       return (
                         <li
                           key={s.key}
-                          className={`list-group-item d-flex justify-content-between align-items-center ${
-                            done ? "list-group-item-success" : ""
-                          }`}
+                          className={`list-group-item d-flex justify-content-between align-items-center ${done ? "list-group-item-success" : ""
+                            }`}
                         >
                           <div className="d-flex align-items-center gap-2">
                             <i

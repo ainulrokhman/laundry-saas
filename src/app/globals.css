@@ -1,9 +1,3 @@
-/* Material Design 3 Theme System - MUST BE BEFORE @tailwind */
-@import "../styles/material3.css";
-@import "../styles/material3-components.css";
-@import "../styles/material3-layout.css";
-@import "../styles/material3-polish.css";
-
 /* Override font paths to use public/fonts */
 @font-face {
   font-display: block;

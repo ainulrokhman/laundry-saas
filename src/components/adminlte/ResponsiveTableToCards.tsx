@@ -1,7 +1,7 @@
 /**
  * Responsive Table to Cards Component
  *
- * Shows data as table on desktop and Material 3 styled cards on mobile.
+ * Shows data as table on desktop and Bootstrap styled cards on mobile.
  * Mobile-first approach with touch-friendly interactions.
  */
 
@@ -40,34 +40,25 @@ export function ResponsiveTableToCards<T>({
   const hasItems = Array.isArray(items) && items.length > 0;
   const keyFn = getRowKey ?? ((item: T, idx: number) => idx);
 
-  // Empty state component with M3 styling
+  // Empty state component with Bootstrap styling
   const emptyStateContent = emptyState ?? (
-    <div
-      className="text-center py-5"
-      style={{ color: "var(--md-sys-color-on-surface-variant)" }}
-    >
+    <div className="text-center py-5 text-muted">
       <i className="fas fa-inbox fa-3x mb-3 opacity-50"></i>
-      <p
-        className="mb-0"
-        style={{ font: "var(--md-sys-typescale-body-medium)" }}
-      >
-        Tidak ada data.
-      </p>
+      <p className="mb-0">Tidak ada data.</p>
     </div>
   );
 
   return (
     <>
-      {/* Mobile: Material 3 Cards/List */}
+      {/* Mobile: Bootstrap Cards/List */}
       <div className={`d-md-none ${mobileContainerClassName}`}>
         {hasItems ? (
-          <div
-            className="md-card-list"
-            style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-          >
+          <div className="d-flex flex-column gap-3">
             {items.map((it, idx) => (
-              <div key={keyFn(it, idx)} className="md-list-item">
-                {renderMobileCard(it)}
+              <div key={keyFn(it, idx)} className="card shadow-sm border-0">
+                <div className="card-body p-3">
+                  {renderMobileCard(it)}
+                </div>
               </div>
             ))}
           </div>
@@ -76,7 +67,7 @@ export function ResponsiveTableToCards<T>({
         )}
       </div>
 
-      {/* Desktop: Table with M3 styling */}
+      {/* Desktop: Table with Bootstrap styling */}
       <div className={`d-none d-md-block ${desktopContainerClassName}`}>
         {hasItems ? (
           <div className="table-responsive">

@@ -408,6 +408,18 @@ export default function OrderInvoicePage() {
     }
   }
 
+
+  // Auto-print logic if requested via query param
+  useEffect(() => {
+    if (!loading && data && searchParams?.get('autoprint') === 'true') {
+      const mode = searchParams.get('printMode') as any || 'receipt-80'; // default to 80mm
+      document.body.setAttribute('data-print-mode', mode);
+      setTimeout(() => {
+        window.print();
+      }, 1000); // Wait for images/styles
+    }
+  }, [loading, data, searchParams]);
+
   const dpAmount = useMemo(() => parseIdrFromDigits(dpAmountDigits), [dpAmountDigits]);
   const dpCashReceived = useMemo(() => parseIdrFromDigits(dpCashDigits), [dpCashDigits]);
   const dpChangeDue = useMemo(() => Math.max(0, dpCashReceived - dpAmount), [dpCashReceived, dpAmount]);

@@ -173,71 +173,23 @@ export default function DashboardPage() {
   if (status === "loading" || loading) {
     return (
       <div className="d-flex flex-column align-items-center justify-content-center py-5">
-        <div
-          className="spinner-border mb-3"
-          role="status"
-          style={{
-            color: "var(--md-sys-color-primary)",
-            width: "48px",
-            height: "48px",
-          }}
-        >
+        <div className="spinner-border text-primary mb-3" role="status" style={{ width: "3rem", height: "3rem" }}>
           <span className="visually-hidden">Memuat...</span>
         </div>
-        <p
-          style={{
-            color: "var(--md-sys-color-on-surface-variant)",
-            font: "var(--md-sys-typescale-body-medium)",
-          }}
-        >
-          Memuat dashboard...
-        </p>
+        <p className="text-muted">Memuat dashboard...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div
-        className="card md-outlined"
-        style={{ maxWidth: "500px", margin: "24px auto" }}
-      >
+      <div className="card border-danger shadow-sm" style={{ maxWidth: "500px", margin: "24px auto" }}>
         <div className="card-body text-center py-5">
-          <div
-            className="mb-3"
-            style={{
-              width: "64px",
-              height: "64px",
-              borderRadius: "var(--md-sys-shape-corner-full)",
-              backgroundColor: "var(--md-sys-color-error-container)",
-              color: "var(--md-sys-color-on-error-container)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto",
-              fontSize: "28px",
-            }}
-          >
+          <div className="mb-3 d-inline-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger rounded-circle" style={{ width: "64px", height: "64px", fontSize: "28px" }}>
             <i className="fas fa-exclamation-triangle"></i>
           </div>
-          <h4
-            style={{
-              font: "var(--md-sys-typescale-headline-small)",
-              color: "var(--md-sys-color-on-surface)",
-              marginBottom: "8px",
-            }}
-          >
-            Terjadi Kesalahan
-          </h4>
-          <p
-            style={{
-              font: "var(--md-sys-typescale-body-medium)",
-              color: "var(--md-sys-color-on-surface-variant)",
-              marginBottom: "24px",
-            }}
-          >
-            {error}
-          </p>
+          <h4 className="card-title mb-2">Terjadi Kesalahan</h4>
+          <p className="card-text text-muted mb-4">{error}</p>
           <button className="btn btn-primary" onClick={fetchDashboardData}>
             <i className="fas fa-redo me-2"></i>
             Coba Lagi
@@ -405,15 +357,15 @@ export default function DashboardPage() {
                   },
                   ...(isGlobalMode
                     ? [
-                        {
-                          header: "Outlet",
-                          render: (order: RecentOrder) => (
-                            <span className="badge bg-info">
-                              {order.outletName || "-"}
-                            </span>
-                          ),
-                        },
-                      ]
+                      {
+                        header: "Outlet",
+                        render: (order: RecentOrder) => (
+                          <span className="badge bg-info">
+                            {order.outletName || "-"}
+                          </span>
+                        ),
+                      },
+                    ]
                     : []),
                   {
                     header: "Pelanggan",

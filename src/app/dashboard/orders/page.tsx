@@ -299,25 +299,10 @@ export default function OrdersPage() {
         <div className="content">
           <div className="container-fluid">
             <div className="d-flex flex-column align-items-center justify-content-center py-5">
-              <div
-                className="spinner-border mb-3"
-                role="status"
-                style={{
-                  color: "var(--md-sys-color-primary)",
-                  width: "48px",
-                  height: "48px",
-                }}
-              >
+              <div className="spinner-border text-primary mb-3" role="status" style={{ width: "3rem", height: "3rem" }}>
                 <span className="visually-hidden">Memuat...</span>
               </div>
-              <p
-                style={{
-                  color: "var(--md-sys-color-on-surface-variant)",
-                  font: "var(--md-sys-typescale-body-medium)",
-                }}
-              >
-                Memuat daftar order...
-              </p>
+              <p className="text-muted">Memuat daftar order...</p>
             </div>
           </div>
         </div>
@@ -430,21 +415,13 @@ export default function OrdersPage() {
 
             {/* Status Filter Chips */}
             <div className="mb-2">
-              <div
-                className="form-label mb-2"
-                style={{
-                  font: "var(--md-sys-typescale-label-medium)",
-                  color: "var(--md-sys-color-on-surface-variant)",
-                }}
-              >
-                Status Order
-              </div>
+              <div className="form-label mb-2 text-muted small">Status Order</div>
               <div className="d-flex flex-wrap gap-2">
                 {statusChips.map((chip) => (
                   <button
                     key={chip.value}
                     type="button"
-                    className={`md-chip ${filterStatus === chip.value ? "active" : ""}`}
+                    className={`btn btn-sm rounded-pill ${filterStatus === chip.value ? "btn-primary" : "btn-outline-secondary"}`}
                     onClick={() => {
                       setFilterStatus(chip.value as any);
                       setPage(1);
@@ -458,21 +435,13 @@ export default function OrdersPage() {
 
             {/* Payment Filter Chips */}
             <div>
-              <div
-                className="form-label mb-2"
-                style={{
-                  font: "var(--md-sys-typescale-label-medium)",
-                  color: "var(--md-sys-color-on-surface-variant)",
-                }}
-              >
-                Pembayaran
-              </div>
+              <div className="form-label mb-2 text-muted small">Pembayaran</div>
               <div className="d-flex flex-wrap gap-2">
                 {paymentChips.map((chip) => (
                   <button
                     key={chip.value}
                     type="button"
-                    className={`md-chip ${filterPayment === chip.value ? "active" : ""}`}
+                    className={`btn btn-sm rounded-pill ${filterPayment === chip.value ? "btn-primary" : "btn-outline-secondary"}`}
                     onClick={() => {
                       setFilterPayment(chip.value as any);
                       setPage(1);
@@ -645,15 +614,15 @@ export default function OrdersPage() {
                   },
                   ...(isGlobalMode
                     ? [
-                        {
-                          header: "Outlet",
-                          render: (o: OrderRow) => (
-                            <span className="badge bg-info">
-                              {o.outletName || "-"}
-                            </span>
-                          ),
-                        },
-                      ]
+                      {
+                        header: "Outlet",
+                        render: (o: OrderRow) => (
+                          <span className="badge bg-info">
+                            {o.outletName || "-"}
+                          </span>
+                        ),
+                      },
+                    ]
                     : []),
                   {
                     header: "Pelanggan",
