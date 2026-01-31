@@ -370,6 +370,79 @@ export default function NewOrderPage() {
         return list;
     }, [services, selectedCategory, searchQuery]);
 
+    // -- PRINT LOGIC --
+    const handlePrint = (data = receiptData) => {
+        const content = document.getElementById('printable-receipt-content');
+        const iframe = document.getElementById('printFrame') as HTMLIFrameElement;
+
+        if (!content || !iframe) return;
+
+        const doc = iframe.contentWindow?.document;
+        if (!doc) return;
+
+        doc.open();
+        doc.write('<html><head><title>Print Receipt</title>');
+
+        // 58mm Thermal Printer CSS
+        doc.write(`
+            <style>
+                @page {
+                    size: 58mm auto;
+                    margin: 0mm;
+                }
+                body {
+                    width: 48mm;
+                    margin: 0 auto;
+                    padding: 2px;
+                    font-family: 'Courier New', Courier, monospace;
+                    font-size: 10px;
+                    line-height: 1.2;
+                    color: black;
+                    background: white;
+                }
+                .text-center { text-align: center; }
+                .text-end { text-align: right; }
+                .fw-bold { font-weight: bold; }
+                .small { font-size: 9px; }
+                .d-flex { display: flex; }
+                .justify-content-between { justify-content: space-between; }
+                .align-items-center { align-items: center; }
+                .mb-1 { margin-bottom: 2px; }
+                .mb-2 { margin-bottom: 4px; }
+                .mb-3 { margin-bottom: 8px; }
+                .pb-2 { padding-bottom: 4px; }
+                .pt-2 { padding-top: 4px; }
+                .border-bottom { border-bottom: 1px dashed #000; }
+                .border-top { border-top: 1px dashed #000; }
+                .text-muted { color: #000; }
+                
+                /* Hide scrollbars etc */
+                ::-webkit-scrollbar { display: none; }
+            </style>
+        `);
+
+        doc.write('</head><body>');
+        doc.write(content.innerHTML);
+        doc.write('</body></html>');
+        doc.close();
+
+        // Small delay for styles to apply before print
+        setTimeout(() => {
+            iframe.contentWindow?.focus();
+            iframe.contentWindow?.print();
+        }, 500);
+    };
+
+    // Auto-Print Effect
+    useEffect(() => {
+        if (showReceiptModal && receiptData) {
+            // Slight delay to ensure DOM is rendered in the modal
+            const timer = setTimeout(() => {
+                handlePrint();
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [showReceiptModal, receiptData]);
 
     if (loading) return <div className="d-flex justify-content-center py-5"><div className="spinner-border text-primary"></div></div>;
     if (error) return <div className="alert alert-danger m-4">{error} <button className="btn btn-sm btn-outline-danger ms-2" onClick={() => fetchServices()}>Retry</button></div>;
@@ -686,7 +759,7 @@ export default function NewOrderPage() {
                             <div className="modal-body p-4 font-monospace">
                                 <div id="printable-receipt-content">
                                     <div className="text-center mb-3">
-                                        <h5 className="fw-bold mb-0">LAUNDRY RECEIPT</h5>
+                                        <h5 className="fw-bold mb-0">LAUNDRY</h5>
                                         <small className="text-muted">{receiptData.date}</small>
                                     </div>
                                     <div className="border-bottom border-secondary border-opacity-25 mb-2 pb-2">
@@ -737,41 +810,15 @@ export default function NewOrderPage() {
                                             <span>{formatCurrency(receiptData.change)}</span>
                                         </div>
                                     </div>
+                                    <div className="text-center small mt-3">
+                                        <p className="mb-0">Terima Kasih</p>
+                                    </div>
                                 </div>
 
                                 <div className="d-grid gap-2">
                                     <button
                                         className="btn btn-dark fw-bold"
-                                        onClick={() => {
-                                            const content = document.getElementById('printable-receipt-content');
-                                            const iframe = document.getElementById('printFrame') as HTMLIFrameElement;
-                                            if (!content || !iframe) return;
-
-                                            const doc = iframe.contentWindow?.document;
-                                            if (!doc) return;
-
-                                            doc.open();
-                                            doc.write('<html><head><title>Print Receipt</title>');
-
-                                            // Copy CSS links (Bootstrap etc)
-                                            const links = document.querySelectorAll('link[rel="stylesheet"]');
-                                            links.forEach(link => doc.write(link.outerHTML));
-
-                                            // Copy Styles (Tailwind usually here)
-                                            const styles = document.querySelectorAll('style');
-                                            styles.forEach(style => doc.write(style.outerHTML));
-
-                                            doc.write('</head><body style="padding: 20px; font-family: monospace;">');
-                                            doc.write(content.innerHTML);
-                                            doc.write('</body></html>');
-                                            doc.close();
-
-                                            // Small delay for styles to apply
-                                            setTimeout(() => {
-                                                iframe.contentWindow?.focus();
-                                                iframe.contentWindow?.print();
-                                            }, 500);
-                                        }}
+                                        onClick={() => handlePrint()}
                                     >
                                         <i className="fas fa-print me-2"></i> Cetak Struk
                                     </button>
