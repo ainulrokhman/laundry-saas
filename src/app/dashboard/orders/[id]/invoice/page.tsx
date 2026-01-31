@@ -12,7 +12,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
@@ -45,6 +45,7 @@ type InvoiceData = {
   dpAmount: number;
   dpPaidAt: string | null;
   dpNote: string | null;
+  cashReceived: number; // Added
   remainingAmount: number;
   customerName: string | null;
   customerPhone: string | null;
@@ -308,6 +309,7 @@ function InvoiceBlock(props: { data: InvoiceData }) {
 
 export default function OrderInvoicePage() {
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams(); // Read query params
   const orderId = params?.id;
 
   const { data: session, status } = useSession();
@@ -320,14 +322,28 @@ export default function OrderInvoicePage() {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<InvoiceData | null>(null);
 
+  const initialType = searchParams?.get('type') === 'dp' ? 'dp' : 'settle';
+  const initialCash = searchParams?.get('cash') || '0';
+
   const [activeTab, setActiveTab] = useState<'invoice' | 'receipt'>('receipt');
-  const [receiptContext, setReceiptContext] = useState<'settle' | 'dp'>('settle');
+  const [receiptContext, setReceiptContext] = useState<'settle' | 'dp'>(initialType);
 
   const [dpAmountDigits, setDpAmountDigits] = useState<string>('0');
   const [dpNote, setDpNote] = useState<string>('');
-  const [dpCashDigits, setDpCashDigits] = useState<string>('0');
+  const [dpCashDigits, setDpCashDigits] = useState<string>(initialType === 'dp' ? initialCash : '0');
 
-  const [settleCashDigits, setSettleCashDigits] = useState<string>('0');
+  const [settleCashDigits, setSettleCashDigits] = useState<string>(initialType === 'settle' ? initialCash : '0');
+
+  // Sync state with data when loaded
+  useEffect(() => {
+    if (data) {
+      // If stored cashReceived is > 0, use it. Otherwise use initialCash from params if matches context.
+      const storedCash = data.cashReceived || 0;
+      if (storedCash > 0 && data.paymentStatus === 'SETTLEMENT') {
+        setSettleCashDigits(String(storedCash));
+      }
+    }
+  }, [data]);
 
   const [busy, setBusy] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);

@@ -369,6 +369,11 @@ export default function NewOrderPage() {
     return parseInt(digits || "0", 10);
   }
 
+  function formatInputThousands(digits: string) {
+    if (!digits) return "";
+    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+
   // Payment Calculations
   const dpAmount =
     paymentType === "dp" ? parseIdrFromDigits(dpAmountDigits) : 0;
@@ -413,9 +418,13 @@ export default function NewOrderPage() {
           quantity: it.quantity,
           unitPrice: it.unitPrice,
         })),
-        paid: paymentType === "lunas" && shortfall === 0,
+        paid: paymentType === "lunas", // Trust the Lunas selection
         paymentNote: paymentNote.trim() || undefined,
         dpAmount: paymentType === "dp" ? dpAmount : undefined,
+        cashReceived:
+          paymentType === "dp"
+            ? parseIdrFromDigits(cashReceivedDigits) // For DP context, this might be DP cash? No, model only has one cashReceived.
+            : parseIdrFromDigits(cashReceivedDigits),
       };
 
       const res = await fetch("/api/dashboard/orders", {
@@ -429,15 +438,11 @@ export default function NewOrderPage() {
       }
 
       const trackingCode = String(json?.data?.trackingCode || "");
-      await Swal.fire({
-        icon: "success",
-        title: "Order berhasil dibuat",
-        html: trackingCode
-          ? `Kode tracking: <code>${trackingCode}</code><br/>Simpan kode ini untuk pelanggan.`
-          : "Order berhasil dibuat.",
-        confirmButtonText: "OK",
-        confirmButtonColor: "#3085d6",
-      });
+      const orderId = String(json?.data?.id || "");
+
+      // Capture final values for receipt (before reset)
+      const finalCash = cashReceived; // numeric
+      const finalType = paymentType;
 
       // Clear cart and reset form - stay on POS page
       setItems([]);
@@ -451,6 +456,31 @@ export default function NewOrderPage() {
       setCashReceivedDigits("0");
       setAdjustmentAmount(0);
       setShowPaymentModal(false);
+
+      // Show Success with Print Option
+      const result = await Swal.fire({
+        icon: "success",
+        title: "Order Berhasil",
+        html: trackingCode
+          ? `Kode: <b>${trackingCode}</b><br/>Order berhasil disimpan.`
+          : "Order berhasil disimpan.",
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-print me-1"></i> Cetak Struk',
+        cancelButtonText: "Tutup",
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#6c757d",
+        reverseButtons: true, // Print on right
+      });
+
+      if (result.isConfirmed && orderId) {
+        // Open print window with query params to pre-fill cash received
+        const typeParam = finalType === "dp" ? "dp" : "settle";
+        window.open(
+          `/dashboard/orders/${orderId}/invoice?type=${typeParam}&cash=${finalCash}`,
+          "_blank",
+        );
+      }
+
     } catch (e) {
       await Swal.fire({
         icon: "error",
@@ -569,7 +599,7 @@ export default function NewOrderPage() {
             }}
             onClick={() => {
               if (document.fullscreenElement) {
-                document.exitFullscreen().catch(() => {});
+                document.exitFullscreen().catch(() => { });
               } else {
                 router.push("/dashboard/orders");
               }
@@ -1357,9 +1387,11 @@ export default function NewOrderPage() {
                             id="modalPaymentTypeLunas"
                             value="lunas"
                             checked={paymentType === "lunas"}
-                            onChange={(e) =>
-                              setPaymentType(e.target.value as "lunas" | "dp")
-                            }
+                            onChange={() => {
+                              setPaymentType("lunas");
+                              setDpAmountDigits("0");
+                              setCashReceivedDigits(String(totalAmount));
+                            }}
                           />
                           <label
                             className="btn btn-outline-success"
@@ -1375,9 +1407,10 @@ export default function NewOrderPage() {
                             id="modalPaymentTypeDP"
                             value="dp"
                             checked={paymentType === "dp"}
-                            onChange={(e) =>
-                              setPaymentType(e.target.value as "lunas" | "dp")
-                            }
+                            onChange={() => {
+                              setPaymentType("dp");
+                              setCashReceivedDigits("0");
+                            }}
                           />
                           <label
                             className="btn btn-outline-warning"
@@ -1404,9 +1437,12 @@ export default function NewOrderPage() {
                               id="modalDpAmount"
                               className="form-control"
                               inputMode="numeric"
-                              value={dpAmountDigits}
+                              value={formatInputThousands(dpAmountDigits)}
                               onChange={(e) => {
-                                const digits = toDigitsOnly(e.target.value);
+                                let digits = toDigitsOnly(e.target.value);
+                                if (digits.length > 1 && digits.startsWith("0")) {
+                                  digits = digits.replace(/^0+/, "");
+                                }
                                 const amount = parseIdrFromDigits(digits);
                                 if (amount <= totalAmount) {
                                   setDpAmountDigits(digits);
@@ -1435,12 +1471,14 @@ export default function NewOrderPage() {
                             id="modalCashReceived"
                             className="form-control"
                             inputMode="numeric"
-                            value={cashReceivedDigits}
-                            onChange={(e) =>
-                              setCashReceivedDigits(
-                                toDigitsOnly(e.target.value),
-                              )
-                            }
+                            value={formatInputThousands(cashReceivedDigits)}
+                            onChange={(e) => {
+                              let digits = toDigitsOnly(e.target.value);
+                              if (digits.length > 1 && digits.startsWith("0")) {
+                                digits = digits.replace(/^0+/, "");
+                              }
+                              setCashReceivedDigits(digits);
+                            }}
                             placeholder="0"
                           />
                         </div>

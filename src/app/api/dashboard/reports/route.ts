@@ -5,6 +5,8 @@ import { ReportsService } from '@/services/ReportsService';
 import { startOfDay, endOfDay, subDays } from 'date-fns';
 import { Role } from '@/generated/prisma';
 
+export const dynamic = 'force-dynamic';
+
 const reportsService = new ReportsService();
 
 // Validation schema for query parameters

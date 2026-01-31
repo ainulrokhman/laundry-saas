@@ -49,7 +49,7 @@ export default function ReportsPage() {
                 url += `&startDate=${customRange.start}&endDate=${customRange.end}`;
             }
 
-            const res = await fetch(url);
+            const res = await fetch(url, { cache: 'no-store' });
             if (!res.ok) {
                 const errData = await res.json().catch(() => ({}));
                 throw new Error(errData.error || 'Gagal mengambil data laporan');

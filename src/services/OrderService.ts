@@ -30,6 +30,7 @@ export type CreateOrderInput = {
   paymentNote?: string;
   dpAmount?: number;
   dpNote?: string;
+  cashReceived?: number;
 };
 
 export type UpdateOrderPaymentInput = {
@@ -186,6 +187,7 @@ export class OrderService extends BaseService {
             dpAmount,
             dpPaidAt,
             dpNote,
+            cashReceived: input.cashReceived ? roundIdr(Number(input.cashReceived)) : 0,
             customer: customerId ? { connect: { id: customerId } } : undefined, // Relasi ke Customer (null = pelanggan umum)
             customerName,
             customerPhone,

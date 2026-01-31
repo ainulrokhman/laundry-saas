@@ -43,6 +43,8 @@ export class OrderDTO {
       paidAt: paidAt ? paidAt.toISOString() : null,
       paymentNote: paymentNote || null,
       totalAmount: order.totalAmount,
+      dpAmount: order.dpAmount || 0,
+      cashReceived: order.cashReceived || 0,
       customerName: order.customerName || null,
       customerPhone: order.customerPhone ? this.maskPhone(order.customerPhone) : null, // Mask phone for privacy
       notes: order.notes || null,

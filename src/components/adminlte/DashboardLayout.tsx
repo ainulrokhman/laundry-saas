@@ -74,13 +74,13 @@ const menuItems: MenuItem[] = [
     roles: [Role.OWNER, Role.STAFF],
     scope: 'outlet',
   },
-  {
-    label: 'Transactions',
-    icon: 'fas fa-money-bill-wave',
-    href: '/dashboard/transactions',
-    roles: [Role.OWNER],
-    scope: 'outlet',
-  },
+  // {
+  //   label: 'Transactions',
+  //   icon: 'fas fa-money-bill-wave',
+  //   href: '/dashboard/transactions',
+  //   roles: [Role.OWNER],
+  //   scope: 'outlet',
+  // },
   {
     label: 'Pengeluaran',
     icon: 'fas fa-file-invoice-dollar',
@@ -108,13 +108,13 @@ const menuItems: MenuItem[] = [
         roles: [Role.OWNER],
         scope: 'outlet',
       },
-      {
-        label: 'Rekening Bank',
-        icon: 'fas fa-university',
-        href: '/dashboard/settings/bank-accounts',
-        roles: [Role.OWNER],
-        scope: 'outlet',
-      },
+      // {
+      //   label: 'Rekening Bank',
+      //   icon: 'fas fa-university',
+      //   href: '/dashboard/settings/bank-accounts',
+      //   roles: [Role.OWNER],
+      //   scope: 'outlet',
+      // },
       {
         label: 'Landing Page Outlet',
         icon: 'fas fa-store',

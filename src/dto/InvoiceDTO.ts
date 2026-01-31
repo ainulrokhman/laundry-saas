@@ -36,6 +36,7 @@ export class InvoiceDTO {
     const dpAmount = roundIdr(Number((order as any).dpAmount ?? 0));
     const dpPaidAt = ((order as any).dpPaidAt as Date | null | undefined) ?? null;
     const dpNote = ((order as any).dpNote as string | null | undefined) ?? null;
+    const cashReceived = roundIdr(Number((order as any).cashReceived ?? 0));
 
     const remainingAmount = Math.max(0, roundIdr(order.totalAmount - dpAmount));
 
@@ -51,6 +52,7 @@ export class InvoiceDTO {
       dpAmount,
       dpPaidAt: dpPaidAt ? dpPaidAt.toISOString() : null,
       dpNote,
+      cashReceived,
       remainingAmount,
       customerName: order.customerName || null,
       customerPhone: order.customerPhone || null,

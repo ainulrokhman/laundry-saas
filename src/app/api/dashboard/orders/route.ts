@@ -73,6 +73,11 @@ const createSchema = z
       .trim()
       .max(200, "Catatan DP maksimal 200 karakter")
       .optional(),
+    cashReceived: z.coerce
+      .number()
+      .finite()
+      .min(0, "Uang diterima minimal 0")
+      .optional(),
   })
   .strict();
 
@@ -234,6 +239,7 @@ export const POST = withAuth(
         paymentNote: validated.paymentNote,
         dpAmount: validated.dpAmount,
         dpNote: validated.dpNote,
+        cashReceived: validated.cashReceived,
       });
 
       return Response.json(

@@ -213,6 +213,7 @@ model Order {
   paymentNote  String?        // Catatan internal terkait pembayaran (opsional)
   // DP (uang muka) untuk order laundry (single DP)
   dpAmount     Float         @default(0) // Nominal DP (rupiah, tanpa desimal)
+  cashReceived Float         @default(0) // Uang tunai yang diterima (untuk kembalian)
   dpPaidAt     DateTime?      // Timestamp DP dicatat
   dpNote       String?        // Catatan DP (opsional)
   totalAmount  Float
