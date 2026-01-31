@@ -740,6 +740,26 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* End Footer */}
       {/* End Footer */}
 
+      {/* Mobile FAB for New Order */}
+      {userRole !== Role.SUPERADMIN && !pathname?.startsWith('/admin') && (
+        <Link
+          href="/dashboard/orders/new"
+          className="btn btn-primary rounded-circle shadow-lg d-md-none d-flex align-items-center justify-content-center"
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            width: '56px',
+            height: '56px',
+            zIndex: 1050,
+            fontSize: '24px',
+          }}
+          aria-label="Buat Order Baru"
+        >
+          <i className="fas fa-cash-register"></i>
+        </Link>
+      )}
+
       <ChangePinModal
         isOpen={isPinModalOpen}
         onClose={() => setIsPinModalOpen(false)}

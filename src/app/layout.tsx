@@ -50,7 +50,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" data-scroll-behavior="smooth">
+    <html lang="id" data-scroll-behavior="smooth" data-bs-theme="light">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased layout-fixed sidebar-expand-lg`}
       >

@@ -684,56 +684,58 @@ export default function NewOrderPage() {
                     <div className="modal-dialog modal-dialog-centered modal-sm">
                         <div className="modal-content shadow-lg border-0">
                             <div className="modal-body p-4 font-monospace">
-                                <div className="text-center mb-3">
-                                    <h5 className="fw-bold mb-0">LAUNDRY RECEIPT</h5>
-                                    <small className="text-muted">{receiptData.date}</small>
-                                </div>
-                                <div className="border-bottom border-secondary border-opacity-25 mb-2 pb-2">
-                                    <div className="d-flex justify-content-between small">
-                                        <span>Order #</span>
-                                        <span className="fw-bold">{receiptData.trackingCode}</span>
+                                <div id="printable-receipt-content">
+                                    <div className="text-center mb-3">
+                                        <h5 className="fw-bold mb-0">LAUNDRY RECEIPT</h5>
+                                        <small className="text-muted">{receiptData.date}</small>
                                     </div>
-                                    <div className="d-flex justify-content-between small">
-                                        <span>Cust</span>
-                                        <span className="fw-bold text-truncate" style={{ maxWidth: "150px" }}>{receiptData.customerName}</span>
+                                    <div className="border-bottom border-secondary border-opacity-25 mb-2 pb-2">
+                                        <div className="d-flex justify-content-between small">
+                                            <span>Order #</span>
+                                            <span className="fw-bold">{receiptData.trackingCode}</span>
+                                        </div>
+                                        <div className="d-flex justify-content-between small">
+                                            <span>Cust</span>
+                                            <span className="fw-bold text-truncate" style={{ maxWidth: "150px" }}>{receiptData.customerName}</span>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className="mb-3">
-                                    {receiptData.items.map((it: any, idx: number) => (
-                                        <div key={idx} className="mb-1 small">
-                                            <div className="fw-bold">{it.serviceName}</div>
-                                            <div className="d-flex justify-content-between">
-                                                <span className="text-muted">{it.quantity} x {formatCurrency(it.unitPrice)}</span>
-                                                <span>{formatCurrency(it.quantity * it.unitPrice)}</span>
+                                    <div className="mb-3">
+                                        {receiptData.items.map((it: any, idx: number) => (
+                                            <div key={idx} className="mb-1 small">
+                                                <div className="fw-bold">{it.serviceName}</div>
+                                                <div className="d-flex justify-content-between">
+                                                    <span className="text-muted">{it.quantity} x {formatCurrency(it.unitPrice)}</span>
+                                                    <span>{formatCurrency(it.quantity * it.unitPrice)}</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="border-top border-secondary border-opacity-25 pt-2 mb-3">
-                                    <div className="d-flex justify-content-between small mb-1">
-                                        <span>Subtotal</span>
-                                        <span>{formatCurrency(receiptData.subtotal)}</span>
-                                    </div>
-                                    {receiptData.adjustment !== 0 && (
-                                        <div className="d-flex justify-content-between small mb-1 text-muted">
-                                            <span>Adj</span>
-                                            <span>{formatCurrency(receiptData.adjustment)}</span>
-                                        </div>
-                                    )}
-                                    <div className="d-flex justify-content-between fw-bold fs-5 mb-2 border-top border-bottom py-1">
-                                        <span>TOTAL</span>
-                                        <span>{formatCurrency(receiptData.total)}</span>
+                                        ))}
                                     </div>
 
-                                    <div className="d-flex justify-content-between small mb-1">
-                                        <span>{receiptData.paymentType === "dp" ? "DP Bayar" : "Tunai"}</span>
-                                        <span>{formatCurrency(receiptData.paymentType === "dp" ? receiptData.dpAmount : receiptData.cashReceived)}</span>
-                                    </div>
-                                    <div className="d-flex justify-content-between small">
-                                        <span>Kembali</span>
-                                        <span>{formatCurrency(receiptData.change)}</span>
+                                    <div className="border-top border-secondary border-opacity-25 pt-2 mb-3">
+                                        <div className="d-flex justify-content-between small mb-1">
+                                            <span>Subtotal</span>
+                                            <span>{formatCurrency(receiptData.subtotal)}</span>
+                                        </div>
+                                        {receiptData.adjustment !== 0 && (
+                                            <div className="d-flex justify-content-between small mb-1 text-muted">
+                                                <span>Adj</span>
+                                                <span>{formatCurrency(receiptData.adjustment)}</span>
+                                            </div>
+                                        )}
+                                        <div className="d-flex justify-content-between fw-bold fs-5 mb-2 border-top border-bottom py-1">
+                                            <span>TOTAL</span>
+                                            <span>{formatCurrency(receiptData.total)}</span>
+                                        </div>
+
+                                        <div className="d-flex justify-content-between small mb-1">
+                                            <span>{receiptData.paymentType === "dp" ? "DP Bayar" : "Tunai"}</span>
+                                            <span>{formatCurrency(receiptData.paymentType === "dp" ? receiptData.dpAmount : receiptData.cashReceived)}</span>
+                                        </div>
+                                        <div className="d-flex justify-content-between small">
+                                            <span>Kembali</span>
+                                            <span>{formatCurrency(receiptData.change)}</span>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -741,11 +743,34 @@ export default function NewOrderPage() {
                                     <button
                                         className="btn btn-dark fw-bold"
                                         onClick={() => {
-                                            const url = `/dashboard/orders/${receiptData.orderId}/invoice?type=${receiptData.paymentType === "dp" ? "dp" : "settle"}&cash=${receiptData.cashReceived}`;
+                                            const content = document.getElementById('printable-receipt-content');
                                             const iframe = document.getElementById('printFrame') as HTMLIFrameElement;
-                                            if (iframe) {
-                                                iframe.src = url;
-                                            }
+                                            if (!content || !iframe) return;
+
+                                            const doc = iframe.contentWindow?.document;
+                                            if (!doc) return;
+
+                                            doc.open();
+                                            doc.write('<html><head><title>Print Receipt</title>');
+
+                                            // Copy CSS links (Bootstrap etc)
+                                            const links = document.querySelectorAll('link[rel="stylesheet"]');
+                                            links.forEach(link => doc.write(link.outerHTML));
+
+                                            // Copy Styles (Tailwind usually here)
+                                            const styles = document.querySelectorAll('style');
+                                            styles.forEach(style => doc.write(style.outerHTML));
+
+                                            doc.write('</head><body style="padding: 20px; font-family: monospace;">');
+                                            doc.write(content.innerHTML);
+                                            doc.write('</body></html>');
+                                            doc.close();
+
+                                            // Small delay for styles to apply
+                                            setTimeout(() => {
+                                                iframe.contentWindow?.focus();
+                                                iframe.contentWindow?.print();
+                                            }, 500);
                                         }}
                                     >
                                         <i className="fas fa-print me-2"></i> Cetak Struk
@@ -758,20 +783,15 @@ export default function NewOrderPage() {
                         </div>
                     </div>
                 </div>
-            )}
+            )
+            }
+
 
             {/* Hidden Iframe for Direct Printing */}
             <iframe
                 id="printFrame"
-                style={{ position: 'absolute', width: 0, height: 0, border: 0 }}
+                style={{ position: 'absolute', width: 0, height: 0, border: 0, visibility: 'hidden' }}
                 title="printFrame"
-                onLoad={(e) => {
-                    const iframe = e.currentTarget;
-                    if (iframe.src && iframe.src !== "about:blank" && !iframe.src.endsWith("about:blank")) {
-                        // Small delay to ensure styles are loaded
-                        setTimeout(() => iframe.contentWindow?.print(), 1000);
-                    }
-                }}
             />
         </div>
     );

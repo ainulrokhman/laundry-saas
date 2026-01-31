@@ -30,12 +30,7 @@
   /* Slate 700 */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f172a;
-    --foreground: #f1f5f9;
-  }
-}
+
 
 body {
   color: var(--foreground);
