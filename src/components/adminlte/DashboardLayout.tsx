@@ -442,9 +442,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           >
             {/* Brand Text */}
             <img
-              src="/images/logo.png"
+              src="/images/logo-light.png"
               alt="Kasirlondri Logo"
-              className="brand-image img-circle elevation-3"
+              className="brand-image img-circle elevation-3 p-3"
               style={{ opacity: 0.9, maxHeight: '100%' }}
             />
             {/* End Brand Text */}
