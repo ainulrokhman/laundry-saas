@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PACKAGE_DEFINITIONS, PackageFeature, FEATURE_LABELS } from '@/constants/packageFeatures';
+import { PWAInstallAlert } from '@/components/public/PWAInstallAlert';
 
 export const metadata: Metadata = {
   title: 'Kasirlondri - Sistem Manajemen Laundry Modern',
@@ -294,6 +295,7 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+      <PWAInstallAlert description="Pasang aplikasi Kasirlondri untuk akses yang lebih cepat dan mudah dari homescreen Anda." />
     </div>
   );
 }

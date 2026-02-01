@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from 'react';
 
-export function PWAInstallAlert() {
+export function PWAInstallAlert({
+    title = "Install Aplikasi",
+    description = "Pasang aplikasi agar lebih mudah mengecek status laundry Anda."
+}: {
+    title?: string;
+    description?: string;
+}) {
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
     const [isVisible, setIsVisible] = useState(false);
     const [isInstalled, setIsInstalled] = useState(false);
@@ -63,8 +69,8 @@ export function PWAInstallAlert() {
                             <i className="fas fa-mobile-alt fs-4"></i>
                         </div>
                         <div className="text-dark me-auto">
-                            <h6 className="fw-bold mb-1 text-luxury-dark">Install Aplikasi</h6>
-                            <p className="mb-0 small text-muted text-balance lh-sm">Pasang aplikasi agar lebih mudah mengecek status laundry Anda.</p>
+                            <h6 className="fw-bold mb-1 text-luxury-dark">{title}</h6>
+                            <p className="mb-0 small text-muted text-balance lh-sm">{description}</p>
                         </div>
                         {/* Dismiss Button (Mobile) */}
                         <button
