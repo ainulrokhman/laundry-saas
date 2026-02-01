@@ -190,47 +190,39 @@ export default function AdminSubscriptionsPage() {
                     {stats && (
                         <div className="row">
                             <div className="col-lg-3 col-6">
-                                <div className="small-box bg-info">
+                                <div className="small-box text-bg-primary">
                                     <div className="inner">
                                         <h3>{stats.totalOwners}</h3>
                                         <p>Total Owners</p>
                                     </div>
-                                    <div className="icon">
-                                        <i className="fas fa-users"></i>
-                                    </div>
+                                    <i className="fas fa-users small-box-icon"></i>
                                 </div>
                             </div>
                             <div className="col-lg-3 col-6">
-                                <div className="small-box bg-success">
+                                <div className="small-box text-bg-success">
                                     <div className="inner">
                                         <h3>{stats.activeSubscriptions}</h3>
                                         <p>Active Subscriptions</p>
                                     </div>
-                                    <div className="icon">
-                                        <i className="fas fa-check-circle"></i>
-                                    </div>
+                                    <i className="fas fa-check-circle small-box-icon"></i>
                                 </div>
                             </div>
                             <div className="col-lg-3 col-6">
-                                <div className="small-box bg-warning">
+                                <div className="small-box text-bg-warning">
                                     <div className="inner">
                                         <h3>{stats.pendingPayments}</h3>
                                         <p>Pending Payments</p>
                                     </div>
-                                    <div className="icon">
-                                        <i className="fas fa-clock"></i>
-                                    </div>
+                                    <i className="fas fa-clock small-box-icon"></i>
                                 </div>
                             </div>
                             <div className="col-lg-3 col-6">
-                                <div className="small-box bg-danger">
+                                <div className="small-box text-bg-danger">
                                     <div className="inner">
                                         <h3>{stats.expiredSubscriptions}</h3>
                                         <p>Expired</p>
                                     </div>
-                                    <div className="icon">
-                                        <i className="fas fa-times-circle"></i>
-                                    </div>
+                                    <i className="fas fa-times-circle small-box-icon"></i>
                                 </div>
                             </div>
                         </div>

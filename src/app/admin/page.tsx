@@ -145,7 +145,7 @@ export default function AdminDashboardPage() {
     } catch (err) {
       console.error('Error fetching dashboard stats:', err);
       setError(err instanceof Error ? err.message : 'Gagal memuat statistik');
-      
+
       await Swal.fire({
         icon: 'error',
         title: 'Error!',
@@ -293,8 +293,8 @@ export default function AdminDashboardPage() {
           <h1 className="h3 mb-1">Dashboard Admin</h1>
           <p className="text-muted mb-0">Overview statistik platform SaaS</p>
         </div>
-        <button 
-          className="btn btn-outline-primary" 
+        <button
+          className="btn btn-outline-primary"
           onClick={fetchDashboardStats}
           disabled={loading}
         >
@@ -358,7 +358,7 @@ export default function AdminDashboardPage() {
         <div className="col-lg-3 col-6">
           <div className="small-box text-bg-warning">
             <div className="inner">
-              <h3 className="fs-4">{formatCurrency(stats?.revenue.monthly || 0)}</h3>
+              <h3>{formatCurrency(stats?.revenue.monthly || 0)}</h3>
               <p>Revenue Bulan Ini</p>
             </div>
             <svg className="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
