@@ -105,6 +105,15 @@ export class OrderRepository extends BaseRepository {
             contactPhone: true,
           },
         },
+        statusHistory: {
+          orderBy: { createdAt: 'asc' },
+          take: 1,
+          include: {
+            changedByUser: {
+              select: { name: true },
+            },
+          },
+        },
       },
     });
   }

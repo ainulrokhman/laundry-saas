@@ -23,6 +23,13 @@ export type OrderInvoicePayload = Prisma.OrderGetPayload<{
         contactPhone: true;
       };
     };
+    statusHistory: {
+      include: {
+        changedByUser: {
+          select: { name: true }
+        }
+      }
+    }
   };
 }>;
 
@@ -39,6 +46,9 @@ export class InvoiceDTO {
     const cashReceived = roundIdr(Number((order as any).cashReceived ?? 0));
 
     const remainingAmount = Math.max(0, roundIdr(order.totalAmount - dpAmount));
+
+    // Get staff name from first status history (creation)
+    const staffName = order.statusHistory?.[0]?.changedByUser?.name || null;
 
     return {
       id: order.id,
@@ -67,6 +77,7 @@ export class InvoiceDTO {
         address: order.outlet.address,
         contactPhone: order.outlet.contactPhone || null,
       },
+      staffName, // ADDED
       items: OrderItemDTO.toResponseArray(order.items),
     };
   }

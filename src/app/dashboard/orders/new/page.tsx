@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
 import { formatCurrency } from "@/lib/utils";
+import { Receipt, ReceiptData } from '@/components/dashboard/Receipt';
 import styles from "./pos-fullscreen.module.css";
 
 // Types derived from original code
@@ -60,6 +61,9 @@ export default function NewOrderPage() {
     const [customerName, setCustomerName] = useState("Umum");
     const [customerPhone, setCustomerPhone] = useState("");
     const [notes, setNotes] = useState("");
+
+    // Outlet Info
+    const [outletName, setOutletName] = useState("LAUNDRY");
 
     // Customer Search & Add
     const [showCustomerSearch, setShowCustomerSearch] = useState(false);
@@ -118,6 +122,7 @@ export default function NewOrderPage() {
             const json = await res.json().catch(() => null);
             if (!res.ok || !json?.success) throw new Error(json?.message || "Gagal memuat layanan");
             setServices((json.data || []).filter((s: PosService) => s.isActive));
+            if (json.outletName) setOutletName(json.outletName);
         } catch (e: any) {
             setError(e.message);
         } finally {
@@ -343,7 +348,9 @@ export default function NewOrderPage() {
                 paymentType: finalType,
                 dpAmount: dpVal,
                 cashReceived: finalCash,
-                change: finalChange
+                change: finalChange,
+                outletName, // Add outlet name to receipt data
+                staffName: user?.name || "Petugas"
             });
 
             clearCart();
@@ -371,7 +378,7 @@ export default function NewOrderPage() {
     }, [services, selectedCategory, searchQuery]);
 
     // -- PRINT LOGIC --
-    const handlePrint = (data = receiptData) => {
+    const handlePrint = (size: '58mm' | '80mm' = '58mm') => {
         const content = document.getElementById('printable-receipt-content');
         const iframe = document.getElementById('printFrame') as HTMLIFrameElement;
 
@@ -380,18 +387,21 @@ export default function NewOrderPage() {
         const doc = iframe.contentWindow?.document;
         if (!doc) return;
 
+        const pageSize = size === '58mm' ? '58mm' : '80mm';
+        const bodyWidth = size === '58mm' ? '48mm' : '72mm';
+
         doc.open();
         doc.write('<html><head><title>Print Receipt</title>');
 
-        // 58mm Thermal Printer CSS
+        // Thermal Printer CSS
         doc.write(`
             <style>
                 @page {
-                    size: 58mm auto;
+                    size: ${pageSize} auto;
                     margin: 0mm;
                 }
                 body {
-                    width: 48mm;
+                    width: ${bodyWidth};
                     margin: 0 auto;
                     padding: 2px;
                     font-family: 'Courier New', Courier, monospace;
@@ -415,6 +425,7 @@ export default function NewOrderPage() {
                 .border-bottom { border-bottom: 1px dashed #000; }
                 .border-top { border-top: 1px dashed #000; }
                 .text-muted { color: #000; }
+                .d-block { display: block; }
                 
                 /* Hide scrollbars etc */
                 ::-webkit-scrollbar { display: none; }
@@ -437,10 +448,14 @@ export default function NewOrderPage() {
     useEffect(() => {
         if (showReceiptModal && receiptData) {
             // Slight delay to ensure DOM is rendered in the modal
+            // Default auto-print to 58mm or just let user choose
+            // Commenting out auto-print to let user choose size
+            /*
             const timer = setTimeout(() => {
-                handlePrint();
+                handlePrint('58mm');
             }, 500);
             return () => clearTimeout(timer);
+            */
         }
     }, [showReceiptModal, receiptData]);
 
@@ -758,88 +773,58 @@ export default function NewOrderPage() {
                         <div className="modal-content shadow-lg border-0">
                             <div className="modal-body p-4 font-monospace">
                                 <div id="printable-receipt-content">
-                                    <div className="text-center mb-3">
-                                        <h5 className="fw-bold mb-0">LAUNDRY</h5>
-                                        <small className="text-muted">{receiptData.date}</small>
-                                    </div>
-                                    <div className="border-bottom border-secondary border-opacity-25 mb-2 pb-2">
-                                        <div className="d-flex justify-content-between small">
-                                            <span>Order #</span>
-                                            <span className="fw-bold">{receiptData.trackingCode}</span>
-                                        </div>
-                                        <div className="d-flex justify-content-between small">
-                                            <span>Cust</span>
-                                            <span className="fw-bold text-truncate" style={{ maxWidth: "150px" }}>{receiptData.customerName}</span>
-                                        </div>
-                                    </div>
+                                    <Receipt
+                                        data={{
+                                            outletName: receiptData.outletName || "LAUNDRY",
+                                            // POS doesn't seem to have full address/phone in existing receiptData, 
+                                            // but we will keep it compatible. If needed we can fetch or pass it.
+                                            // For now matching existing display which just showed name.
 
-                                    <div className="mb-3">
-                                        {receiptData.items.map((it: any, idx: number) => (
-                                            <div key={idx} className="mb-1 small">
-                                                <div className="fw-bold">{it.serviceName}</div>
-                                                <div className="d-flex justify-content-between">
-                                                    <span className="text-muted">{it.quantity} x {formatCurrency(it.unitPrice)}</span>
-                                                    <span>{formatCurrency(it.quantity * it.unitPrice)}</span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                                            orderCode: receiptData.trackingCode,
+                                            orderDate: receiptData.date,
+                                            staffName: receiptData.staffName,
+                                            customerName: receiptData.customerName,
+                                            items: receiptData.items.map((it: any) => ({
+                                                name: it.serviceName,
+                                                quantity: it.quantity,
+                                                price: it.unitPrice,
+                                                subtotal: it.quantity * it.unitPrice
+                                            })),
+                                            subtotal: receiptData.subtotal,
+                                            adjustment: receiptData.adjustment,
+                                            totalAmount: receiptData.total,
 
-                                    <div className="border-top border-secondary border-opacity-25 pt-2 mb-3">
-                                        <div className="d-flex justify-content-between small mb-1">
-                                            <span>Subtotal</span>
-                                            <span>{formatCurrency(receiptData.subtotal)}</span>
-                                        </div>
-                                        {receiptData.adjustment !== 0 && (
-                                            <div className="d-flex justify-content-between small mb-1 text-muted">
-                                                <span>Adj</span>
-                                                <span>{formatCurrency(receiptData.adjustment)}</span>
-                                            </div>
-                                        )}
-                                        <div className="d-flex justify-content-between fw-bold fs-5 mb-2 border-top border-bottom py-1">
-                                            <span>TOTAL</span>
-                                            <span>{formatCurrency(receiptData.total)}</span>
-                                        </div>
+                                            // Mapped payment info
+                                            title: receiptData.paymentType === "dp" ? "DP Bayar" : "Tunai",
 
-                                        <div className="d-flex justify-content-between small mb-1">
-                                            <span>{receiptData.paymentType === "dp" ? "DP Bayar" : "Tunai"}</span>
-                                            <span>{formatCurrency(receiptData.paymentType === "dp" ? receiptData.dpAmount : receiptData.cashReceived)}</span>
-                                        </div>
-                                        <div className="d-flex justify-content-between small">
-                                            <span>Kembali</span>
-                                            <span>{formatCurrency(receiptData.change)}</span>
-                                        </div>
-                                    </div>
-                                    <div className="text-center small mt-3">
-                                        <p className="mb-0">Terima Kasih</p>
-                                    </div>
+                                            // billAmount: what they are paying for (e.g. DP amount or Total amount)
+                                            billAmount: receiptData.paymentType === "dp" ? receiptData.dpAmount : receiptData.total,
+
+                                            // paymentAmount: money received (cash handed over)
+                                            paymentAmount: receiptData.paymentType === "dp" ? (receiptData.dpAmount + receiptData.change) : receiptData.cashReceived,
+
+                                            changeAmount: receiptData.change,
+                                        }}
+                                    />
                                 </div>
-
-                                <div className="d-grid gap-2">
-                                    <button
-                                        className="btn btn-dark fw-bold"
-                                        onClick={() => handlePrint()}
-                                    >
-                                        <i className="fas fa-print me-2"></i> Cetak Struk
+                            </div>
+                            <div className="modal-footer p-2 justify-content-center">
+                                <div className="btn-group w-100 mb-2">
+                                    <button className="btn btn-primary" onClick={() => handlePrint('58mm')}>
+                                        <i className="fas fa-print me-1"></i> 58mm
                                     </button>
-                                    <button className="btn btn-outline-secondary" onClick={() => setShowReceiptModal(false)}>
-                                        Tutup
+                                    <button className="btn btn-outline-primary" onClick={() => handlePrint('80mm')}>
+                                        <i className="fas fa-print me-1"></i> 80mm
                                     </button>
                                 </div>
+                                <button className="btn btn-secondary w-100" onClick={() => setShowReceiptModal(false)}>Tutup</button>
+                                {/* Hidden iframe for printing */}
+                                <iframe id="printFrame" style={{ display: 'none' }} title="Receipt"></iframe>
                             </div>
                         </div>
                     </div>
                 </div>
-            )
-            }
-
-
-            {/* Hidden Iframe for Direct Printing */}
-            <iframe
-                id="printFrame"
-                style={{ position: 'absolute', width: 0, height: 0, border: 0, visibility: 'hidden' }}
-                title="printFrame"
-            />
+            )}
         </div>
     );
 }

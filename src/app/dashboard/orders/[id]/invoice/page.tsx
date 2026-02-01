@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Swal from 'sweetalert2';
+import { Receipt, ReceiptData } from '@/components/dashboard/Receipt';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import { cn, formatCurrency, formatDateTime } from '@/lib/utils';
 import { buildEscposReceipt } from '@/lib/printing/escpos';
@@ -59,6 +60,7 @@ type InvoiceData = {
     contactPhone: string | null;
   };
   items: InvoiceItem[];
+  staffName: string | null; // Added
 };
 
 type ApiResponse = {
@@ -142,80 +144,7 @@ function buildWhatsAppText(args: {
   return lines.join('\n');
 }
 
-function ReceiptBlock(props: {
-  data: InvoiceData;
-  title: string;
-  payAmount: number;
-  cashReceived: number;
-  changeDue: number;
-  shortfall: number;
-}) {
-  const { data } = props;
-  return (
-    <div className={cn('font-monospace small', styles.receipt)}>
-      <div className="text-center fw-bold">{data.outlet.name}</div>
-      <div className="text-center">{data.outlet.address}</div>
-      {data.outlet.contactPhone ? <div className="text-center">WA: {data.outlet.contactPhone}</div> : null}
-      <hr className="my-2" />
-      <div>Kode: {data.trackingCode}</div>
-      <div>Tanggal: {formatDateTime(data.createdAt)}</div>
-      {data.customerName ? <div>Pelanggan: {data.customerName}</div> : null}
-      <hr className="my-2" />
-      {data.items.map((it) => (
-        <div key={it.id} className="d-flex justify-content-between">
-          <div className="me-2 text-truncate w-75">
-            {it.serviceName} x{Number(it.quantity)}
-          </div>
-          <div className="text-nowrap">{formatCurrency(it.subtotal)}</div>
-        </div>
-      ))}
-      <hr className="my-2" />
-      <div className="d-flex justify-content-between fw-semibold">
-        <div>Total</div>
-        <div>{formatCurrency(data.totalAmount)}</div>
-      </div>
-      {data.dpAmount > 0 ? (
-        <div className="d-flex justify-content-between">
-          <div>DP</div>
-          <div>{formatCurrency(data.dpAmount)}</div>
-        </div>
-      ) : null}
-      <div className="d-flex justify-content-between">
-        <div>Sisa</div>
-        <div>{formatCurrency(data.remainingAmount)}</div>
-      </div>
-      <div className="d-flex justify-content-between">
-        <div>Status</div>
-        <div>{paymentLabel(data.paymentStatus)}</div>
-      </div>
-      <hr className="my-2" />
-      <div className="d-flex justify-content-between">
-        <div>{props.title}</div>
-        <div>{formatCurrency(props.payAmount)}</div>
-      </div>
-      {props.cashReceived > 0 ? (
-        <div className="d-flex justify-content-between">
-          <div>Diterima</div>
-          <div>{formatCurrency(props.cashReceived)}</div>
-        </div>
-      ) : null}
-      {props.changeDue > 0 ? (
-        <div className="d-flex justify-content-between">
-          <div>Kembalian</div>
-          <div>{formatCurrency(props.changeDue)}</div>
-        </div>
-      ) : null}
-      {props.shortfall > 0 ? (
-        <div className="d-flex justify-content-between text-danger">
-          <div>Kurang</div>
-          <div>{formatCurrency(props.shortfall)}</div>
-        </div>
-      ) : null}
-      <hr className="my-2" />
-      <div className="text-center">Terima kasih</div>
-    </div>
-  );
-}
+
 
 function InvoiceBlock(props: { data: InvoiceData }) {
   const { data } = props;
@@ -646,7 +575,7 @@ export default function OrderInvoicePage() {
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   }
 
-  function doPrint(mode: 'receipt-80' | 'receipt-58' | 'invoice-a4') {
+  function doPrint(mode: 'invoice-a4') {
     document.body.setAttribute('data-print-mode', mode);
     // beri waktu render untuk apply mode sebelum print
     setTimeout(() => window.print(), 100);
@@ -654,8 +583,78 @@ export default function OrderInvoicePage() {
 
   function doPrintReceipt(mode: 'receipt-80' | 'receipt-58', context: 'settle' | 'dp') {
     setReceiptContext(context);
-    doPrint(mode);
+
+    // Use iframe printing for thermal receipts (matches POS behavior)
+    setTimeout(() => {
+      handlePrintThermal(mode);
+    }, 100);
   }
+
+  const handlePrintThermal = (mode: 'receipt-58' | 'receipt-80') => {
+    const content = document.getElementById('printable-receipt-area');
+    const iframe = document.getElementById('printFrame') as HTMLIFrameElement;
+
+    if (!content || !iframe) return;
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) return;
+
+    const size = mode === 'receipt-58' ? '58mm' : '80mm';
+    const bodyWidth = mode === 'receipt-58' ? '48mm' : '72mm';
+
+    doc.open();
+    doc.write('<html><head><title>Print Receipt</title>');
+
+    // Thermal Printer CSS
+    doc.write(`
+          <style>
+              @page {
+                  size: ${size} auto;
+                  margin: 0mm;
+              }
+              body {
+                  width: ${bodyWidth};
+                  margin: 0 auto;
+                  padding: 2px;
+                  font-family: 'Courier New', Courier, monospace;
+                  font-size: 10px;
+                  line-height: 1.2;
+                  color: black;
+                  background: white;
+              }
+              .text-center { text-align: center; }
+              .text-end { text-align: right; }
+              .fw-bold { font-weight: bold; }
+              .small { font-size: 9px; }
+              .d-flex { display: flex; }
+              .justify-content-between { justify-content: space-between; }
+              .align-items-center { align-items: center; }
+              .mb-1 { margin-bottom: 2px; }
+              .mb-2 { margin-bottom: 4px; }
+              .mb-3 { margin-bottom: 8px; }
+              .pb-2 { padding-bottom: 4px; }
+              .pt-2 { padding-top: 4px; }
+              .border-bottom { border-bottom: 1px dashed #000; }
+              .border-top { border-top: 1px dashed #000; }
+              .text-muted { color: #000; }
+              .d-block { display: block; }
+              
+              /* Hide scrollbars etc */
+              ::-webkit-scrollbar { display: none; }
+          </style>
+      `);
+
+    doc.write('</head><body>');
+    doc.write(content.innerHTML);
+    doc.write('</body></html>');
+    doc.close();
+
+    // Small delay for styles to apply before print
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+    }, 500);
+  };
 
   const supportsWebSerial = typeof navigator !== 'undefined' && !!(navigator as any).serial;
   const supportsWebUsb = typeof navigator !== 'undefined' && !!(navigator as any).usb;
@@ -689,6 +688,7 @@ export default function OrderInvoicePage() {
       ...(cashReceived > 0 ? [{ left: 'Diterima', right: formatCurrency(cashReceived) }] : []),
       ...(changeDue > 0 ? [{ left: 'Kembalian', right: formatCurrency(changeDue) }] : []),
       ...(shortfall > 0 ? [{ left: 'Kurang', right: formatCurrency(shortfall) }] : []),
+      { left: '--------------------------------' },
     ];
 
     return buildEscposReceipt({
@@ -850,16 +850,49 @@ export default function OrderInvoicePage() {
 
   return (
     <div className="content-wrapper">
-      {/* PRINT AREA: Receipt */}
+      {/* PRINT AREA: Receipt - WRAPPED for iframe logic */}
       <div className={styles.printArea}>
-        <div className={styles.printReceipt}>
-          <ReceiptBlock
-            data={data}
-            title={receiptContext === 'dp' ? 'Pembayaran DP' : data.paymentStatus === 'SETTLEMENT' ? 'Pembayaran' : 'Pelunasan'}
-            payAmount={receiptContext === 'dp' ? dpAmount : data.paymentStatus === 'SETTLEMENT' ? data.totalAmount : settleAmount}
-            cashReceived={receiptContext === 'dp' ? dpCashReceived : settleCashReceived}
-            changeDue={receiptContext === 'dp' ? dpChangeDue : settleChangeDue}
-            shortfall={receiptContext === 'dp' ? dpShortfall : settleShortfall}
+        <div id="printable-receipt-area" className={styles.printReceipt}>
+          <Receipt
+            data={{
+              outletName: data.outlet.name,
+              outletAddress: data.outlet.address,
+              outletPhone: data.outlet.contactPhone,
+              orderCode: data.trackingCode,
+              orderDate: formatDateTime(data.createdAt),
+              staffName: data.staffName || undefined,
+
+              customerName: data.customerName,
+              items: data.items.map(it => ({
+                id: it.id,
+                name: it.serviceName,
+                quantity: Number(it.quantity),
+                price: Number(it.subtotal) / Number(it.quantity), // deriving unit price if not explicit
+                subtotal: Number(it.subtotal)
+              })),
+              // InvoiceData likely has subtotal vs total.
+              // ReceiptBlock used: 
+              // items mapping... then Total: data.totalAmount. 
+              // It didn't explicitly list subtotal/adj in the block I valid.
+              // Wait, let's checking ReceiptBlock definition in step 199.
+              // Line 175: totalAmount.
+              // It lists items, then Total. 
+              // It didn't show subtotal/adjustment in ReceiptBlock (lines 164-176).
+              // BUT Receipt component supports them. I should try to fill them if available.
+              // For now, mapping Total to totalAmount. subtotal can be same or calculated.
+
+              subtotal: data.items.reduce((acc, curr) => acc + Number(curr.subtotal), 0),
+              adjustment: 0, // Placeholder if not in data
+              totalAmount: data.totalAmount,
+
+              paymentStatusLabel: paymentLabel(data.paymentStatus),
+
+              title: receiptContext === 'dp' ? 'Pembayaran DP' : data.paymentStatus === 'SETTLEMENT' ? 'Pembayaran' : 'Pelunasan',
+              billAmount: receiptContext === 'dp' ? dpAmount : data.paymentStatus === 'SETTLEMENT' ? data.totalAmount : settleAmount,
+              paymentAmount: receiptContext === 'dp' ? dpCashReceived : settleCashReceived,
+              changeAmount: receiptContext === 'dp' ? dpChangeDue : settleChangeDue,
+              shortfallAmount: receiptContext === 'dp' ? dpShortfall : settleShortfall
+            }}
           />
         </div>
         <div className={styles.printInvoice}>
@@ -927,13 +960,34 @@ export default function OrderInvoicePage() {
                 <div className="card-body bg-light d-flex justify-content-center overflow-auto">
                   {activeTab === 'receipt' ? (
                     <div className="border rounded p-2 bg-white shadow-sm" style={{ minWidth: '300px' }}>
-                      <ReceiptBlock
-                        data={data}
-                        title={data.paymentStatus === 'SETTLEMENT' ? 'Pembayaran' : 'Pelunasan'}
-                        payAmount={data.paymentStatus === 'SETTLEMENT' ? data.totalAmount : settleAmount}
-                        cashReceived={settleCashReceived}
-                        changeDue={settleChangeDue}
-                        shortfall={settleShortfall}
+                      <Receipt
+                        data={{
+                          outletName: data.outlet.name,
+                          outletAddress: data.outlet.address,
+                          outletPhone: data.outlet.contactPhone,
+                          orderCode: data.trackingCode,
+                          orderDate: formatDateTime(data.createdAt),
+                          staffName: data.staffName || undefined,
+
+                          customerName: data.customerName,
+                          items: data.items.map(it => ({
+                            id: it.id,
+                            name: it.serviceName,
+                            quantity: Number(it.quantity),
+                            price: Number(it.subtotal) / Number(it.quantity),
+                            subtotal: Number(it.subtotal)
+                          })),
+                          subtotal: data.items.reduce((acc, curr) => acc + Number(curr.subtotal), 0),
+                          totalAmount: data.totalAmount,
+
+                          paymentStatusLabel: paymentLabel(data.paymentStatus),
+
+                          title: data.paymentStatus === 'SETTLEMENT' ? 'Pembayaran' : 'Pelunasan',
+                          billAmount: data.paymentStatus === 'SETTLEMENT' ? data.totalAmount : settleAmount,
+                          paymentAmount: settleCashReceived,
+                          changeAmount: settleChangeDue,
+                          shortfallAmount: settleShortfall
+                        }}
                       />
                     </div>
                   ) : (
@@ -1182,6 +1236,8 @@ export default function OrderInvoicePage() {
           </div>
         </div>
       </div>
+      {/* Hidden iframe for printing */}
+      <iframe id="printFrame" style={{ display: 'none' }} title="Receipt"></iframe>
     </div>
   );
 }

@@ -11,6 +11,8 @@ import { Role } from '@/generated/prisma';
 import { ServiceRepository } from '@/repositories/ServiceRepository';
 import { ServiceDTO } from '@/dto/ServiceDTO';
 
+import { prisma } from '@/lib/prisma';
+
 const serviceRepository = new ServiceRepository();
 
 export const GET = withAuth(
@@ -21,9 +23,17 @@ export const GET = withAuth(
       }
 
       const services = await serviceRepository.findActiveByOutletId(session.outletId);
+
+      // Fetch outlet name
+      const outlet = await prisma.outlet.findUnique({
+        where: { id: session.outletId },
+        select: { name: true }
+      });
+
       return Response.json({
         success: true,
         data: ServiceDTO.toResponseArray(services as any),
+        outletName: outlet?.name || 'Laundry'
       });
     } catch (error) {
       console.error('Error fetching POS services:', error);
