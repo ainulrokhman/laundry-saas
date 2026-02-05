@@ -233,6 +233,7 @@ model Order {
   statusHistory OrderStatusHistory[]
 
   @@index([outletId])
+  @@index([outletId, createdAt])
   @@index([trackingCode])
   @@index([status])
   @@index([paymentStatus])

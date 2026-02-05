@@ -9,12 +9,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { otpService } from '@/services/auth/OtpService';
-import { signIn } from '@/lib/auth';
 import { OtpType, Role } from '@/generated/prisma';
 import { normalizePhoneNumber, formatPhoneNumber, isValidPhoneNumber, generateSlug } from '@/lib/utils';
 import { ApiResponse } from '@/types';
 import bcrypt from 'bcryptjs';
 import { PackageManagementService } from '@/services/admin/PackageManagementService';
+import { checkRateLimit, recordAttempt } from '@/lib/security/rate-limiter';
+import { getClientIp, isSameOriginRequest } from '@/lib/security/request-utils';
+
+const REGISTER_RATE_LIMIT = {
+  maxAttempts: 10,
+  windowMs: 60 * 60 * 1000, // 1 jam per IP
+};
 
 const registerSchema = z.object({
   phone: z.string().min(10, 'Phone number is required'),
@@ -49,6 +55,28 @@ async function generateUniqueSlug(name: string): Promise<string> {
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+    const identifier = `public-register:${ip}`;
+    const rl = checkRateLimit(identifier, REGISTER_RATE_LIMIT);
+    if (!rl.allowed) {
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: 'Terlalu banyak percobaan registrasi. Silakan coba lagi nanti.',
+        },
+        { status: 429 }
+      );
+    }
+    recordAttempt(identifier, REGISTER_RATE_LIMIT);
+
+    const baseUrl = process.env.NEXTAUTH_URL || '';
+    if (baseUrl && !isSameOriginRequest(request, baseUrl)) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: 'Request tidak valid' },
+        { status: 403 }
+      );
+    }
+
     const body: unknown = await request.json();
     const { phone, otpCode, name, outletName, outletAddress, pin } = registerSchema.parse(body);
 

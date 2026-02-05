@@ -2,10 +2,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useSession } from 'next-auth/react';
 import { ReportsResponseDTO, GlobalReportsResponseDTO, OutletBreakdown } from '@/dto/ReportsDTO';
-import { RevenueChart } from '@/components/ui/Charts/RevenueChart';
 import Swal from 'sweetalert2';
+
+const RevenueChart = dynamic(
+  () => import('@/components/ui/Charts/RevenueChart').then((m) => m.RevenueChart),
+  { ssr: false, loading: () => <div className="d-flex align-items-center justify-content-center p-5"><div className="spinner-border text-primary" /></div> }
+);
 import { formatDateTime } from '@/lib/utils';
 import { ResponsiveTableToCards } from '@/components/adminlte/ResponsiveTableToCards';
 import { Role } from '@/generated/prisma';

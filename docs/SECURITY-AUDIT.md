@@ -133,6 +133,31 @@ Dokumen ini mencatat audit keamanan untuk semua API endpoints, memastikan:
 
 ---
 
+## Phase 4: Security & Optimization Checklist
+
+### 4.1 Advanced Security
+
+- [x] **Tenant isolation**: Semua query dashboard memakai `outletId` dari session; tidak percaya client.
+- [x] **Rate limiting public**: OTP request (per phone), login (per phone), register (per IP), public track (per IP).
+- [x] **CSRF mitigation**: Pengecekan Origin/Referer same-origin untuk register; dapat diperluas ke state-changing public API.
+- [x] **Security headers**: Next.js config (CSP, HSTS, X-Frame-Options, dll.).
+- [x] **Input sanitization**: Zod + `src/lib/utils/sanitize.ts` (sanitizeString, sanitizePhone, sanitizeUrl, dll.).
+- [x] **Security audit checklist**: Dokumen ini.
+
+### 4.2 Data Protection
+
+- [x] **DTO untuk response**: OrderDTO, ServiceDTO, OutletDTO, CustomerDTO, TransactionDTO, dll.
+- [x] **Response scrubbing**: DTO tidak mengembalikan `password`, `pin`, field sensitif internal.
+- [x] **Data masking**: `maskSensitiveData()` di `lib/utils.ts`; utilitas masking di `lib/utils/data-masking.ts`.
+- [x] **Audit logging**: SecurityLogService untuk login, OTP, reset PIN, approval/reject admin.
+- [ ] **Data retention**: Kebijakan dokumentasi (opsional); penghapusan data lama via cron/script terpisah.
+
+### 4.3 Performance & 4.4 Error Handling
+
+- Lihat development-plan.md Phase 4.3 (indexing, caching, lazy load) dan 4.4 (error boundary, logging).
+
+---
+
 ## Recommendations
 
 ### 1. DTO Pattern Extension

@@ -8,6 +8,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Swal from 'sweetalert2';
@@ -456,7 +457,7 @@ export default function LandingPageSettingsPage() {
                         <div className="row g-3 align-items-start">
                           <div className="col-auto">
                             {form.logoUrl ? (
-                              <img
+                              <Image
                                 src={form.logoUrl}
                                 alt="Logo outlet"
                                 width={96}
@@ -519,9 +520,9 @@ export default function LandingPageSettingsPage() {
                         <div className="row g-3 align-items-start">
                           <div className="col-12">
                             <div className="border rounded bg-light overflow-hidden">
-                              <div className="ratio ratio-21x9">
+                              <div className="ratio ratio-21x9 position-relative">
                                 {form.coverUrl ? (
-                                  <img src={form.coverUrl} alt="Cover outlet" className="w-100 h-100 object-fit-cover" />
+                                  <Image src={form.coverUrl} alt="Cover outlet" fill className="object-fit-cover" sizes="(max-width: 768px) 100vw, 50vw" />
                                 ) : (
                                   <div className="d-flex align-items-center justify-content-center text-muted">
                                     <i className="fas fa-image"></i>

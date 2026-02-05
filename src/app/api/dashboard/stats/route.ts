@@ -4,8 +4,10 @@
  * GET /api/dashboard/stats
  * Returns dashboard statistics for the authenticated outlet.
  * Supports Global Mode for OWNER without active outlet.
+ * Uses short-lived cache (60s) to reduce DB load.
  */
 
+import { unstable_cache } from "next/cache";
 import { withAuth } from "@/lib/proxy/route-proxy";
 import { ExtendedSession } from "@/lib/auth";
 import { DashboardService } from "@/services/DashboardService";
@@ -13,16 +15,26 @@ import { DashboardDTO } from "@/dto/DashboardDTO";
 import { Role } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 
+const CACHE_REVALIDATE_SECONDS = 60;
+
+async function getCachedOutletStats(outletId: string) {
+  const dashboardService = new DashboardService();
+  const sessionUser = { userId: "", outletId, role: Role.STAFF, phone: "" };
+  return dashboardService.getDashboardStats(sessionUser);
+}
+
+async function getCachedGlobalStats(outletIds: string[]) {
+  const dashboardService = new DashboardService();
+  return dashboardService.getGlobalDashboardStats(outletIds);
+}
+
 export const GET = withAuth(
   async (request: Request, session: ExtendedSession) => {
     try {
-      const dashboardService = new DashboardService();
-
       // Global Mode: OWNER without active outlet
       const isGlobalMode = !session.outletId && session.role === Role.OWNER;
 
       if (isGlobalMode) {
-        // Fetch owned outlets
         const ownedOutlets = await prisma.outlet.findMany({
           where: { ownerId: session.userId },
           select: { id: true },
@@ -42,7 +54,12 @@ export const GET = withAuth(
           });
         }
 
-        const stats = await dashboardService.getGlobalDashboardStats(outletIds);
+        const cacheKey = ["dashboard-stats-global", session.userId, outletIds.sort().join(",")];
+        const stats = await unstable_cache(
+          () => getCachedGlobalStats(outletIds),
+          cacheKey,
+          { revalidate: CACHE_REVALIDATE_SECONDS }
+        )();
 
         return Response.json({
           success: true,
@@ -59,14 +76,12 @@ export const GET = withAuth(
         );
       }
 
-      // Convert ExtendedSession to SessionUser format
-      const sessionUser = {
-        userId: session.userId,
-        outletId: session.outletId,
-        role: session.role,
-        phone: session.phone,
-      };
-      const stats = await dashboardService.getDashboardStats(sessionUser);
+      const cacheKey = ["dashboard-stats", session.outletId];
+      const stats = await unstable_cache(
+        () => getCachedOutletStats(session.outletId!),
+        cacheKey,
+        { revalidate: CACHE_REVALIDATE_SECONDS }
+      )();
 
       return Response.json({
         success: true,

@@ -13,6 +13,7 @@ import { OutletRepository } from '@/repositories/OutletRepository';
 import { OrderRepository } from '@/repositories/OrderRepository';
 import { OrderDTO } from '@/dto/OrderDTO';
 import { checkRateLimit, recordAttempt } from '@/lib/security/rate-limiter';
+import { getClientIp } from '@/lib/security/request-utils';
 
 const outletRepository = new OutletRepository();
 const orderRepository = new OrderRepository();
@@ -31,17 +32,6 @@ const TRACK_RATE_LIMIT = {
   maxAttempts: 10,
   windowMs: 10 * 60 * 1000, // 10 menit
 };
-
-function getClientIp(request: NextRequest): string {
-  const xff = request.headers.get('x-forwarded-for');
-  if (xff) {
-    const first = xff.split(',')[0]?.trim();
-    if (first) return first;
-  }
-  const xri = request.headers.get('x-real-ip');
-  if (xri) return xri.trim();
-  return 'unknown';
-}
 
 export async function GET(
   request: NextRequest,

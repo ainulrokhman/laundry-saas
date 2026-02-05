@@ -23,6 +23,10 @@ export enum SecurityEventType {
   ADMIN_USER_ACTIVATE = 'ADMIN_USER_ACTIVATE',
   ADMIN_USER_DEACTIVATE = 'ADMIN_USER_DEACTIVATE',
   ADMIN_USER_RESET_PIN = 'ADMIN_USER_RESET_PIN',
+  // Critical business operations (audit trail)
+  ORDER_CREATE = 'ORDER_CREATE',
+  PAYMENT_APPROVE = 'PAYMENT_APPROVE',
+  PAYMENT_REJECT = 'PAYMENT_REJECT',
 }
 
 export interface SecurityLogData {

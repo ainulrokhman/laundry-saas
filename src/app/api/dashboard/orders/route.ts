@@ -12,6 +12,8 @@ import { Role, OrderStatus, PaymentStatus } from "@/generated/prisma";
 import { OrderService } from "@/services/OrderService";
 import { OrderDTO } from "@/dto/OrderDTO";
 import { prisma } from "@/lib/prisma";
+import { securityLogService, SecurityEventType } from "@/services/security/SecurityLogService";
+import { logError } from "@/lib/logger";
 
 const orderService = new OrderService();
 
@@ -242,6 +244,13 @@ export const POST = withAuth(
         cashReceived: validated.cashReceived,
       });
 
+      await securityLogService.logEvent({
+        userId: session.userId,
+        eventType: SecurityEventType.ORDER_CREATE,
+        success: true,
+        metadata: { orderId: created.id, outletId: session.outletId, trackingCode: (created as any).trackingCode },
+      });
+
       return Response.json(
         {
           success: true,
@@ -251,7 +260,7 @@ export const POST = withAuth(
         { status: 201 },
       );
     } catch (error) {
-      console.error("Error creating order:", error);
+      logError('Error creating order', error, { userId: session.userId, outletId: session.outletId ?? undefined });
 
       if (error instanceof z.ZodError) {
         return Response.json(
