@@ -4,14 +4,14 @@
  */
 
 /**
- * Mask phone number: tampilkan 4 karakter awal dan 3 akhir, sisanya *
+ * Mask phone number: tampilkan 4 karakter awal dan 4 akhir, sisanya *
  * Contoh: 6281234567890 -> 6281***7890
  */
 export function maskPhone(phone: string | null | undefined): string {
   if (!phone || typeof phone !== 'string') return '***';
   const s = phone.replace(/\D/g, '');
-  if (s.length <= 7) return '*'.repeat(s.length);
-  return s.slice(0, 4) + '*'.repeat(Math.max(0, s.length - 7)) + s.slice(-3);
+  if (s.length <= 8) return '*'.repeat(s.length);
+  return s.slice(0, 4) + '***' + s.slice(-4);
 }
 
 /**

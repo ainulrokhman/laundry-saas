@@ -5,7 +5,7 @@
  * Use these to generate consistent test data across tests.
  */
 
-import { Role, OrderStatus, PaymentStatus, PaymentMethod } from '../../src/generated/prisma';
+import { Role, OrderStatus, PaymentStatus, PaymentMethod, TransType } from '../../src/generated/prisma';
 import { randomString, randomPhone, randomUUID } from './test-helpers';
 
 /**
@@ -109,6 +109,45 @@ export function createBankAccountData(overrides?: {
     accountName: overrides?.accountName || `Account ${randomString(5)}`,
     accountNumber: overrides?.accountNumber || randomString(10),
     isActive: true,
+  };
+}
+
+/**
+ * Factory for creating Customer test data
+ */
+export function createCustomerData(overrides?: {
+  outletId?: string;
+  name?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+}) {
+  return {
+    outletId: overrides?.outletId || randomUUID(),
+    name: overrides?.name || `Customer ${randomString(5)}`,
+    phone: overrides?.phone ?? randomPhone(),
+    email: overrides?.email ?? null,
+    address: overrides?.address ?? null,
+  };
+}
+
+/**
+ * Factory for creating Transaction test data (minimal for LAUNDRY_ORDER or SUBSCRIPTION)
+ */
+export function createTransactionData(overrides?: {
+  outletId?: string | null;
+  orderId?: string | null;
+  type?: TransType;
+  amount?: number;
+  status?: PaymentStatus;
+}) {
+  return {
+    outletId: overrides?.outletId ?? null,
+    orderId: overrides?.orderId ?? null,
+    type: overrides?.type ?? TransType.LAUNDRY_ORDER,
+    amount: overrides?.amount ?? 50000,
+    status: overrides?.status ?? PaymentStatus.PENDING,
+    paymentMethod: null as any,
   };
 }
 

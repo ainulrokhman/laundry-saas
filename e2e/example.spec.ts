@@ -1,23 +1,18 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * Example E2E Test
- * 
- * This is a placeholder test file.
- * Replace with your actual E2E tests.
+ * Smoke E2E: homepage and basic navigation
  */
 
 test('homepage loads', async ({ page }) => {
   await page.goto('/');
-  
-  // Add your assertions here
-  await expect(page).toHaveTitle(/Laundry SaaS/);
+  await expect(page).toHaveTitle(/Laundry SaaS|Kasirlondri/i);
 });
 
-test('navigation works', async ({ page }) => {
+test('login link or button visible on homepage', async ({ page }) => {
   await page.goto('/');
-  
-  // Example: Click a link and verify navigation
-  // await page.click('text=Dashboard');
-  // await expect(page).toHaveURL('/dashboard');
+  const loginLink = page.getByRole('link', { name: /masuk|login/i }).or(
+    page.getByRole('button', { name: /masuk|login/i })
+  );
+  await expect(loginLink.first()).toBeVisible({ timeout: 5000 });
 });

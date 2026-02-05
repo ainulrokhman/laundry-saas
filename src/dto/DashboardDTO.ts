@@ -32,8 +32,7 @@ export class DashboardDTO {
       paymentStatus: order.paymentStatus,
       totalAmount: order.totalAmount,
       createdAt: order.createdAt.toISOString(),
-      // Include outlet info for global mode
-      ...(order.outletId && { outletId: order.outletId }),
+      // Include outlet name for global mode (do not expose outletId)
       ...(order.outletName && { outletName: order.outletName }),
     };
   }

@@ -85,7 +85,12 @@ __tests__/
     └── factories.ts            # Test data factories
 
 e2e/
-└── (E2E test files will go here)
+├── example.spec.ts    # Smoke: homepage
+├── auth.spec.ts       # Login, redirect
+├── track.spec.ts      # Public tracking
+├── orders.spec.ts     # Orders (auth required)
+├── subscription-payment.spec.ts
+└── admin.spec.ts      # Admin panel (auth required)
 
 src/
 └── (Unit test files alongside source files)
@@ -223,7 +228,20 @@ View coverage report:
 npm run test:coverage
 ```
 
-Coverage report will be generated in `coverage/` directory.
+For CI (no watch, default reporter):
+
+```bash
+npm run test:coverage:ci
+```
+
+Coverage report will be generated in `coverage/` directory (v8 provider; text, json, html reporters). Interpretasi: fokus pada critical paths (repositories, services, API routes); threshold opsional bisa ditambah di `vitest.config.ts` jika diinginkan.
+
+## 🌐 E2E Data
+
+E2E tests (auth, track, orders, admin) yang memerlukan data nyata (login sukses, order dengan tracking code) dapat menggunakan:
+- Seed test database dan env `TEST_OWNER_PHONE` / `TEST_OWNER_PIN` untuk login, atau
+- API/seed di `beforeAll` untuk menyiapkan outlet + order + tracking code.
+Lihat `e2e/*.spec.ts` untuk skenario yang ada.
 
 ## 🐛 Troubleshooting
 

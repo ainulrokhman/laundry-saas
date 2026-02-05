@@ -107,8 +107,11 @@ export async function cleanupTestDatabase(prisma: PrismaClient): Promise<void> {
   // OrderItems reference Orders and Services
   await prisma.orderItem.deleteMany();
   
-  // Orders reference Outlets
+  // Orders reference Outlets and optionally Customer
   await prisma.order.deleteMany();
+  
+  // Customers reference Outlets
+  await prisma.customer.deleteMany();
   
   // Services reference Outlets
   await prisma.service.deleteMany();
@@ -122,11 +125,17 @@ export async function cleanupTestDatabase(prisma: PrismaClient): Promise<void> {
   // OTP codes are independent (no foreign keys to other tables)
   await prisma.otpCode.deleteMany();
   
+  // Expenses reference Outlets
+  await prisma.expense.deleteMany();
+  
   // Users reference Outlets (outletId is nullable, but we delete users first to be safe)
   await prisma.user.deleteMany();
   
   // Outlets are parent tables (no dependencies on other tables)
   await prisma.outlet.deleteMany();
+  
+  // SubscriptionPackage is platform data (optional cleanup for isolation)
+  await prisma.subscriptionPackage.deleteMany();
 }
 
 /**

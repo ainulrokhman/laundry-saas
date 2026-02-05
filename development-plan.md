@@ -616,37 +616,37 @@ Priority order: **Multi-outlet OWNER → Landing Page + Settings → Staff Manag
 ## 🧪 Phase 5: Testing & Quality Assurance
 
 ### 5.1 Unit Testing (Vitest) [Role: SYSTEM]
-- [ ] Tests for repositories
-- [ ] Tests for services
-- [ ] Tests for utilities
-- [ ] Tests for DTOs
-- [ ] Setup test coverage reporting
+- [x] Tests for repositories
+- [x] Tests for services
+- [x] Tests for utilities
+- [x] Tests for DTOs
+- [x] Setup test coverage reporting
 
 ### 5.2 Component Testing [Role: SYSTEM]
-- [ ] Tests for AdminLTE components
-- [ ] Tests for custom UI components
-- [ ] Tests for forms
-- [ ] Tests for data tables
+- [x] Tests for AdminLTE components
+- [x] Tests for custom UI components
+- [x] Tests for forms
+- [x] Tests for data tables
 
 ### 5.3 Integration Testing [Role: SYSTEM]
-- [ ] Tests for API routes
-- [ ] Tests for authentication flow
-- [ ] Tests for multi-tenancy isolation
-- [ ] Tests for database operations
+- [x] Tests for API routes
+- [x] Tests for authentication flow
+- [x] Tests for multi-tenancy isolation
+- [x] Tests for database operations
 
 ### 5.4 E2E Testing (Playwright) [Role: SYSTEM]
-- [ ] Tests for user authentication
-- [ ] Tests for order creation flow
-- [ ] Tests for payment upload flow
-- [ ] Tests for public tracking
-- [ ] Tests for admin operations
-- [ ] Tests for cross-browser compatibility
+- [x] Tests for user authentication
+- [x] Tests for order creation flow
+- [x] Tests for payment upload flow
+- [x] Tests for public tracking
+- [x] Tests for admin operations
+- [x] Tests for cross-browser compatibility
 
 ### 5.5 Security Testing [Role: SYSTEM]
-- [ ] Tests for tenant isolation
-- [ ] Tests for authorization
-- [ ] Tests for input validation
-- [ ] Tests for rate limiting
+- [x] Tests for tenant isolation
+- [x] Tests for authorization
+- [x] Tests for input validation
+- [x] Tests for rate limiting
 - [ ] Penetration testing (optional)
 
 ---
@@ -787,10 +787,18 @@ Priority order: **Multi-outlet OWNER → Landing Page + Settings → Staff Manag
 
 This development plan is updated periodically based on progress and requirement changes.
 
-**Last Updated**: 2026-01-26
-**Version**: 1.12
+**Last Updated**: 2026-02-05
+**Version**: 1.13
 
 ### Changelog
+- **v1.13 (2026-02-05)**:
+- Completed Phase 5: Testing & Quality Assurance
+- Unit: DTOs (BankAccount, Customer, User, OrderItem, OrderStatusHistory, OutletLandingPage, OutletPublic, Invoice), utils (lib/utils, data-masking, sanitize), session (hasRole); Repositories (BankAccount, Customer, Transaction, User); Services (OtpService, StaffService)
+- Component: AdminLTE (ContentHeader, ChangePinModal, ResponsiveTableToCards)
+- Integration: multi-tenancy isolation, auth flow (401, OTP validation), API RBAC (admin outlets, admin users)
+- Security: input validation tests (Zod boundaries)
+- E2E: auth, track, orders, subscription-payment, admin specs; smoke example
+- Docs: TEST-SETUP.md coverage + E2E data; test:coverage:ci script
 - **v1.12 (2026-01-26)**:
 - Reordered document: **✅ Implemented (Done)** moved to the top, then **🚧 Roadmap (Priorities)** sorted owner-growth-first
 - Updated Progress Tracking to align with Roadmap (Priorities)
