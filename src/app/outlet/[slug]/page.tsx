@@ -7,6 +7,7 @@ import { OutletRepository } from '@/repositories/OutletRepository';
 import { ServiceRepository } from '@/repositories/ServiceRepository';
 import { OutletPublicDTO } from '@/dto/OutletPublicDTO';
 import { ServiceDTO } from '@/dto/ServiceDTO';
+import { getSiteBaseUrl } from '@/constants/siteSeo';
 import { formatCurrency } from '@/lib/utils';
 import { OwnerPublicBar } from '@/components/public/OwnerPublicBar';
 import { TrackOrderInline } from '@/components/public/TrackOrderInline';
@@ -52,6 +53,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       type: 'website',
       ...(outlet.coverUrl && {
         images: [{ url: outlet.coverUrl }],
+      }),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      ...(outlet.coverUrl && {
+        images: [outlet.coverUrl],
       }),
     },
   };
@@ -121,6 +130,19 @@ export default async function OutletLandingPage({ params }: PageProps) {
 
   });
 
+  const baseUrl = getSiteBaseUrl();
+  const hasValidRating =
+    typeof outletPublic.ratingValue === 'number' &&
+    outletPublic.ratingValue >= 1 &&
+    outletPublic.ratingValue <= 5 &&
+    typeof outletPublic.reviewCount === 'number' &&
+    outletPublic.reviewCount > 0;
+  const hasValidGeo =
+    typeof outletPublic.latitude === 'number' &&
+    typeof outletPublic.longitude === 'number' &&
+    Number.isFinite(outletPublic.latitude) &&
+    Number.isFinite(outletPublic.longitude);
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'DryCleaningOrLaundry',
@@ -143,7 +165,32 @@ export default async function OutletLandingPage({ params }: PageProps) {
         closes: "21:00"
       }
     ] : undefined,
-    url: `https://kasirlondri.com/outlet/${slug}`,
+    url: `${baseUrl}/outlet/${slug}`,
+    ...(hasValidRating && {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: outletPublic.ratingValue,
+        bestRating: 5,
+        ratingCount: outletPublic.reviewCount,
+      },
+    }),
+    ...(hasValidGeo && {
+      geo: {
+        '@type': 'GeoCoordinates',
+        latitude: outletPublic.latitude,
+        longitude: outletPublic.longitude,
+      },
+    }),
+  };
+
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Beranda', item: `${baseUrl}/` },
+      { '@type': 'ListItem', position: 2, name: 'Outlet', item: `${baseUrl}/` },
+      { '@type': 'ListItem', position: 3, name: outletPublic.name, item: `${baseUrl}/outlet/${slug}` },
+    ],
   };
 
   return (
@@ -151,6 +198,10 @@ export default async function OutletLandingPage({ params }: PageProps) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
       {/* Owner Bar */}
       <div className="bg-luxury-dark border-bottom border-white border-opacity-10">

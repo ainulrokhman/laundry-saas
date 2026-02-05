@@ -27,12 +27,23 @@ export const metadata: Metadata = {
   },
   description:
     "Cari outlet laundry, lihat layanan & harga (jika tersedia), dan lacak pesanan Anda dengan tracking code.",
+  keywords: [
+    "kasir laundry",
+    "manajemen laundry",
+    "POS laundry",
+    "aplikasi laundry",
+    "sistem laundry",
+  ],
+  robots: { index: true, follow: true },
   openGraph: {
     title: "Kasirlondri",
     description:
       "Cari outlet laundry, lihat layanan & harga (jika tersedia), dan lacak pesanan Anda dengan tracking code.",
     url: "/",
     type: "website",
+    locale: "id_ID",
+    siteName: "Kasirlondri",
+    images: [{ url: "/images/logo.png", width: 342, height: 112, alt: "Kasirlondri Logo" }],
   },
   twitter: {
     card: "summary_large_image",

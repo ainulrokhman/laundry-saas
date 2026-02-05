@@ -2,17 +2,29 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { PACKAGE_DEFINITIONS, PackageFeature, FEATURE_LABELS } from '@/constants/packageFeatures';
+import { getSiteBaseUrl, SITE_AGGREGATE_RATING } from '@/constants/siteSeo';
 import { PWAInstallAlert } from '@/components/public/PWAInstallAlert';
 
 export const metadata: Metadata = {
   title: 'Kasirlondri - Sistem Manajemen Laundry Modern',
   description: 'Kelola outlet laundry Anda dengan mudah. POS, Laporan Keuangan, Manajemen Karyawan, dan Multi-Outlet dalam satu aplikasi.',
+  alternates: { canonical: '/' },
+  openGraph: {
+    title: 'Kasirlondri - Sistem Manajemen Laundry Modern',
+    description: 'Kelola outlet laundry Anda dengan mudah. POS, Laporan Keuangan, Manajemen Karyawan, dan Multi-Outlet dalam satu aplikasi.',
+    url: '/',
+  },
+  twitter: {
+    title: 'Kasirlondri - Sistem Manajemen Laundry Modern',
+    description: 'Kelola outlet laundry Anda dengan mudah. POS, Laporan Keuangan, Manajemen Karyawan, dan Multi-Outlet dalam satu aplikasi.',
+  },
 };
 
 export default function HomePage() {
   const packages = Object.values(PACKAGE_DEFINITIONS).sort((a, b) => a.sortOrder - b.sortOrder);
+  const baseUrl = getSiteBaseUrl();
 
-  const jsonLd = {
+  const softwareApplicationLd = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
     name: 'Kasirlondri',
@@ -27,15 +39,63 @@ export default function HomePage() {
     author: {
       '@type': 'Organization',
       name: 'Kasirlondri',
-      url: 'https://kasirlondri.vercel.app/',
+      url: baseUrl,
     },
+    ...(SITE_AGGREGATE_RATING && {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: SITE_AGGREGATE_RATING.ratingValue,
+        bestRating: SITE_AGGREGATE_RATING.bestRating,
+        ratingCount: SITE_AGGREGATE_RATING.ratingCount,
+      },
+    }),
+  };
+
+  const organizationLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Kasirlondri',
+    url: baseUrl,
+    address: {
+      '@type': 'PostalAddress',
+      addressCountry: 'ID',
+    },
+    ...(SITE_AGGREGATE_RATING && {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: SITE_AGGREGATE_RATING.ratingValue,
+        bestRating: SITE_AGGREGATE_RATING.bestRating,
+        ratingCount: SITE_AGGREGATE_RATING.ratingCount,
+      },
+    }),
+  };
+
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Beranda',
+        item: `${baseUrl}/`,
+      },
+    ],
   };
 
   return (
     <div className="min-h-screen bg-white text-slate-800 font-sans">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
       {/* Navbar */}
       <nav className="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">

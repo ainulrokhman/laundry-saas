@@ -18,6 +18,10 @@ export type OutletPublicRecord = {
   seoDescription: string | null;
   logoUrl: string | null;
   coverUrl: string | null;
+  ratingValue: number | null;
+  reviewCount: number | null;
+  latitude: number | null;
+  longitude: number | null;
 };
 
 export class OutletPublicDTO {
@@ -33,6 +37,10 @@ export class OutletPublicDTO {
       seoDescription: outlet.seoDescription ?? null,
       logoUrl: outlet.logoUrl ?? null,
       coverUrl: outlet.coverUrl ?? null,
+      ratingValue: outlet.ratingValue ?? null,
+      reviewCount: outlet.reviewCount ?? null,
+      latitude: outlet.latitude ?? null,
+      longitude: outlet.longitude ?? null,
     };
   }
 }

@@ -70,7 +70,20 @@ export class OutletRepository extends BaseRepository {
         seoDescription: true,
         logoUrl: true,
         coverUrl: true,
+        ratingValue: true,
+        reviewCount: true,
+        latitude: true,
+        longitude: true,
       },
+    });
+  }
+
+  /**
+   * Find all outlet slugs for public sitemap (outlet landing pages).
+   */
+  async findAllPublicSlugs(): Promise<{ slug: string }[]> {
+    return prisma.outlet.findMany({
+      select: { slug: true },
     });
   }
 
@@ -93,6 +106,10 @@ export class OutletRepository extends BaseRepository {
         seoDescription: true,
         logoUrl: true,
         coverUrl: true,
+        ratingValue: true,
+        reviewCount: true,
+        latitude: true,
+        longitude: true,
       },
     });
   }

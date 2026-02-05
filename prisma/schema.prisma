@@ -152,6 +152,11 @@ model Outlet {
   seoDescription String?
   logoUrl       String?
   coverUrl      String?
+  // SEO / rich results (optional; for AggregateRating and GeoCoordinates)
+  ratingValue   Float?                // 1–5, for schema.org aggregateRating
+  reviewCount   Int?                  // number of reviews
+  latitude      Float?                // for schema.org geo
+  longitude     Float?
   isPro         Boolean               @default(false)
   
   // Owner relationship (1 OWNER bisa memiliki banyak outlet)

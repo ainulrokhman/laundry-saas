@@ -17,6 +17,10 @@ describe('OutletPublicDTO', () => {
     seoDescription: 'Meta',
     logoUrl: 'https://a.com/logo.png',
     coverUrl: 'https://a.com/cover.png',
+    ratingValue: null,
+    reviewCount: null,
+    latitude: null,
+    longitude: null,
   };
 
   describe('toResponse', () => {
@@ -37,7 +41,7 @@ describe('OutletPublicDTO', () => {
     });
 
     it('should use null for optional null fields', () => {
-      const withNulls = {
+      const withNulls: OutletPublicRecord = {
         ...mockOutlet,
         description: null,
         contactPhone: null,
@@ -46,6 +50,10 @@ describe('OutletPublicDTO', () => {
         seoDescription: null,
         logoUrl: null,
         coverUrl: null,
+        ratingValue: null,
+        reviewCount: null,
+        latitude: null,
+        longitude: null,
       };
       const result = OutletPublicDTO.toResponse(withNulls);
       expect(result.description).toBeNull();
