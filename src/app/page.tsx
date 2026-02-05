@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { PACKAGE_DEFINITIONS, PackageFeature, FEATURE_LABELS } from '@/constants/packageFeatures';
 import { PWAInstallAlert } from '@/components/public/PWAInstallAlert';
@@ -40,10 +41,13 @@ export default function HomePage() {
       <nav className="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
         <div className="container mx-auto px-4 h-16 d-flex align-items-center justify-content-between">
           <Link href="/" className="text-decoration-none d-flex align-items-center gap-2">
-            <img
+            <Image
               src="/images/logo.png"
               alt="Kasirlondri Logo"
+              width={342}
+              height={112}
               className="h-14 w-auto object-contain"
+              priority
             />
           </Link>
 

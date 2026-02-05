@@ -12,6 +12,7 @@
 
 'use client';
 
+import Image from 'next/image';
 import { useSession, signOut } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -441,9 +442,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             onClick={closeSidebarIfMobileOpen}
           >
             {/* Brand Text */}
-            <img
+            <Image
               src="/images/logo-light.png"
               alt="Kasirlondri Logo"
+              width={80}
+              height={80}
               className="brand-image img-circle elevation-3 p-3"
               style={{ opacity: 0.9, maxHeight: '100%' }}
             />

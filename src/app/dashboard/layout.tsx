@@ -4,6 +4,8 @@
  * Wraps all dashboard pages with AdminLTE layout
  */
 
+import "admin-lte/dist/css/adminlte.min.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
 import { DashboardLayout } from '@/components/adminlte/DashboardLayout';
 import { AdminLTEProvider } from '@/components/adminlte/AdminLTEProvider';
 
