@@ -7,6 +7,7 @@ import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { SWRegistration } from "@/components/pwa/SWRegistration";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -67,6 +68,7 @@ export default function RootLayout({
         <SessionProvider>
           <SWRegistration />
           {children}
+          <SpeedInsights />
         </SessionProvider>
       </body>
     </html>
