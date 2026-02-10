@@ -55,8 +55,17 @@ type OrderDetail = {
   completedAt: string | null;
   paidAt: string | null;
   paymentNote: string | null;
+  dpAmount?: number;
+  dpPaidAt?: string | null;
   items?: OrderItemRow[];
   statusHistory?: StatusHistoryRow[];
+  transactions?: Array<{
+    id: string;
+    amount: number;
+    paymentMethod: string;
+    status: PaymentStatus;
+    createdAt: string;
+  }>;
 };
 
 type ApiDetailResponse = {
@@ -95,7 +104,7 @@ function labelStatus(status: OrderStatus): string {
 function labelPayment(status: PaymentStatus): string {
   if (status === "SETTLEMENT") return "Lunas";
   if (status === "UNPAID") return "Belum dibayar";
-  if (status === "PENDING") return "Menunggu";
+  if (status === "PENDING") return "DP";
   if (status === "FAILURE") return "Gagal";
   return status;
 }
@@ -399,30 +408,121 @@ export default function OrderDetailPage() {
                   </h3>
                 </div>
                 <div className="card-body">
-                  <div className="d-flex justify-content-between flex-wrap gap-3">
-                    <div>
-                      <div className="text-muted small">Status</div>
+                  <div className="row g-2">
+                    <div className="col-4">
+                      <div className="text-muted small">Status Order</div>
                       <span className={`badge ${statusBadge(detail.status)}`}>
                         {labelStatus(detail.status)}
                       </span>
-                      <div className="text-muted small mt-3">Pembayaran</div>
+                    </div>
+                    <div className="col-4">
+                      <div className="text-muted small">Pembayaran</div>
                       <span
                         className={`badge ${paymentBadge(detail.paymentStatus)}`}
                       >
                         {labelPayment(detail.paymentStatus)}
                       </span>
-                      {detail.paidAt ? (
-                        <div className="text-muted small mt-1">
-                          {formatDateTime(detail.paidAt)}
-                        </div>
-                      ) : null}
                     </div>
-                    <div className="text-end">
-                      <div className="text-muted small">Total</div>
-                      <div className="h5 mb-0 text-primary">
-                        {formatCurrency(Number(detail.totalAmount) || 0)}
+                    <div className="col-4">
+                      <div className="text-end">
+                        <div className="text-muted small">Total</div>
+                        <div className="h5 mb-0 text-primary">
+                          {formatCurrency(Number(detail.totalAmount) || 0)}
+                        </div>
                       </div>
                     </div>
+                  </div>
+                  <div className="col-md-12">
+
+                    {/* Payment History Simplified */}
+
+
+                    {/* Payment History Table (Constructed from Order fields if transactions empty) */}
+                    {(() => {
+                      // Construct payment history from Order fields if transactions are empty or we want to ensure coverage
+                      const historyItems: Array<{
+                        date: string;
+                        statusLabel: string;
+                        amount: number;
+                        status: string; // for styling if needed
+                      }> = [];
+
+                      // 1. Transactions (if any)
+                      if (detail.transactions && detail.transactions.length > 0) {
+                        detail.transactions.forEach(tx => {
+                          historyItems.push({
+                            date: tx.createdAt,
+                            statusLabel: tx.status === 'PENDING' ? 'DP' :
+                              tx.status === 'SETTLEMENT' ? 'Pelunasan' :
+                                tx.status === 'FAILURE' ? 'Gagal' :
+                                  tx.status === 'UNPAID' ? 'Belum Bayar' : tx.status,
+                            amount: tx.amount,
+                            status: tx.status
+                          });
+                        });
+                      } else {
+                        // 2. Fallback: Construct from Order fields (for manual orders)
+
+                        // DP Payment
+                        if ((detail.dpAmount || 0) > 0) {
+                          historyItems.push({
+                            date: detail.dpPaidAt ? detail.dpPaidAt : detail.createdAt,
+                            statusLabel: 'DP',
+                            amount: detail.dpAmount || 0,
+                            status: 'DP'
+                          });
+                        }
+
+                        // Settlement Payment
+                        if (detail.paymentStatus === 'SETTLEMENT') {
+                          const settledAmount = (Number(detail.totalAmount) || 0) - (Number(detail.dpAmount) || 0);
+                          // Only show settlement row if there was a remaining amount to pay, 
+                          // OR if it's a direct full payment (dpAmount 0)
+                          if (settledAmount > 0 || (detail.dpAmount || 0) === 0) {
+                            historyItems.push({
+                              date: detail.paidAt ? detail.paidAt : detail.updatedAt,
+                              statusLabel: 'Pelunasan',
+                              amount: settledAmount,
+                              status: 'SETTLEMENT'
+                            });
+                          }
+                        }
+                      }
+
+                      // Sort asc (DP first, then Pelunasan)
+                      historyItems.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+                      if (historyItems.length === 0) return null;
+
+                      return (
+                        <>
+                          <hr className="my-3" />
+                          <div className="table-responsive">
+                            <table className="table table-sm table-borderless table-striped mb-0 small">
+                              <tbody>
+                                {historyItems.map((item, idx) => (
+                                  <tr key={idx}>
+                                    <td className="text-muted" style={{ width: '30%' }}>{formatDateTime(item.date)}</td>
+                                    <td style={{ width: '30%' }}>{item.statusLabel}</td>
+                                    <td className="text-end fw-bold" style={{ width: '40%' }}>{formatCurrency(item.amount)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </>
+                      );
+                    })()}
+
+                    {/* Remaining Balance if applicable */}
+                    {detail.paymentStatus === 'PENDING' && (
+                      <div className="text-end border-top pt-1 mt-1">
+                        <small className="text-muted">Sisa Tagihan: </small>
+                        <span className="text-danger fw-bold">
+                          {formatCurrency(Math.max(0, (Number(detail.totalAmount) || 0) - (Number(detail.dpAmount) || 0)))}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <hr className="my-3" />

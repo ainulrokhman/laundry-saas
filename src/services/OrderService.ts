@@ -43,6 +43,7 @@ export type UpdateOrderDpInput = {
   dpAmount: number;
   dpPaidAt?: string; // ISO
   dpNote?: string;
+  cashReceived?: number;
 };
 
 function isIntegerLike(n: number): boolean {
@@ -309,6 +310,7 @@ export class OrderService extends BaseService {
       dpNote,
       paymentStatus: nextPaymentStatus,
       paidAt: nextPaidAt,
+      cashReceived: input.cashReceived ? roundIdr(Number(input.cashReceived)) : 0,
       // Tetap bookkeeping: jangan set paymentMethod untuk order laundry
       paymentMethod: null,
     } as any);

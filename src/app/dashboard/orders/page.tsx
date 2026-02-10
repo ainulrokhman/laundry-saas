@@ -36,6 +36,7 @@ type OrderRow = {
   paymentNote: string | null;
   outletId?: string;
   outletName?: string;
+  dpAmount?: number;
 };
 
 type ApiListResponse = {
@@ -81,7 +82,7 @@ function statusBadge(status: OrderStatus): string {
 function labelPayment(status: PaymentStatus): string {
   if (status === "SETTLEMENT") return "Lunas";
   if (status === "UNPAID") return "Belum dibayar";
-  if (status === "PENDING") return "Menunggu";
+  if (status === "PENDING") return "DP";
   if (status === "FAILURE") return "Gagal";
   return status;
 }
@@ -123,7 +124,7 @@ export default function OrdersPage() {
   const [query, setQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<"ALL" | OrderStatus>("ALL");
   const [filterPayment, setFilterPayment] = useState<
-    "ALL" | "UNPAID" | "SETTLEMENT"
+    "ALL" | "UNPAID" | "PENDING" | "SETTLEMENT"
   >("ALL");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
@@ -356,6 +357,7 @@ export default function OrdersPage() {
   const paymentChips = [
     { value: "ALL", label: "Semua" },
     { value: "UNPAID", label: "Belum Bayar" },
+    { value: "PENDING", label: "DP" },
     { value: "SETTLEMENT", label: "Lunas" },
   ];
 
@@ -541,6 +543,7 @@ export default function OrdersPage() {
                 >
                   <option value="ALL">Semua</option>
                   <option value="UNPAID">Belum dibayar</option>
+                  <option value="PENDING">DP</option>
                   <option value="SETTLEMENT">Lunas</option>
                 </select>
               </div>
@@ -646,6 +649,11 @@ export default function OrdersPage() {
                         >
                           {labelPayment(o.paymentStatus)}
                         </span>
+                        {o.paymentStatus === "PENDING" && (o.dpAmount ?? 0) > 0 && (
+                          <div className="text-warning small fw-bold">
+                            DP: {formatCurrency(o.dpAmount!)}
+                          </div>
+                        )}
                         {o.paidAt ? (
                           <div className="text-muted small">
                             {formatDateTime(o.paidAt)}

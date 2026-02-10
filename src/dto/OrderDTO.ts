@@ -22,6 +22,7 @@ export interface OrderWithRelations extends Order {
     amount: number;
     paymentMethod: PaymentMethod | null;
     status: PaymentStatus;
+    createdAt: Date;
   }>;
 }
 
@@ -44,6 +45,7 @@ export class OrderDTO {
       paymentNote: paymentNote || null,
       totalAmount: order.totalAmount,
       dpAmount: order.dpAmount || 0,
+      dpPaidAt: (order as any).dpPaidAt ? new Date((order as any).dpPaidAt).toISOString() : null,
       cashReceived: order.cashReceived || 0,
       customerName: order.customerName || null,
       customerPhone: order.customerPhone ? this.maskPhone(order.customerPhone) : null, // Mask phone for privacy
@@ -72,6 +74,7 @@ export class OrderDTO {
           amount: tx.amount,
           paymentMethod: tx.paymentMethod,
           status: tx.status,
+          createdAt: tx.createdAt.toISOString(),
         })),
       }),
     };

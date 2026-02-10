@@ -794,16 +794,32 @@ export default function NewOrderPage() {
                                             adjustment: receiptData.adjustment,
                                             totalAmount: receiptData.total,
 
-                                            // Mapped payment info
-                                            title: receiptData.paymentType === "dp" ? "DP Bayar" : "Tunai",
+                                            // Payment Info
+                                            title: receiptData.paymentType === "dp"
+                                                ? "Pembayaran DP"
+                                                : "Pembayaran",
 
-                                            // billAmount: what they are paying for (e.g. DP amount or Total amount)
-                                            billAmount: receiptData.paymentType === "dp" ? receiptData.dpAmount : receiptData.total,
+                                            paymentStatusLabel: receiptData.paymentType === "dp"
+                                                ? "DP / Menunggu Pelunasan"
+                                                : "Lunas",
 
-                                            // paymentAmount: money received (cash handed over)
-                                            paymentAmount: receiptData.paymentType === "dp" ? (receiptData.dpAmount + receiptData.change) : receiptData.cashReceived,
+                                            // billAmount: what they are paying for
+                                            billAmount: receiptData.paymentType === "dp"
+                                                ? receiptData.dpAmount
+                                                : receiptData.total,
 
+                                            // paymentAmount: cash received
+                                            // For DP: uses cashReceived (which is for DP). 
+                                            // For Full: uses cashReceived.
+                                            paymentAmount: receiptData.cashReceived,
+
+                                            // changeAmount: calculated in handleSubmit
                                             changeAmount: receiptData.change,
+
+                                            // Remaining Balance (Total - Paid)
+                                            remainingAmount: receiptData.paymentType === "dp"
+                                                ? Math.max(0, receiptData.total - receiptData.dpAmount)
+                                                : 0,
                                         }}
                                     />
                                 </div>

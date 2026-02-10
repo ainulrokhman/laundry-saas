@@ -354,7 +354,13 @@ export default function OrderInvoicePage() {
   const dpChangeDue = useMemo(() => Math.max(0, dpCashReceived - dpAmount), [dpCashReceived, dpAmount]);
   const dpShortfall = useMemo(() => Math.max(0, dpAmount - dpCashReceived), [dpCashReceived, dpAmount]);
 
-  const settleAmount = useMemo(() => (data ? Math.max(0, Math.round(data.remainingAmount)) : 0), [data]);
+  const settleAmount = useMemo(() => {
+    if (!data) return 0;
+    if (data.paymentStatus === 'SETTLEMENT') {
+      return Math.max(0, Math.round(data.totalAmount - (data.dpAmount || 0)));
+    }
+    return Math.max(0, Math.round(data.remainingAmount));
+  }, [data]);
   const settleCashReceived = useMemo(() => parseIdrFromDigits(settleCashDigits), [settleCashDigits]);
   const settleChangeDue = useMemo(() => Math.max(0, settleCashReceived - settleAmount), [settleCashReceived, settleAmount]);
   const settleShortfall = useMemo(() => Math.max(0, settleAmount - settleCashReceived), [settleCashReceived, settleAmount]);
@@ -446,6 +452,7 @@ export default function OrderInvoicePage() {
         body: JSON.stringify({
           dpAmount,
           dpNote: dpNote.trim() || undefined,
+          cashReceived: dpCashReceived,
         }),
       });
       const json = (await res.json().catch(() => null)) as ApiResponse | null;
@@ -661,11 +668,14 @@ export default function OrderInvoicePage() {
 
   function buildEscposBytes(context: 'settle' | 'dp'): Uint8Array {
     if (!data) return new Uint8Array();
-    const payAmount = context === 'dp' ? dpAmount : data.paymentStatus === 'SETTLEMENT' ? data.totalAmount : settleAmount;
-    const cashReceived = context === 'dp' ? dpCashReceived : settleCashReceived;
-    const changeDue = context === 'dp' ? dpChangeDue : settleChangeDue;
-    const shortfall = context === 'dp' ? dpShortfall : settleShortfall;
-    const payTitle = context === 'dp' ? 'DP' : data.paymentStatus === 'SETTLEMENT' ? 'BAYAR' : 'LUNAS';
+    const payAmount = context === 'dp' ? dpAmount : settleAmount;
+    // For "No Live Update", we use DB values for receipts.
+    // If context is 'dp', we use dpAmount (which is likely what was paid).
+    // If context is 'settle', we use cashReceived from DB if settled, else 0 (unpaid/partial).
+    const cashReceived = context === 'dp' ? (data.dpAmount || 0) : (data.paymentStatus === 'SETTLEMENT' ? (data.cashReceived || settleAmount) : 0);
+    const changeDue = Math.max(0, cashReceived - payAmount);
+    const shortfall = Math.max(0, payAmount - cashReceived);
+    const payTitle = context === 'dp' ? 'DP' : (data.dpAmount > 0 ? 'Pelunasan' : 'Pembayaran');
 
     const lines = [
       { left: data.outlet.name },
@@ -681,13 +691,19 @@ export default function OrderInvoicePage() {
         right: formatCurrency(it.subtotal),
       })),
       { left: '--------------------------------' },
-      { left: 'Total', right: formatCurrency(data.totalAmount) },
-      ...(data.dpAmount > 0 ? [{ left: 'DP', right: formatCurrency(data.dpAmount) }] : []),
-      { left: 'Sisa', right: formatCurrency(data.remainingAmount) },
-      { left: payTitle, right: formatCurrency(payAmount) },
-      ...(cashReceived > 0 ? [{ left: 'Diterima', right: formatCurrency(cashReceived) }] : []),
-      ...(changeDue > 0 ? [{ left: 'Kembalian', right: formatCurrency(changeDue) }] : []),
-      ...(shortfall > 0 ? [{ left: 'Kurang', right: formatCurrency(shortfall) }] : []),
+      { left: '--------------------------------' },
+      { left: 'Total Order', right: formatCurrency(data.totalAmount) },
+      { left: 'DP', right: (data.dpAmount > 0 ? formatCurrency(data.dpAmount) : '-') },
+      { left: 'Pelunasan', right: (data.paymentStatus === 'SETTLEMENT' ? formatCurrency(data.totalAmount - (data.dpAmount || 0)) : '-') },
+      { left: '--------------------------------' },
+
+      // Transaction Details (only if relevant)
+      ...(cashReceived > 0 ? [{ left: 'Bayar', right: formatCurrency(cashReceived) }] : []),
+      ...((changeDue > 0 || (data.paymentStatus === 'SETTLEMENT' && cashReceived > 0)) ? [{ left: 'Kembalian', right: formatCurrency(changeDue) }] : []),
+      ...(shortfall > 0 ? [{ left: 'Kurang Bayar', right: formatCurrency(shortfall) }] : []),
+
+      { left: 'Sisa Tagihan', right: formatCurrency(data.remainingAmount) },
+      { left: 'Status', right: paymentLabel(data.paymentStatus) },
       { left: '--------------------------------' },
     ];
 
@@ -887,11 +903,15 @@ export default function OrderInvoicePage() {
 
               paymentStatusLabel: paymentLabel(data.paymentStatus),
 
-              title: receiptContext === 'dp' ? 'Pembayaran DP' : data.paymentStatus === 'SETTLEMENT' ? 'Pembayaran' : 'Pelunasan',
-              billAmount: receiptContext === 'dp' ? dpAmount : data.paymentStatus === 'SETTLEMENT' ? data.totalAmount : settleAmount,
-              paymentAmount: receiptContext === 'dp' ? dpCashReceived : settleCashReceived,
-              changeAmount: receiptContext === 'dp' ? dpChangeDue : settleChangeDue,
-              shortfallAmount: receiptContext === 'dp' ? dpShortfall : settleShortfall
+              title: receiptContext === 'dp' ? 'DP' : (data.dpAmount > 0 ? 'Pelunasan' : 'Pembayaran'),
+              billAmount: receiptContext === 'dp' ? dpAmount : settleAmount,
+              paymentAmount: receiptContext === 'dp' ? (data.dpAmount || 0) : (data.paymentStatus === 'SETTLEMENT' ? (data.cashReceived || settleAmount) : 0),
+              changeAmount: 0, // Since we don't track change in DB (usually), or assume exact if paid. If we want change from DB, we'd need it. Assuming 0 for "No Live Update" implies showing what's recorded.
+              shortfallAmount: receiptContext === 'dp' ? 0 : (data.paymentStatus === 'SETTLEMENT' ? 0 : settleAmount),
+              remainingAmount: data.paymentStatus === 'SETTLEMENT' ? 0 : data.remainingAmount,
+              historyDpAmount: data.paymentStatus === 'SETTLEMENT' ? data.dpAmount : undefined,
+              dpAmount: data.dpAmount,
+              isSettled: data.paymentStatus === 'SETTLEMENT'
             }}
           />
         </div>
@@ -982,12 +1002,18 @@ export default function OrderInvoicePage() {
 
                           paymentStatusLabel: paymentLabel(data.paymentStatus),
 
-                          title: data.paymentStatus === 'SETTLEMENT' ? 'Pembayaran' : 'Pelunasan',
-                          billAmount: data.paymentStatus === 'SETTLEMENT' ? data.totalAmount : settleAmount,
-                          paymentAmount: settleCashReceived,
-                          changeAmount: settleChangeDue,
-                          shortfallAmount: settleShortfall
+                          title: (data.dpAmount > 0 ? 'Pelunasan' : 'Pembayaran'),
+                          billAmount: settleAmount,
+                          paymentAmount: data.paymentStatus === 'SETTLEMENT' ? (data.cashReceived || settleAmount) : 0,
+                          changeAmount: data.paymentStatus === 'SETTLEMENT' ? Math.max(0, (data.cashReceived || settleAmount) - settleAmount) : 0,
+                          shortfallAmount: data.paymentStatus === 'SETTLEMENT' ? Math.max(0, settleAmount - (data.cashReceived || settleAmount)) : settleAmount,
+                          remainingAmount: data.paymentStatus === 'SETTLEMENT' ? 0 : data.remainingAmount,
+                          historyDpAmount: data.paymentStatus === 'SETTLEMENT' ? data.dpAmount : undefined,
+                          dpAmount: data.dpAmount,
+                          isSettled: data.paymentStatus === 'SETTLEMENT'
                         }}
+
+
                       />
                     </div>
                   ) : (

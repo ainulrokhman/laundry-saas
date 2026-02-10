@@ -31,6 +31,7 @@ const patchSchema = z
     dpAmount: z.coerce.number().finite().min(0, 'Nominal DP minimal 0'),
     dpPaidAt: z.string().datetime().optional(),
     dpNote: z.string().trim().max(200, 'Catatan DP maksimal 200 karakter').optional(),
+    cashReceived: z.coerce.number().finite().min(0).optional(),
   })
   .strict();
 
@@ -67,6 +68,7 @@ export async function PATCH(
           dpAmount: validated.dpAmount,
           dpPaidAt: validated.dpPaidAt,
           dpNote: validated.dpNote,
+          cashReceived: validated.cashReceived,
         });
 
         // Kembalikan payload invoice agar UI invoice langsung sinkron
