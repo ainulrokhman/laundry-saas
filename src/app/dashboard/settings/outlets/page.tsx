@@ -21,6 +21,7 @@ export default function OutreachSettingsPage() {
 
     // Modal State
     const [showModal, setShowModal] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         name: '',
         address: '',
@@ -47,13 +48,19 @@ export default function OutreachSettingsPage() {
         }
     };
 
-    const handleCreateOutlet = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
 
         try {
-            const res = await fetch('/api/dashboard/outlets', {
-                method: 'POST',
+            const url = editingId
+                ? `/api/dashboard/outlets/${editingId}`
+                : '/api/dashboard/outlets';
+
+            const method = editingId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
@@ -61,12 +68,12 @@ export default function OutreachSettingsPage() {
             const json = await res.json();
 
             if (!res.ok) {
-                throw new Error(json.error || 'Gagal membuat outlet');
+                throw new Error(json.error || (editingId ? 'Gagal memperbarui outlet' : 'Gagal membuat outlet'));
             }
 
-            Swal.fire('Berhasil', 'Outlet berhasil dibuat', 'success');
+            Swal.fire('Berhasil', editingId ? 'Outlet berhasil diperbarui' : 'Outlet berhasil dibuat', 'success');
             setShowModal(false);
-            setFormData({ name: '', address: '', phone: '', slug: '' });
+            resetForm();
             fetchOutlets();
         } catch (error: any) {
             Swal.fire('Gagal', error.message, 'error');
@@ -75,8 +82,31 @@ export default function OutreachSettingsPage() {
         }
     };
 
+    const resetForm = () => {
+        setFormData({ name: '', address: '', phone: '', slug: '' });
+        setEditingId(null);
+    };
+
+    const handleCreate = () => {
+        resetForm();
+        setShowModal(true);
+    };
+
+    const handleEdit = (outlet: Outlet) => {
+        setEditingId(outlet.id);
+        setFormData({
+            name: outlet.name,
+            address: outlet.address,
+            phone: outlet.contactPhone || '',
+            slug: outlet.slug
+        });
+        setShowModal(true);
+    };
+
     // Auto-generate slug from name
     const handleNameChange = (val: string) => {
+        // Only auto-generate slug if we are creating a new outlet, OR if the user hasn't manually edited the slug yet (implied for simplicity here we just always update it for now, user can edit slug manually after)
+        // Ideally we might want to decouple them in edit mode, but for now we'll keep the behavior consistent: changing name changes slug recommendation.
         const slug = val.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
         setFormData(prev => ({ ...prev, name: val, slug }));
     };
@@ -111,7 +141,7 @@ export default function OutreachSettingsPage() {
                             </h5>
                             <button
                                 className="btn btn-primary"
-                                onClick={() => setShowModal(true)}
+                                onClick={handleCreate}
                             >
                                 <i className="fas fa-plus me-2"></i> Tambah Outlet
                             </button>
@@ -139,7 +169,10 @@ export default function OutreachSettingsPage() {
                                                 <span className="badge bg-success">Aktif</span>
                                             </td>
                                             <td className="text-end pe-4">
-                                                <button className="btn btn-sm btn-outline-primary me-1">
+                                                <button
+                                                    className="btn btn-sm btn-outline-primary me-1"
+                                                    onClick={() => handleEdit(outlet)}
+                                                >
                                                     <i className="fas fa-edit"></i>
                                                 </button>
                                             </td>
@@ -161,17 +194,19 @@ export default function OutreachSettingsPage() {
                 </div>
             </div>
 
-            {/* Modal Create Outlet */}
+            {/* Modal Create/Edit Outlet */}
             {showModal && (
                 <>
                     <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
                         <div className="modal-dialog modal-dialog-centered">
                             <div className="modal-content border-0 shadow-lg">
                                 <div className="modal-header bg-primary text-white">
-                                    <h5 className="modal-title fw-bold">Tambah Outlet Baru</h5>
+                                    <h5 className="modal-title fw-bold">
+                                        {editingId ? 'Edit Outlet' : 'Tambah Outlet Baru'}
+                                    </h5>
                                     <button type="button" className="btn-close btn-close-white" onClick={() => setShowModal(false)}></button>
                                 </div>
-                                <form onSubmit={handleCreateOutlet}>
+                                <form onSubmit={handleSubmit}>
                                     <div className="modal-body p-4">
                                         <div className="mb-3">
                                             <label className="form-label fw-bold small text-uppercase text-muted">Nama Outlet</label>
@@ -224,7 +259,7 @@ export default function OutreachSettingsPage() {
                                     <div className="modal-footer bg-light">
                                         <button type="button" className="btn btn-link text-muted text-decoration-none" onClick={() => setShowModal(false)}>Batal</button>
                                         <button type="submit" className="btn btn-primary px-4" disabled={submitting}>
-                                            {submitting ? 'Menyimpan...' : 'Simpan Outlet'}
+                                            {submitting ? 'Menyimpan...' : (editingId ? 'Simpan Perubahan' : 'Simpan Outlet')}
                                         </button>
                                     </div>
                                 </form>

@@ -17,6 +17,7 @@ export class OutletDTO {
       name: outlet.name,
       slug: outlet.slug,
       address: outlet.address,
+      contactPhone: outlet.contactPhone,
       isPro: outlet.isPro,
       createdAt: outlet.createdAt.toISOString(),
       updatedAt: outlet.updatedAt.toISOString(),
