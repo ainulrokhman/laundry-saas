@@ -30,6 +30,7 @@ type CartItem = {
     serviceUnit: string | null;
     quantity: number;
     unitPrice: number;
+    quantityInputValue?: string;
 };
 
 function defaultQuantity(type: ServiceType): number {
@@ -241,7 +242,7 @@ export default function NewOrderPage() {
             const idx = prev.findIndex((item) => item.serviceId === service.id);
             if (idx !== -1) {
                 const newItems = [...prev];
-                const inc = allowDecimalQty(service.type) ? 0.1 : 1;
+                const inc = allowDecimalQty(service.type) ? 0.5 : 1;
                 newItems[idx] = { ...newItems[idx], quantity: Math.round((newItems[idx].quantity + inc) * 10) / 10 };
                 return newItems;
             } else {
@@ -261,10 +262,58 @@ export default function NewOrderPage() {
     function updateItemQuantity(key: string, delta: number) {
         setItems((prev) => prev.map((x) => {
             if (x.key !== key) return x;
-            const newQty = Math.round((x.quantity + delta) * 10) / 10;
-            const minQty = allowDecimalQty(x.serviceType) ? 0.1 : 1;
+            const newQty = Math.round((x.quantity + delta * (allowDecimalQty(x.serviceType) ? 0.5 : 1)) * 10) / 10;
+            const minQty = allowDecimalQty(x.serviceType) ? 0.5 : 1;
             if (newQty < minQty) return x;
-            return { ...x, quantity: newQty };
+            return { ...x, quantity: newQty, quantityInputValue: undefined };
+        }));
+    }
+
+    function handleQuantityChange(key: string, val: string) {
+        setItems((prev) => prev.map((x) => {
+            if (x.key !== key) return x;
+            // Force replace dot with comma
+            const fixedVal = val.replace(/\./g, ',');
+            // Validate: Allow digits and ONE comma
+            // If user types multiple commas, ignore the extra ones or just take the first part?
+            // Simple approach: remove non-digit non-comma chars
+            const sanitized = fixedVal.replace(/[^0-9,]/g, '');
+
+            // Allow only one comma (prevent 1,2,3)
+            const parts = sanitized.split(',');
+            let finalVal = sanitized;
+            if (parts.length > 2) {
+                finalVal = parts[0] + ',' + parts.slice(1).join('');
+            }
+
+            const normalized = finalVal.replace(',', '.');
+            const parsed = parseFloat(normalized);
+            let newQty = x.quantity;
+            if (!isNaN(parsed)) {
+                newQty = parsed;
+            } else if (finalVal === "") {
+                newQty = 0;
+            }
+            return { ...x, quantityInputValue: finalVal, quantity: newQty };
+        }));
+    }
+
+    function handleQuantityBlur(key: string) {
+        setItems((prev) => prev.map((x) => {
+            if (x.key !== key) return x;
+            let finalQty = x.quantity || 0;
+            const minQty = allowDecimalQty(x.serviceType) ? 0.5 : 1;
+            if (finalQty < minQty) finalQty = minQty;
+
+            if (!allowDecimalQty(x.serviceType)) {
+                finalQty = Math.round(finalQty);
+            } else {
+                finalQty = Math.round(finalQty * 100) / 100;
+            }
+            // Format for display (optional: stick to undefined to rely on render logic)
+            // But if we want consistent comma on blur:
+            // Actually, best to clear input value and let render handle standard formatting
+            return { ...x, quantity: finalQty, quantityInputValue: undefined };
         }));
     }
 
@@ -616,7 +665,17 @@ export default function NewOrderPage() {
                                         {/* QTY Control */}
                                         <div className="d-flex align-items-center gap-2">
                                             <button className="btn btn-primary btn-sm rounded-circle d-flex align-items-center justify-content-center p-0" style={{ width: 24, height: 24 }} onClick={() => updateItemQuantity(item.key, -1)}><i className="fas fa-minus" style={{ fontSize: 10 }}></i></button>
-                                            <span className="fw-bold small" style={{ minWidth: 20, textAlign: "center" }}>{item.quantity}</span>
+
+                                            <input
+                                                type="text"
+                                                inputMode="decimal"
+                                                className="form-control form-control-sm text-center p-0 mx-1 fw-bold border-0 bg-transparent"
+                                                style={{ width: "50px", appearance: "textfield" }}
+                                                value={item.quantityInputValue !== undefined ? item.quantityInputValue : item.quantity.toString().replace('.', ',')}
+                                                onChange={(e) => handleQuantityChange(item.key, e.target.value)}
+                                                onBlur={() => handleQuantityBlur(item.key)}
+                                            />
+
                                             <button className="btn btn-primary btn-sm rounded-circle d-flex align-items-center justify-content-center p-0" style={{ width: 24, height: 24 }} onClick={() => updateItemQuantity(item.key, 1)}><i className="fas fa-plus" style={{ fontSize: 10 }}></i></button>
                                         </div>
 
