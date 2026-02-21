@@ -23,7 +23,7 @@ Sebelum memulai instalasi, pastikan server/komputer Anda telah memiliki:
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/your-username/laundry-saas.git
+git clone https://github.com/ainulrokhman/laundry-saas.git
 cd laundry-saas
 ```
 
@@ -189,7 +189,7 @@ npm install -g pm2
 ### 5. Clone & Install Aplikasi
 
 ```bash
-git clone https://github.com/your-username/laundry-saas.git
+git clone https://github.com/ainulrokhman/laundry-saas.git
 cd laundry-saas
 npm install
 ```
