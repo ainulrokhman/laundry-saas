@@ -69,6 +69,13 @@ const menuItems: MenuItem[] = [
     scope: 'outlet',
   },
   {
+    label: 'Paket Member',
+    icon: 'fas fa-box-open',
+    href: '/dashboard/member-packages',
+    roles: [Role.OWNER],
+    scope: 'outlet',
+  },
+  {
     label: 'Customers',
     icon: 'fas fa-users',
     href: '/dashboard/customers',

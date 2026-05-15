@@ -8,7 +8,7 @@
 import { z } from "zod";
 import { withAuth } from "@/lib/proxy/route-proxy";
 import { ExtendedSession } from "@/lib/auth";
-import { Role, OrderStatus, PaymentStatus } from "@/generated/prisma";
+import { Role, OrderStatus, PaymentStatus, PaymentMethod, MemberQuotaType } from "@/generated/prisma";
 import { OrderService } from "@/services/OrderService";
 import { OrderDTO } from "@/dto/OrderDTO";
 import { prisma } from "@/lib/prisma";
@@ -80,6 +80,8 @@ const createSchema = z
       .finite()
       .min(0, "Uang diterima minimal 0")
       .optional(),
+    paymentMethod: z.nativeEnum(PaymentMethod).optional(),
+    quotaType: z.nativeEnum(MemberQuotaType).optional(),
   })
   .strict();
 
@@ -242,6 +244,8 @@ export const POST = withAuth(
         dpAmount: validated.dpAmount,
         dpNote: validated.dpNote,
         cashReceived: validated.cashReceived,
+        paymentMethod: validated.paymentMethod,
+        quotaType: validated.quotaType,
       });
 
       await securityLogService.logEvent({

@@ -67,6 +67,8 @@ export default function NewOrderPage() {
     const [customerName, setCustomerName] = useState("Umum");
     const [customerPhone, setCustomerPhone] = useState("");
     const [customerIsMember, setCustomerIsMember] = useState(false);
+    const [customerQuotas, setCustomerQuotas] = useState<any[]>([]);
+    const [loadingQuotas, setLoadingQuotas] = useState(false);
     const [notes] = useState("");
 
     // Outlet Info
@@ -89,7 +91,7 @@ export default function NewOrderPage() {
     const [paymentNote] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
-    const [paymentType, setPaymentType] = useState<"lunas" | "dp">("lunas");
+    const [paymentType, setPaymentType] = useState<"lunas" | "dp" | "quota">("lunas");
     const [dpAmountDigits, setDpAmountDigits] = useState<string>("0");
     const [cashReceivedDigits, setCashReceivedDigits] = useState<string>("0");
     const [adjustmentAmount, setAdjustmentAmount] = useState<number>(0);
@@ -192,6 +194,21 @@ export default function NewOrderPage() {
         }
     }
 
+    async function fetchCustomerQuotas(id: string) {
+        try {
+            setLoadingQuotas(true);
+            const res = await fetch(`/api/dashboard/customers/${id}/quotas`);
+            const json = await res.json();
+            if (res.ok && json?.success) {
+                setCustomerQuotas(json.data.balances || []);
+            }
+        } catch (_e) {
+            console.error("Failed to fetch quotas:", _e);
+        } finally {
+            setLoadingQuotas(false);
+        }
+    }
+
     useEffect(() => {
         if (showCustomerSearch && recentCustomers.length === 0) void fetchRecentCustomers();
     }, [showCustomerSearch, recentCustomers.length]);
@@ -271,8 +288,11 @@ export default function NewOrderPage() {
         setCustomerName(c.name);
         setCustomerPhone(c.phone || "");
         setCustomerIsMember(!!c.isMember);
+        setCustomerQuotas([]); // reset first
         setShowCustomerSearch(false);
         setCustomerSearchQuery("");
+
+        if (c.id) void fetchCustomerQuotas(c.id);
 
         // Auto-update prices in cart if applicable
         if (c.isMember) {
@@ -402,6 +422,40 @@ export default function NewOrderPage() {
         return { rows, subtotalAmount, totalAmount };
     }, [items, adjustmentAmount]);
 
+    const { canUseQuota, quotaToUse, quotaAmountToDeduct } = useMemo(() => {
+        if (!customerIsMember || items.length === 0) return { canUseQuota: false, quotaToUse: null, quotaAmountToDeduct: 0 };
+        
+        let totalKg = 0;
+        let totalPcs = 0;
+        let hasKg = false;
+        let hasPcs = false;
+
+        items.forEach(it => {
+            if (it.serviceUnit?.toLowerCase() === 'kg') {
+                totalKg += it.quantity;
+                hasKg = true;
+            } else if (it.serviceUnit?.toLowerCase() === 'pcs') {
+                totalPcs += it.quantity;
+                hasPcs = true;
+            }
+        });
+
+        // Limitation: one order can only use one type of quota
+        if (hasKg && hasPcs) return { canUseQuota: false, quotaToUse: null, quotaAmountToDeduct: 0 };
+
+        if (hasKg) {
+            const balance = customerQuotas.find(q => q.type === 'KG')?.balance || 0;
+            return { canUseQuota: balance >= totalKg, quotaToUse: 'KG' as const, quotaAmountToDeduct: totalKg };
+        }
+        
+        if (hasPcs) {
+            const balance = customerQuotas.find(q => q.type === 'PCS')?.balance || 0;
+            return { canUseQuota: balance >= totalPcs, quotaToUse: 'PCS' as const, quotaAmountToDeduct: totalPcs };
+        }
+
+        return { canUseQuota: false, quotaToUse: null, quotaAmountToDeduct: 0 };
+    }, [customerIsMember, items, customerQuotas]);
+
     // -- PAYMENT HELPER --
     function toDigitsOnly(val: string) { 
         const digits = val.replace(/\D/g, "");
@@ -431,10 +485,12 @@ export default function NewOrderPage() {
                 customerPhone: customerPhone.trim() || undefined,
                 notes: notes.trim() || undefined,
                 items: items.map(it => ({ serviceId: it.serviceId, quantity: it.quantity, unitPrice: it.unitPrice })),
-                paid: paymentType === "lunas",
+                paid: paymentType === "lunas" || paymentType === "quota",
+                paymentMethod: paymentType === "quota" ? "QUOTA" : undefined,
+                quotaType: paymentType === "quota" ? quotaToUse : undefined,
                 paymentNote: paymentNote.trim() || undefined,
                 dpAmount: paymentType === "dp" ? dpVal : undefined,
-                cashReceived: parseIdr(cashReceivedDigits),
+                cashReceived: paymentType === "quota" ? 0 : parseIdr(cashReceivedDigits),
             };
 
             const res = await fetch("/api/dashboard/orders", {
@@ -466,8 +522,14 @@ export default function NewOrderPage() {
                 dpAmount: dpVal,
                 cashReceived: finalCash,
                 change: finalChange,
-                outletName, // Add outlet name to receipt data
-                staffName: user?.name || "Petugas"
+                outletName,
+                staffName: user?.name || "Petugas",
+                // Quota Info
+                quotaUsed: finalType === "quota" ? quotaAmountToDeduct : undefined,
+                quotaType: finalType === "quota" ? (quotaToUse || undefined) : undefined,
+                remainingQuota: finalType === "quota" 
+                    ? (customerQuotas.find(q => q.type === quotaToUse)?.balance || 0) - quotaAmountToDeduct 
+                    : undefined
             });
 
             clearCart();
@@ -965,7 +1027,23 @@ export default function NewOrderPage() {
                                         >
                                             DP / UTANG
                                         </button>
+                                        <button 
+                                            className={`btn ${paymentType === "quota" ? "btn-info" : "btn-outline-secondary"}`}
+                                            disabled={!customerIsMember || !canUseQuota}
+                                            onClick={() => {
+                                                setPaymentType("quota");
+                                                setCashReceivedDigits("0");
+                                            }}
+                                        >
+                                            KUOTA {quotaToUse && `(${quotaToUse})`}
+                                            {loadingQuotas && <i className="fas fa-spinner fa-spin ms-1"></i>}
+                                        </button>
                                     </div>
+                                    {!customerIsMember && <div className="text-center small text-muted mt-1">Bukan Member</div>}
+                                    {customerIsMember && !loadingQuotas && !canUseQuota && (
+                                        <div className="text-center small text-danger mt-1">Saldo kuota tidak mencukupi</div>
+                                    )}
+                                    {loadingQuotas && <div className="text-center small text-muted mt-1">Mengecek kuota...</div>}
                                 </div>
 
                                 {paymentType === "dp" && (
@@ -1030,6 +1108,12 @@ export default function NewOrderPage() {
                                             subtotal: receiptData.subtotal,
                                             adjustment: receiptData.adjustment,
                                             totalAmount: receiptData.total,
+                                            
+                                            // Quota Info
+                                            isQuotaPayment: receiptData.paymentType === "quota",
+                                            quotaUsed: receiptData.quotaUsed,
+                                            quotaType: receiptData.quotaType,
+                                            remainingQuota: receiptData.remainingQuota,
 
                                             // Payment Info
                                             title: receiptData.paymentType === "dp"

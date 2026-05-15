@@ -6,12 +6,14 @@
 
 import { BaseService } from "./BaseService";
 import { SessionUser } from "@/lib/session";
-import { OrderStatus, PaymentStatus, Prisma } from "@/generated/prisma";
+import { OrderStatus, PaymentStatus, Prisma, PaymentMethod, MemberQuotaType } from "@/generated/prisma";
 import { generateTrackingCode, normalizePhoneNumber } from "@/lib/utils";
 import { OrderRepository } from "@/repositories/OrderRepository";
 import { OrderStatusHistoryRepository } from "@/repositories/OrderStatusHistoryRepository";
 import { ServiceRepository } from "@/repositories/ServiceRepository";
 import { CustomerRepository } from "@/repositories/CustomerRepository";
+import { QuotaService } from "./QuotaService";
+import { prisma } from "@/lib/prisma";
 
 export type CreateOrderItemInput = {
   serviceId: string;
@@ -31,6 +33,8 @@ export type CreateOrderInput = {
   dpAmount?: number;
   dpNote?: string;
   cashReceived?: number;
+  paymentMethod?: PaymentMethod;
+  quotaType?: MemberQuotaType;
 };
 
 export type UpdateOrderPaymentInput = {
@@ -61,6 +65,7 @@ export class OrderService extends BaseService {
     private orderRepository: OrderRepository = new OrderRepository(),
     private serviceRepository: ServiceRepository = new ServiceRepository(),
     private orderStatusHistoryRepository: OrderStatusHistoryRepository = new OrderStatusHistoryRepository(),
+    private quotaService: QuotaService = new QuotaService(),
   ) {
     super();
   }
@@ -167,11 +172,47 @@ export class OrderService extends BaseService {
     const dpNote = input.dpNote?.trim() || null;
     const dpPaidAt = dpAmount > 0 ? new Date() : null;
 
-    // Determine payment status based on DP and total
+    // Quota Payment Logic
+    const useQuota = input.paymentMethod === PaymentMethod.QUOTA;
+    const quotaType = input.quotaType;
+    let quotaAmountToDeduct = 0;
+
+    if (useQuota) {
+      if (!customerId) throw new Error("Pelanggan harus dipilih untuk pembayaran kuota");
+      if (!quotaType) throw new Error("Tipe kuota harus dipilih");
+
+      // Calculate total units matching the quota type
+      for (const item of items) {
+        if (
+          (quotaType === "KG" && item.serviceUnit?.toLowerCase() === "kg") ||
+          (quotaType === "PCS" && item.serviceUnit?.toLowerCase() === "pcs")
+        ) {
+          quotaAmountToDeduct += item.quantity;
+        }
+      }
+
+      if (quotaAmountToDeduct <= 0) {
+        throw new Error(`Tidak ada layanan yang cocok dengan kuota ${quotaType}`);
+      }
+
+      // Pre-check balance (Service will check again in transaction, but good for UX)
+      const balances = await this.quotaService.getCustomerQuotas(user, customerId);
+      const balance = balances.find(b => b.type === quotaType)?.balance || 0;
+      if (balance < quotaAmountToDeduct) {
+        throw new Error(`Saldo kuota ${quotaType} tidak mencukupi (Sisa: ${balance}, Dibutuhkan: ${quotaAmountToDeduct})`);
+      }
+    }
+
+    // Determine payment status based on Quota, DP and total
     let paymentStatus: PaymentStatus;
     let paidAt: Date | null = null;
+    let paymentMethod = input.paymentMethod || null;
 
-    if (input.paid) {
+    if (useQuota) {
+      paymentStatus = PaymentStatus.SETTLEMENT;
+      paidAt = new Date();
+      paymentMethod = PaymentMethod.QUOTA;
+    } else if (input.paid) {
       // Marked as fully paid
       paymentStatus = PaymentStatus.SETTLEMENT;
       paidAt = input.paidAt ? new Date(input.paidAt) : new Date();
@@ -187,9 +228,48 @@ export class OrderService extends BaseService {
       paymentStatus = PaymentStatus.UNPAID;
     }
 
-    // customerId is already validated above
+    // Create order + items in a transaction if using quota
+    const createFn = async (tx?: Prisma.TransactionClient) => {
+      const order = await this.orderRepository.createWithItems(
+        outletId,
+        {
+          trackingCode: "", // placeholder, will be set below
+          status: "QUEUED",
+          paymentStatus,
+          paymentMethod,
+          paidAt,
+          paymentNote,
+          totalAmount: roundIdr(totalAmount),
+          totalCogs: roundIdr(totalCogs),
+          dpAmount,
+          dpPaidAt,
+          dpNote,
+          cashReceived: input.cashReceived ? roundIdr(Number(input.cashReceived)) : 0,
+          customer: customerId ? { connect: { id: customerId } } : undefined,
+          customerName,
+          customerPhone,
+          notes,
+          completedAt: null,
+        } as any,
+        items,
+        tx
+      );
 
-    // Create order + items. trackingCode harus unik.
+      if (useQuota) {
+        await this.quotaService.deductQuotaForOrder(tx, {
+          customerId: customerId!,
+          outletId,
+          orderId: order.id,
+          amount: quotaAmountToDeduct,
+          quotaType: quotaType!,
+          description: `Pembayaran order ${order.trackingCode}`,
+        });
+      }
+
+      return order;
+    };
+
+    // Tracking code generation with retry
     for (let attempt = 0; attempt < 10; attempt++) {
       const trackingCode = generateTrackingCode(8);
       const exists = await this.orderRepository.findByTrackingCode(
@@ -199,37 +279,18 @@ export class OrderService extends BaseService {
       if (exists) continue;
 
       try {
-        return await this.orderRepository.createWithItems(
-          outletId,
-          {
-            trackingCode,
-            status: "QUEUED",
-            paymentStatus,
-            paymentMethod: null,
-            paidAt,
-            paymentNote,
-            totalAmount: roundIdr(totalAmount),
-            totalCogs: roundIdr(totalCogs),
-            dpAmount,
-            dpPaidAt,
-            dpNote,
-            cashReceived: input.cashReceived ? roundIdr(Number(input.cashReceived)) : 0,
-            customer: customerId ? { connect: { id: customerId } } : undefined, // Relasi ke Customer (null = pelanggan umum)
-            customerName,
-            customerPhone,
-            notes,
-            completedAt: null,
-          } as any,
-          items,
-        );
+        return await prisma.$transaction(async (tx) => {
+          const order = await createFn(tx);
+          // Update tracking code (since we generated it outside createFn to check existence)
+          return await tx.order.update({
+            where: { id: order.id },
+            data: { trackingCode },
+            include: { items: true },
+          });
+        });
       } catch (e) {
         const msg = e instanceof Error ? e.message : "";
-        // Hanya retry jika error spesifik terkait trackingCode unique constraint
-        const isTrackingCodeConflict =
-          msg.toLowerCase().includes("trackingcode") ||
-          (msg.toLowerCase().includes("unique") &&
-            msg.toLowerCase().includes("tracking"));
-        if (isTrackingCodeConflict) {
+        if (msg.toLowerCase().includes("trackingcode") || msg.toLowerCase().includes("unique")) {
           continue;
         }
         throw e;
@@ -360,18 +421,47 @@ export class OrderService extends BaseService {
       return order;
     }
 
-    const completedAt = nextStatus === OrderStatus.TAKEN ? new Date() : null;
+    const updated = await prisma.$transaction(async (tx) => {
+      // 1. Update status
+      const completedAt = nextStatus === OrderStatus.TAKEN ? new Date() : null;
+      const result = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: nextStatus,
+          completedAt,
+        },
+      });
 
-    const updated = await this.orderRepository.update(outletId, orderId, {
-      status: nextStatus,
-      completedAt,
-    } as any);
+      // 2. Log history
+      await tx.orderStatusHistory.create({
+        data: {
+          orderId,
+          fromStatus,
+          toStatus: nextStatus,
+          changedByUserId: user?.userId ?? null,
+        },
+      });
 
-    await this.orderStatusHistoryRepository.create(outletId, {
-      orderId,
-      fromStatus,
-      toStatus: nextStatus,
-      changedByUserId: user?.userId ?? null,
+      // 3. Handle Quota Refund if CANCELLED
+      if (nextStatus === (OrderStatus as any).CANCELLED && order.paymentMethod === PaymentMethod.QUOTA) {
+        // Find the quota transaction for this order
+        const quotaTx = await tx.quotaTransaction.findFirst({
+          where: { orderId: order.id, type: "USAGE" }
+        });
+
+        if (quotaTx) {
+          await this.quotaService.refundQuotaForOrder(tx, {
+            customerId: order.customerId!,
+            outletId,
+            orderId: order.id,
+            amount: Math.abs(quotaTx.amount),
+            quotaType: quotaTx.quotaType,
+            description: `Refund order #${order.trackingCode} (Dibatalkan)`
+          });
+        }
+      }
+
+      return result;
     });
 
     return updated;

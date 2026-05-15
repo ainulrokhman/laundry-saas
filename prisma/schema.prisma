@@ -28,6 +28,7 @@ enum OrderStatus {
   IRONING
   READY
   TAKEN
+  CANCELLED
 }
 
 enum PaymentStatus {
@@ -42,7 +43,20 @@ enum PaymentMethod {
   TRANSFER       // Transfer bank manual (upload bukti)
   MIDTRANS       // Payment Gateway: Midtrans
   XENDIT         // Payment Gateway: Xendit
+  QUOTA          // Pembayaran menggunakan kuota paket member (PREPAID)
   // Gateway lain dapat ditambahkan di masa depan tanpa mengubah struktur
+}
+
+enum MemberQuotaType {
+  KG
+  PCS
+}
+
+enum QuotaTransactionType {
+  PURCHASE
+  USAGE
+  ADJUSTMENT
+  EXPIRY
 }
 
 enum TransType {
@@ -173,8 +187,29 @@ model Outlet {
   expenses      Expense[]             // Pengeluaran operasional outlet
   transactions  Transaction[]         // Transaksi terkait outlet
   cogsSimulations CogsSimulation[]    // Simulasi HPP outlet
+  memberPackages  MemberPackage[]
+  quotaTransactions QuotaTransaction[]
 
   @@index([ownerId])
+}
+
+model MemberPackage {
+  id          String   @id @default(uuid())
+  outletId    String
+  outlet      Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  name        String   // e.g. "Paket Hemat 10kg"
+  description String?
+  price       Float    // Harga beli paket (e.g. 70000)
+  quota       Float    // Jumlah kuota (e.g. 10)
+  type        MemberQuotaType
+  expiryDays  Int?     // Masa berlaku dalam hari (null = tidak terbatas)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  quotaTransactions QuotaTransaction[]
+
+  @@index([outletId])
 }
 
 model BankAccount {
@@ -237,9 +272,12 @@ model Order {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   completedAt  DateTime?    // Timestamp ketika order selesai (status = TAKEN)
+  isDeleted    Boolean       @default(false)
+  deletedAt    DateTime?
   transactions Transaction[]
   items        OrderItem[]
   statusHistory OrderStatusHistory[]
+  quotaTransactions QuotaTransaction[]
 
   @@index([outletId])
   @@index([outletId, createdAt])
@@ -353,6 +391,8 @@ model Customer {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   orders      Order[]
+  quotas      CustomerQuota[]
+  quotaTransactions QuotaTransaction[]
 
   @@unique([outletId, phone]) // Phone unik per outlet (jika tidak null)
   @@index([outletId])
@@ -397,4 +437,37 @@ model CogsSimulationItem {
   cost         Float          // Biaya per unit komponen (misal: harga beli / isi)
   usage        Float          // Jumlah penggunaan per unit layanan
   subtotal     Float          // cost * usage
+}
+
+model CustomerQuota {
+  id          String   @id @default(uuid())
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  type        MemberQuotaType
+  balance     Float    @default(0) // Sisa kuota saat ini
+  updatedAt   DateTime @updatedAt
+
+  @@unique([customerId, type])
+  @@index([customerId])
+}
+
+model QuotaTransaction {
+  id              String               @id @default(uuid())
+  customerId      String
+  customer        Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  outletId        String
+  outlet          Outlet               @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  packageId       String?
+  package         MemberPackage?       @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  orderId         String?
+  order           Order?               @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  amount          Float                // Positive for purchase, negative for usage
+  type            QuotaTransactionType
+  quotaType       MemberQuotaType
+  description     String?
+  createdAt       DateTime             @default(now())
+
+  @@index([customerId])
+  @@index([outletId])
+  @@index([orderId])
 }

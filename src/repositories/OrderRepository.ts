@@ -385,10 +385,12 @@ export class OrderRepository extends BaseRepository {
   async createWithItems(
     outletId: string,
     data: Omit<Prisma.OrderCreateInput, 'outlet' | 'items'>,
-    items: Prisma.OrderItemCreateWithoutOrderInput[]
+    items: Prisma.OrderItemCreateWithoutOrderInput[],
+    tx?: Prisma.TransactionClient
   ): Promise<OrderWithItems> {
     this.ensureOutletId(outletId, 'Order');
-    return prisma.order.create({
+    const db = tx || prisma;
+    return db.order.create({
       data: {
         ...data,
         outlet: {

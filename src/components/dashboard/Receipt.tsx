@@ -41,6 +41,12 @@ export interface ReceiptData {
     // New fields for explicit breakdown
     dpAmount?: number;
     isSettled?: boolean;
+
+    // Quota Info
+    quotaUsed?: number;
+    quotaType?: string;
+    remainingQuota?: number;
+    isQuotaPayment?: boolean;
 }
 
 interface ReceiptProps {
@@ -178,6 +184,21 @@ export const Receipt: React.FC<ReceiptProps> = ({ data }) => {
                     <div className="d-flex justify-content-between py-1">
                         <span>KEMBALI</span>
                         <span>{formatCurrency(data.changeAmount)}</span>
+                    </div>
+                )}
+
+                {data.isQuotaPayment && (
+                    <div className="mt-2 py-1 border-top-dashed">
+                        <div className="d-flex justify-content-between">
+                            <span>PAKAI KUOTA ({data.quotaType})</span>
+                            <span className="fw-bold">{data.quotaUsed} {data.quotaType}</span>
+                        </div>
+                        {data.remainingQuota !== undefined && (
+                            <div className="d-flex justify-content-between small">
+                                <span>SISA KUOTA</span>
+                                <span>{data.remainingQuota} {data.quotaType}</span>
+                            </div>
+                        )}
                     </div>
                 )}
 
