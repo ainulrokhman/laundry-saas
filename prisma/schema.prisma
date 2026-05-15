@@ -272,8 +272,6 @@ model Order {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   completedAt  DateTime?    // Timestamp ketika order selesai (status = TAKEN)
-  isDeleted    Boolean       @default(false)
-  deletedAt    DateTime?
   transactions Transaction[]
   items        OrderItem[]
   statusHistory OrderStatusHistory[]
