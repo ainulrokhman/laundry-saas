@@ -171,12 +171,12 @@ const menuItems: MenuItem[] = [
         href: '/admin/subscriptions/pending',
         roles: [Role.SUPERADMIN],
       },
-      {
-        label: 'Bank Accounts',
-        icon: 'fas fa-university',
-        href: '/admin/subscriptions/bank-accounts',
-        roles: [Role.SUPERADMIN],
-      },
+      // {
+      //   label: 'Bank Accounts',
+      //   icon: 'fas fa-university',
+      //   href: '/admin/subscriptions/bank-accounts',
+      //   roles: [Role.SUPERADMIN],
+      // },
     ],
   },
   {
@@ -185,12 +185,12 @@ const menuItems: MenuItem[] = [
     href: '/admin/packages',
     roles: [Role.SUPERADMIN],
   },
-  {
-    label: 'Outlets',
-    icon: 'fas fa-store',
-    href: '/admin/outlets',
-    roles: [Role.SUPERADMIN],
-  },
+  // {
+  //   label: 'Outlets',
+  //   icon: 'fas fa-store',
+  //   href: '/admin/outlets',
+  //   roles: [Role.SUPERADMIN],
+  // },
   {
     label: 'Users',
     icon: 'fas fa-user-shield',
