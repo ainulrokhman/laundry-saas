@@ -12,6 +12,7 @@ import { ExtendedSession } from '@/lib/auth';
 import { Role } from '@/generated/prisma';
 import { OrderService } from '@/services/OrderService';
 import { OrderDTO } from '@/dto/OrderDTO';
+import { validateOrderAccess } from '@/lib/security/order-access';
 
 const orderService = new OrderService();
 
@@ -26,6 +27,7 @@ const patchSchema = z
     paid: z.boolean(),
     paidAt: z.string().datetime().optional(),
     paymentNote: z.string().trim().max(200, 'Catatan pembayaran maksimal 200 karakter').optional(),
+    cashReceived: z.coerce.number().finite().min(0).optional(),
   })
   .strict();
 
@@ -36,10 +38,6 @@ export async function PATCH(
   return withAuth(
     async (req: Request, session: ExtendedSession) => {
       try {
-        if (!session.outletId) {
-          return Response.json({ success: false, error: 'Outlet context required' }, { status: 403 });
-        }
-
         const { id } = await params;
         if (!isValidUuid(id)) {
           return Response.json(
@@ -48,12 +46,19 @@ export async function PATCH(
           );
         }
 
+        // Validate access and get effective outletId (supports Global Mode for OWNER)
+        const effectiveOutletId = await validateOrderAccess(id, session);
+
+        if (!effectiveOutletId) {
+          return Response.json({ success: false, error: 'Outlet context required' }, { status: 403 });
+        }
+
         const body = await req.json();
         const validated = patchSchema.parse(body);
 
         const sessionUser = {
           userId: session.userId,
-          outletId: session.outletId,
+          outletId: effectiveOutletId,
           role: session.role,
           phone: session.phone,
         };
@@ -62,6 +67,7 @@ export async function PATCH(
           paid: validated.paid,
           paidAt: validated.paidAt,
           paymentNote: validated.paymentNote,
+          cashReceived: validated.cashReceived,
         });
 
         return Response.json({
@@ -94,7 +100,7 @@ export async function PATCH(
         );
       }
     },
-    { roles: [Role.OWNER, Role.STAFF], requireOutlet: true }
+    { roles: [Role.OWNER, Role.STAFF], requireOutlet: false }
   )(request as any);
 }
 

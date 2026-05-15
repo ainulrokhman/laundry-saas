@@ -15,9 +15,11 @@ export type CreateStaffInput = {
 };
 
 export type UpdateStaffInput = {
-  outletId: string;
   staffId: string;
   actorUserId: string;
+  outletId?: string; // Current outletId (optional in global mode)
+  ownerId?: string;  // Required if outletId is not provided
+  newOutletId?: string; // The target outletId to move to
   phone?: string;
   name?: string;
   isActive?: boolean;
@@ -53,11 +55,34 @@ export class StaffService {
     return result.data;
   }
 
-  async getStaffById(outletId: string, staffId: string) {
+  async listStaffByOwnerId(ownerId: string) {
+    const result = await this.userRepository.findAll(
+      { role: Role.STAFF, ownerId },
+      { page: 1, limit: 200 }
+    );
+    return result.data;
+  }
+
+  async getStaffById(staffId: string, options: { outletId?: string; ownerId?: string }) {
     const user = await this.userRepository.findById(staffId);
-    if (!user || user.role !== Role.STAFF || user.outletId !== outletId) {
+    
+    if (!user || user.role !== Role.STAFF) {
       throw new StaffServiceError('NOT_FOUND', 'Staff tidak ditemukan');
     }
+
+    // Verify ownership
+    if (options.outletId && user.outletId !== options.outletId) {
+      throw new StaffServiceError('NOT_FOUND', 'Staff tidak ditemukan di outlet ini');
+    }
+
+    if (options.ownerId) {
+      // Check if the user's outlet belongs to this owner
+      const outlet = await this.userRepository.findOutletById(user.outletId!);
+      if (!outlet || outlet.ownerId !== options.ownerId) {
+        throw new StaffServiceError('NOT_FOUND', 'Staff tidak ditemukan');
+      }
+    }
+
     return user;
   }
 
@@ -67,7 +92,7 @@ export class StaffService {
     if (!canAdd) {
       throw new StaffServiceError(
         'LIMIT_REACHED',
-        'Batas maksimum staff untuk paket Anda telah tercapai. Upgrade paket untuk menambah staff.'
+        'Batas maksimum staff untuk paket Anda telah tercapai. Upgrade paket untuk menambah outlet.'
       );
     }
 
@@ -109,10 +134,10 @@ export class StaffService {
   }
 
   async updateStaff(input: UpdateStaffInput) {
-    const existing = await this.userRepository.findById(input.staffId);
-    if (!existing || existing.role !== Role.STAFF || existing.outletId !== input.outletId) {
-      throw new StaffServiceError('NOT_FOUND', 'Staff tidak ditemukan');
-    }
+    const existing = await this.getStaffById(input.staffId, { 
+      outletId: input.outletId, 
+      ownerId: input.ownerId 
+    });
 
     if (input.isActive === false && input.staffId === input.actorUserId) {
       throw new StaffServiceError(
@@ -142,10 +167,21 @@ export class StaffService {
       throw new StaffServiceError('VALIDATION', 'Nama minimal 2 karakter');
     }
 
+    // Verify new outlet ownership if changing outlet
+    if (input.newOutletId && input.newOutletId !== existing.outletId) {
+      const ownerIdToVerify = input.ownerId;
+      if (ownerIdToVerify) {
+        const outlet = await this.userRepository.findOutletById(input.newOutletId);
+        if (!outlet || outlet.ownerId !== ownerIdToVerify) {
+          throw new StaffServiceError('VALIDATION', 'Outlet baru tidak valid atau bukan milik Anda');
+        }
+      }
+    }
+
     const updated = await this.userRepository.update(input.staffId, {
       phone: normalizedPhone,
       name: nextName,
-      // Role/outletId tidak boleh diubah dari dashboard tenant
+      outletId: input.newOutletId, // Allow changing outlet
       isActive: input.isActive,
     });
 
@@ -153,4 +189,3 @@ export class StaffService {
     return (updatedWithOutlet ?? updated) as any;
   }
 }
-

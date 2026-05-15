@@ -13,6 +13,7 @@ import { Prisma, Role, User } from '@/generated/prisma';
 export interface UserListFilters {
   role?: Role;
   outletId?: string | null;
+  ownerId?: string; // NEW: filter staff by outlet's ownerId
   isActive?: boolean;
   search?: string;
 }
@@ -37,6 +38,10 @@ export class UserRepository {
     if (filters.outletId !== undefined) {
       // outletId bisa null untuk SUPERADMIN
       where.outletId = filters.outletId;
+    }
+
+    if (filters.ownerId) {
+      where.outlet = { ownerId: filters.ownerId };
     }
 
     if (filters.search && filters.search.trim().length > 0) {
@@ -168,6 +173,12 @@ export class UserRepository {
         isActive: true,
         ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
       },
+    });
+  }
+
+  async findOutletById(id: string) {
+    return prisma.outlet.findUnique({
+      where: { id },
     });
   }
 }

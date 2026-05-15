@@ -56,6 +56,10 @@ export default function LandingPageSettingsPage() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
 
+  const [isGlobalMode, setIsGlobalMode] = useState(false);
+  const [outlets, setOutlets] = useState<{ id: string; name: string }[]>([]);
+  const [selectedOutletId, setSelectedOutletId] = useState<string>('');
+
   const publicUrl = useMemo(() => {
     if (!data?.slug) return null;
     return `/outlet/${data.slug}`;
@@ -73,25 +77,78 @@ export default function LandingPageSettingsPage() {
         return;
       }
 
-      void fetchData();
+      void fetchOutlets();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, session]);
 
-  async function fetchData() {
+  useEffect(() => {
+    if (status === 'authenticated' && session) {
+      if (isGlobalMode && !selectedOutletId) {
+        setData(null);
+        setForm({
+          description: '',
+          contactPhone: '',
+          businessHours: '',
+          seoTitle: '',
+          seoDescription: '',
+          logoUrl: '',
+          coverUrl: '',
+        });
+        setLoading(false);
+        return;
+      }
+      void fetchData(selectedOutletId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, session, isGlobalMode, selectedOutletId]);
+
+  async function fetchOutlets() {
+    try {
+      const res = await fetch('/api/dashboard/outlets');
+      const json = await res.json().catch(() => null);
+      if (res.ok && json?.success) {
+        setOutlets(json.data || []);
+      }
+    } catch (e) {
+      console.error('Failed to fetch outlets:', e);
+    }
+  }
+
+  async function fetchData(oid?: string) {
     try {
       setLoading(true);
       setError(null);
       setFieldErrors({});
 
-      const res = await fetch('/api/dashboard/settings/landing-page', { method: 'GET' });
+      const url = oid 
+        ? `/api/dashboard/settings/landing-page?outletId=${encodeURIComponent(oid)}`
+        : '/api/dashboard/settings/landing-page';
+      
+      const res = await fetch(url, { method: 'GET' });
       const json = await res.json().catch(() => null);
 
       if (!res.ok || !json?.success) {
         throw new Error(json?.message || json?.error || 'Gagal memuat pengaturan landing page');
       }
 
-      const payload: LandingPageData = json.data;
+      setIsGlobalMode(json.isGlobalMode || false);
+
+      const payload: LandingPageData | null = json.data;
+      if (!payload) {
+        setData(null);
+        setForm({
+          description: '',
+          contactPhone: '',
+          businessHours: '',
+          seoTitle: '',
+          seoDescription: '',
+          logoUrl: '',
+          coverUrl: '',
+        });
+        return;
+      }
+
       setData(payload);
       setForm({
         description: payload.description || '',
@@ -117,7 +174,7 @@ export default function LandingPageSettingsPage() {
     const sigRes = await fetch('/api/dashboard/settings/landing-page/upload-signature', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kind }),
+      body: JSON.stringify({ kind, outletId: selectedOutletId }),
     });
     const sigJson = await sigRes.json().catch(() => null);
     if (!sigRes.ok || !sigJson?.success) {
@@ -154,7 +211,7 @@ export default function LandingPageSettingsPage() {
     const res = await fetch('/api/dashboard/settings/landing-page', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(update),
+      body: JSON.stringify({ ...update, outletId: selectedOutletId }),
     });
     const json = await res.json().catch(() => null);
     if (!res.ok || !json?.success) {
@@ -262,7 +319,7 @@ export default function LandingPageSettingsPage() {
       const res = await fetch('/api/dashboard/settings/landing-page', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, outletId: selectedOutletId }),
       });
       const json = await res.json().catch(() => null);
 
@@ -361,6 +418,41 @@ export default function LandingPageSettingsPage() {
             </div>
           )}
 
+          {isGlobalMode && (
+            <div className="card card-warning card-outline shadow-sm mb-3">
+              <div className="card-header">
+                <h3 className="card-title">
+                  <i className="fas fa-store-alt me-2"></i>
+                  Pilih Outlet
+                </h3>
+              </div>
+              <div className="card-body">
+                <div className="row align-items-center">
+                  <div className="col-md-6">
+                    <select
+                      className="form-select"
+                      value={selectedOutletId}
+                      onChange={(e) => setSelectedOutletId(e.target.value)}
+                    >
+                      <option value="">-- Pilih Outlet --</option>
+                      {outlets.map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-md-6">
+                    <div className="text-muted small mt-2 mt-md-0">
+                      <i className="fas fa-info-circle me-1"></i>
+                      Pilih outlet untuk mengelola konten landing page-nya.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="card card-info card-outline shadow-sm">
             <div className="card-header">
               <h3 className="card-title">
@@ -369,7 +461,9 @@ export default function LandingPageSettingsPage() {
               </h3>
             </div>
             <div className="card-body">
-              {!data ? (
+              {isGlobalMode && !selectedOutletId ? (
+                <div className="text-muted">Pilih outlet terlebih dahulu.</div>
+              ) : !data ? (
                 <div className="text-muted">Data outlet tidak tersedia.</div>
               ) : (
                 <div className="d-flex align-items-start justify-content-between flex-wrap gap-3">
@@ -392,6 +486,7 @@ export default function LandingPageSettingsPage() {
           </div>
 
           <form onSubmit={handleSave}>
+            <fieldset disabled={isGlobalMode && !selectedOutletId}>
             <div className="card shadow-sm">
               <div className="card-header">
                 <h3 className="card-title">
@@ -620,7 +715,8 @@ export default function LandingPageSettingsPage() {
                 </button>
               </div>
             </div>
-          </form>
+          </fieldset>
+        </form>
         </div>
       </div>
     </div>

@@ -63,11 +63,8 @@ export default function BankAccountsPage() {
         router.push('/dashboard');
         return;
       }
-      if (!user?.outletId) {
-        setError('Outlet context required. Please contact administrator.');
-        setLoading(false);
-        return;
-      }
+      
+      // Owner can access in global mode, staff (if any) would require outlet
       fetchBankAccounts();
     }
   }, [status, session, router]);
@@ -135,6 +132,8 @@ export default function BankAccountsPage() {
     return () => clearTimeout(timer);
   }, [bankAccounts]);
 
+  const [isGlobalMode, setIsGlobalMode] = useState(false);
+
   const fetchBankAccounts = async () => {
     try {
       setLoading(true);
@@ -148,6 +147,7 @@ export default function BankAccountsPage() {
       }
 
       setBankAccounts(data.data);
+      setIsGlobalMode(data.isGlobalMode || false);
     } catch (err) {
       console.error('Error fetching bank accounts:', err);
       setError(err instanceof Error ? err.message : 'Failed to load bank accounts');
@@ -466,6 +466,13 @@ export default function BankAccountsPage() {
       {/* Main Content */}
       <div className="content">
         <div className="container-fluid">
+          {isGlobalMode && (
+            <div className="alert alert-info shadow-sm mb-3">
+              <i className="fas fa-info-circle me-2"></i>
+              <strong>Mode Global:</strong> Menampilkan rekening bank dari seluruh outlet Anda. Pilih outlet di menu atas jika ingin menambah rekening baru.
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="row mb-3">
             <div className="col-12">
@@ -473,6 +480,8 @@ export default function BankAccountsPage() {
                 type="button"
                 className="btn btn-primary btn-sm"
                 onClick={handleCreate}
+                disabled={isGlobalMode}
+                title={isGlobalMode ? 'Pilih outlet terlebih dahulu untuk menambah rekening' : ''}
               >
                 <i className="fas fa-plus"></i> Tambah Rekening Bank
               </button>

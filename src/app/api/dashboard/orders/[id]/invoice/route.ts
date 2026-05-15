@@ -11,6 +11,7 @@ import { Role } from '@/generated/prisma';
 import { ExtendedSession } from '@/lib/auth';
 import { OrderRepository } from '@/repositories/OrderRepository';
 import { InvoiceDTO } from '@/dto/InvoiceDTO';
+import { validateOrderAccess } from '@/lib/security/order-access';
 
 const orderRepository = new OrderRepository();
 
@@ -27,10 +28,6 @@ export async function GET(
   return withAuth(
     async (_req: Request, session: ExtendedSession) => {
       try {
-        if (!session.outletId) {
-          return Response.json({ success: false, error: 'Outlet context required' }, { status: 403 });
-        }
-
         const { id } = await params;
         if (!isValidUuid(id)) {
           return Response.json(
@@ -39,7 +36,14 @@ export async function GET(
           );
         }
 
-        const order = await orderRepository.findByIdForInvoice(session.outletId, id);
+        // Validate access and get effective outletId (supports Global Mode for OWNER)
+        const effectiveOutletId = await validateOrderAccess(id, session);
+
+        if (!effectiveOutletId) {
+          return Response.json({ success: false, error: 'Outlet context required' }, { status: 403 });
+        }
+
+        const order = await orderRepository.findByIdForInvoice(effectiveOutletId, id);
         if (!order) {
           return Response.json(
             { success: false, error: 'Order not found', message: 'Order tidak ditemukan' },
@@ -63,7 +67,7 @@ export async function GET(
         );
       }
     },
-    { roles: [Role.OWNER, Role.STAFF], requireOutlet: true }
+    { roles: [Role.OWNER, Role.STAFF], requireOutlet: false }
   )(request as any);
 }
 

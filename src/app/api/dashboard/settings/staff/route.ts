@@ -2,7 +2,7 @@
  * Staff Management API Routes (OWNER-only, outlet scope)
  *
  * - GET: list staff per outlet aktif (session.outletId)
- * - POST: create staff (role selalu STAFF, outletId selalu dari session)
+ * - POST: create staff (role selalu STAFF, outletId selalu dari session atau body di mode global)
  */
 
 import { z } from 'zod';
@@ -10,11 +10,13 @@ import { withOwnerAuth } from '@/lib/proxy/route-proxy';
 import { ExtendedSession } from '@/lib/auth';
 import { UserDTO } from '@/dto/UserDTO';
 import { StaffService, StaffServiceError } from '@/services/StaffService';
+import { prisma } from '@/lib/prisma';
 
 const staffService = new StaffService();
 
 const createStaffSchema = z
   .object({
+    outletId: z.string().uuid('Pilih outlet yang valid').optional(),
     phone: z.string().min(8, 'Nomor WhatsApp harus diisi'),
     name: z
       .string()
@@ -31,17 +33,18 @@ const createStaffSchema = z
  */
 export const GET = withOwnerAuth(async (_request: Request, session: ExtendedSession) => {
   try {
-    if (!session.outletId) {
-      return Response.json(
-        { success: false, error: 'Outlet context required' },
-        { status: 403 }
-      );
+    let staff;
+    if (session.outletId) {
+      staff = await staffService.listStaffByOutletId(session.outletId);
+    } else {
+      // Global Mode: list staff from all owned outlets
+      staff = await staffService.listStaffByOwnerId(session.userId);
     }
 
-    const staff = await staffService.listStaffByOutletId(session.outletId);
     return Response.json({
       success: true,
       data: UserDTO.toResponseArray(staff as any),
+      isGlobalMode: !session.outletId,
     });
   } catch (error) {
     console.error('Error fetching staff list:', error);
@@ -54,25 +57,49 @@ export const GET = withOwnerAuth(async (_request: Request, session: ExtendedSess
       { status: 500 }
     );
   }
-});
+}, { requireOutlet: false });
 
 /**
  * POST /api/dashboard/settings/staff
  */
 export const POST = withOwnerAuth(async (request: Request, session: ExtendedSession) => {
   try {
-    if (!session.outletId) {
-      return Response.json(
-        { success: false, error: 'Outlet context required' },
-        { status: 403 }
-      );
-    }
-
     const body = await request.json();
     const validated = createStaffSchema.parse(body);
 
+    let targetOutletId = session.outletId;
+
+    // Handle global mode: require outletId in body and verify ownership
+    if (!targetOutletId) {
+      if (!validated.outletId) {
+        return Response.json(
+          { 
+            success: false, 
+            error: 'Validation error', 
+            message: 'Outlet harus dipilih dalam mode global', 
+            errors: [{ field: 'outletId', message: 'Outlet harus dipilih' }] 
+          },
+          { status: 400 }
+        );
+      }
+
+      // Verify ownership
+      const owns = await prisma.outlet.count({
+        where: { id: validated.outletId, ownerId: session.userId },
+      });
+
+      if (owns <= 0) {
+        return Response.json(
+          { success: false, error: 'Forbidden', message: 'Anda tidak memiliki akses ke outlet ini' },
+          { status: 403 }
+        );
+      }
+
+      targetOutletId = validated.outletId;
+    }
+
     const created = await staffService.createStaff({
-      outletId: session.outletId,
+      outletId: targetOutletId,
       phone: validated.phone,
       name: validated.name,
       pin: validated.pin,
@@ -124,5 +151,4 @@ export const POST = withOwnerAuth(async (request: Request, session: ExtendedSess
       { status: 500 }
     );
   }
-});
-
+}, { requireOutlet: false });

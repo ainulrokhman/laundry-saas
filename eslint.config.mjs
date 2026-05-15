@@ -17,6 +17,7 @@ const config = [
       '**/__tests__/**',
       '**/e2e/**',
       '**/playwright-report/**',
+      '**/scratch/**',
     ],
   },
   ...coreWebVitals,

@@ -21,6 +21,7 @@ type Staff = {
   name: string;
   role: 'STAFF' | 'OWNER' | 'SUPERADMIN';
   outletId: string | null;
+  outletName?: string; // NEW
   isActive: boolean;
   lastLoginAt: string | null;
   createdAt: string;
@@ -46,6 +47,7 @@ export default function StaffManagementPage() {
     phone: '',
     pin: '',
     isActive: true,
+    outletId: '', // NEW
   });
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -53,7 +55,10 @@ export default function StaffManagementPage() {
     name?: string;
     phone?: string;
     pin?: string;
+    outletId?: string; // NEW
   }>({});
+
+  const [outlets, setOutlets] = useState<{ id: string; name: string }[]>([]); // NEW
 
   const canOpen = useMemo(() => {
     if (status !== 'authenticated') return false;
@@ -71,15 +76,26 @@ export default function StaffManagementPage() {
         router.push('/dashboard');
         return;
       }
-      if (!user?.outletId) {
-        setError('Outlet context required. Silakan hubungi admin.');
-        setLoading(false);
-        return;
-      }
+      // Owner can access in global mode, staff requires outlet
       void fetchStaff();
+      void fetchOutlets();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, session]);
+
+  const [isGlobalMode, setIsGlobalMode] = useState(false);
+
+  async function fetchOutlets() {
+    try {
+      const res = await fetch('/api/dashboard/outlets');
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setOutlets(json.data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch outlets:', e);
+    }
+  }
 
   async function fetchStaff() {
     try {
@@ -93,8 +109,8 @@ export default function StaffManagementPage() {
       }
 
       const list: Staff[] = Array.isArray(json.data) ? json.data : [];
-      // Defensive: pastikan yang kita render hanya STAFF
       setStaff(list.filter((u) => u.role === 'STAFF'));
+      setIsGlobalMode(json.isGlobalMode || false);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Gagal memuat daftar staff');
     } finally {
@@ -104,7 +120,7 @@ export default function StaffManagementPage() {
 
   function openCreate() {
     setEditing(null);
-    setFormData({ name: '', phone: '', pin: '', isActive: true });
+    setFormData({ name: '', phone: '', pin: '', isActive: true, outletId: '' });
     setFormError(null);
     setFieldErrors({});
     setShowModal(true);
@@ -117,6 +133,7 @@ export default function StaffManagementPage() {
       phone: target.phone || '',
       pin: '',
       isActive: !!target.isActive,
+      outletId: target.outletId || '',
     });
     setFormError(null);
     setFieldErrors({});
@@ -155,6 +172,10 @@ export default function StaffManagementPage() {
       }
     }
 
+    if (isGlobalMode && !formData.outletId) {
+      (errs as any).outletId = 'Outlet harus dipilih';
+    }
+
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
       const firstField = Object.keys(errs)[0];
@@ -171,17 +192,24 @@ export default function StaffManagementPage() {
     setFormLoading(true);
 
     try {
-      const url = editing
-        ? `/api/dashboard/settings/staff/${editing.id}`
+      const isEdit = !!editing;
+      const url = isEdit
+        ? `/api/dashboard/settings/staff/${editing!.id}`
         : '/api/dashboard/settings/staff';
-      const method = editing ? 'PUT' : 'POST';
+      const method = isEdit ? 'PUT' : 'POST';
 
       const payload: any = {
         name: formData.name.trim(),
         phone: formData.phone.trim().replace(/\D/g, ''),
         isActive: !!formData.isActive,
       };
-      if (!editing) payload.pin = formData.pin;
+
+      if (!isEdit) {
+        payload.pin = formData.pin;
+      }
+      if (isGlobalMode) {
+        payload.outletId = formData.outletId;
+      }
 
       const res = await fetch(url, {
         method,
@@ -200,6 +228,7 @@ export default function StaffManagementPage() {
             if (field === 'name') fe.name = msg;
             if (field === 'phone') fe.phone = msg;
             if (field === 'pin') fe.pin = msg;
+            if (field === 'outletId') (fe as any).outletId = msg;
           }
           if (Object.keys(fe).length > 0) {
             setFieldErrors(fe);
@@ -391,9 +420,20 @@ export default function StaffManagementPage() {
             </div>
           </div>
 
+          {isGlobalMode && (
+            <div className="alert alert-info shadow-sm mb-3">
+              <i className="fas fa-info-circle me-2"></i>
+              <strong>Mode Global:</strong> Menampilkan staff dari seluruh outlet Anda. Pilih outlet di menu atas jika ingin menambah staff baru.
+            </div>
+          )}
+
           <div className="row mb-3">
             <div className="col-12">
-              <button type="button" className="btn btn-primary btn-sm" onClick={openCreate}>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={openCreate}
+              >
                 <i className="fas fa-plus"></i> Tambah Staff
               </button>
             </div>
@@ -420,6 +460,9 @@ export default function StaffManagementPage() {
                     mobileContainerClassName="px-3 pt-2 pb-3"
                     columns={[
                       { header: 'Nama', render: (s) => <span className="fw-semibold">{s.name}</span> },
+                      ...(isGlobalMode
+                        ? [{ header: 'Outlet', render: (s: Staff) => <span className="badge bg-info">{s.outletName || '-'}</span> }]
+                        : []),
                       { header: 'WhatsApp', render: (s) => <code>{s.phone}</code> },
                       {
                         header: 'Status',
@@ -480,6 +523,12 @@ export default function StaffManagementPage() {
                               {s.isActive ? 'Aktif' : 'Nonaktif'}
                             </span>
                           </div>
+
+                          {isGlobalMode && s.outletName && (
+                            <div className="mt-2">
+                              <span className="badge bg-info">{s.outletName}</span>
+                            </div>
+                          )}
 
                           <hr className="my-3" />
 
@@ -550,6 +599,40 @@ export default function StaffManagementPage() {
                         <i className="fas fa-exclamation-circle me-2"></i>
                         {formError}
                         <button type="button" className="btn-close" aria-label="Close" onClick={() => setFormError(null)} />
+                      </div>
+                    )}
+                    
+                    {isGlobalMode && (
+                      <div className="mb-3">
+                        <label htmlFor="outletId" className="form-label">
+                          <i className="fas fa-store me-1"></i>
+                          Outlet <span className="text-danger">*</span>
+                        </label>
+                        <select
+                          id="outletId"
+                          className={`form-select ${fieldErrors.outletId ? 'is-invalid' : ''}`}
+                          value={formData.outletId}
+                          onChange={(e) => {
+                            setFormData((p) => ({ ...p, outletId: e.target.value }));
+                            if (fieldErrors.outletId) setFieldErrors((p) => ({ ...p, outletId: undefined }));
+                          }}
+                          disabled={formLoading}
+                          required
+                        >
+                          <option value="">-- Pilih Outlet --</option>
+                          {outlets.map((o) => (
+                            <option key={o.id} value={o.id}>
+                              {o.name}
+                            </option>
+                          ))}
+                        </select>
+                        {fieldErrors.outletId && <div className="invalid-feedback">{fieldErrors.outletId}</div>}
+                        {editing && (
+                          <div className="form-text text-info">
+                            <i className="fas fa-info-circle me-1"></i>
+                            Pindahkan staff ini ke outlet lain jika diperlukan.
+                          </div>
+                        )}
                       </div>
                     )}
 

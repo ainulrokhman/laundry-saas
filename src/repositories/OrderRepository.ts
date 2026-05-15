@@ -69,6 +69,13 @@ export class OrderRepository extends BaseRepository {
         items: {
           orderBy: { createdAt: 'asc' },
         },
+        outlet: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
         statusHistory: {
           orderBy: { createdAt: 'desc' },
           include: {

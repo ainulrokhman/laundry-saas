@@ -2,7 +2,7 @@
  * Staff Management Detail API Routes (OWNER-only, outlet scope)
  *
  * - GET: detail staff by id
- * - PUT: update staff (name/phone/isActive)
+ * - PUT: update staff (name/phone/isActive/outletId)
  */
 
 import { NextRequest } from 'next/server';
@@ -30,6 +30,7 @@ const updateStaffSchema = z
       .max(100, 'Nama maksimal 100 karakter')
       .optional(),
     isActive: z.boolean().optional(),
+    outletId: z.string().uuid('ID outlet tidak valid').optional(), // NEW: for moving staff
   })
   .strict();
 
@@ -42,13 +43,6 @@ export async function GET(
 ) {
   return withOwnerAuth(async (_req: Request, session: ExtendedSession) => {
     try {
-      if (!session.outletId) {
-        return Response.json(
-          { success: false, error: 'Outlet context required' },
-          { status: 403 }
-        );
-      }
-
       const { id } = await params;
       if (!isValidUuid(id)) {
         return Response.json(
@@ -57,7 +51,11 @@ export async function GET(
         );
       }
 
-      const staff = await staffService.getStaffById(session.outletId, id);
+      const staff = await staffService.getStaffById(id, {
+        outletId: session.outletId || undefined,
+        ownerId: !session.outletId ? session.userId : undefined,
+      });
+
       return Response.json({ success: true, data: UserDTO.toResponse(staff as any) });
     } catch (error) {
       if (error instanceof StaffServiceError && error.code === 'NOT_FOUND') {
@@ -77,7 +75,7 @@ export async function GET(
         { status: 500 }
       );
     }
-  })(request);
+  }, { requireOutlet: false })(request);
 }
 
 /**
@@ -89,13 +87,6 @@ export async function PUT(
 ) {
   return withOwnerAuth(async (req: Request, session: ExtendedSession) => {
     try {
-      if (!session.outletId) {
-        return Response.json(
-          { success: false, error: 'Outlet context required' },
-          { status: 403 }
-        );
-      }
-
       const { id } = await params;
       if (!isValidUuid(id)) {
         return Response.json(
@@ -119,9 +110,11 @@ export async function PUT(
       const validated = updateStaffSchema.parse(body);
 
       const updated = await staffService.updateStaff({
-        outletId: session.outletId,
         staffId: id,
         actorUserId: session.userId,
+        outletId: session.outletId || undefined,
+        ownerId: !session.outletId ? session.userId : undefined,
+        newOutletId: validated.outletId, // Moving staff to another outlet
         phone: validated.phone,
         name: validated.name,
         isActive: validated.isActive,
@@ -178,6 +171,5 @@ export async function PUT(
         { status: 500 }
       );
     }
-  })(request);
+  }, { requireOutlet: false })(request);
 }
-

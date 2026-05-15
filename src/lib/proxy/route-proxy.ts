@@ -162,18 +162,25 @@ export function withAdminAuth<T = any>(
  * Proxy wrapper for owner-only routes (OWNER role)
  */
 export function withOwnerAuth<T = any>(
-  handler: (request: Request, session: ExtendedSession, ...args: any[]) => Promise<Response>
+  handler: (request: Request, session: ExtendedSession, ...args: any[]) => Promise<Response>,
+  options: { requireOutlet?: boolean } = {}
 ): (request: Request, ...args: any[]) => Promise<Response> {
+  const isOutletRequired = options.requireOutlet !== false;
+
   return withAuth(handler, {
     roles: [Role.OWNER],
-    requireOutlet: true,
+    requireOutlet: isOutletRequired,
     authorize: async (session) => {
-      // Server-side validation: outlet aktif harus milik OWNER
-      if (!session.outletId) return false;
-      const owns = await prisma.outlet.count({
-        where: { id: session.outletId, ownerId: session.userId },
-      });
-      return owns > 0;
+      // Server-side validation: jika ada outletId, harus milik OWNER
+      if (session.outletId) {
+        const owns = await prisma.outlet.count({
+          where: { id: session.outletId, ownerId: session.userId },
+        });
+        return owns > 0;
+      }
+      
+      // Jika tidak ada outletId, hanya boleh jika requireOutlet=false
+      return !isOutletRequired;
     },
   });
 }

@@ -17,6 +17,6 @@ export default async function SettingsIndexRedirectPage() {
     redirect('/dashboard');
   }
 
-  // Halaman index settings dihapus; arahkan ke pengaturan yang paling aman untuk semua role.
-  redirect('/dashboard/settings/change-pin');
+  // Halaman index settings dihapus; arahkan ke profil pengguna.
+  redirect('/dashboard/settings/profile');
 }

@@ -37,6 +37,7 @@ export type UpdateOrderPaymentInput = {
   paid: boolean;
   paidAt?: string; // ISO
   paymentNote?: string;
+  cashReceived?: number;
 };
 
 export type UpdateOrderDpInput = {
@@ -245,6 +246,7 @@ export class OrderService extends BaseService {
       paymentStatus,
       paidAt,
       paymentNote,
+      cashReceived: input.cashReceived !== undefined ? roundIdr(input.cashReceived) : undefined,
       // Tetap bookkeeping: jangan set paymentMethod untuk order laundry
       paymentMethod: null,
     } as any);

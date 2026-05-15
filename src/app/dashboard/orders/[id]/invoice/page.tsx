@@ -86,7 +86,17 @@ function paymentLabel(status: PaymentStatus): string {
 }
 
 function toDigitsOnly(raw: string): string {
-  return raw.replace(/\D/g, '');
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length > 1 && digits.startsWith('0')) {
+    const cleaned = digits.replace(/^0+/, '');
+    return cleaned || '0';
+  }
+  return digits;
+}
+
+function formatThousands(digits: string) {
+  if (!digits) return '';
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
 
 function parseIdrFromDigits(digits: string): number {
@@ -263,16 +273,7 @@ export default function OrderInvoicePage() {
 
   const [settleCashDigits, setSettleCashDigits] = useState<string>(initialType === 'settle' ? initialCash : '0');
 
-  // Sync state with data when loaded
-  useEffect(() => {
-    if (data) {
-      // If stored cashReceived is > 0, use it. Otherwise use initialCash from params if matches context.
-      const storedCash = data.cashReceived || 0;
-      if (storedCash > 0 && data.paymentStatus === 'SETTLEMENT') {
-        setSettleCashDigits(String(storedCash));
-      }
-    }
-  }, [data]);
+
 
   const [busy, setBusy] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -290,7 +291,8 @@ export default function OrderInvoicePage() {
         router.push('/dashboard');
         return;
       }
-      if (!user?.outletId) {
+      // Allow OWNER to view invoice even if outletId is not in session (Global Mode)
+      if (!user?.outletId && role !== 'OWNER') {
         setError('Outlet context required. Silakan hubungi admin.');
         setLoading(false);
         return;
@@ -364,6 +366,22 @@ export default function OrderInvoicePage() {
   const settleCashReceived = useMemo(() => parseIdrFromDigits(settleCashDigits), [settleCashDigits]);
   const settleChangeDue = useMemo(() => Math.max(0, settleCashReceived - settleAmount), [settleCashReceived, settleAmount]);
   const settleShortfall = useMemo(() => Math.max(0, settleAmount - settleCashReceived), [settleCashReceived, settleAmount]);
+
+  // Sync state with data when loaded
+  useEffect(() => {
+    if (data) {
+      // For non-settled orders, default the cash input to the remaining amount
+      if (data.paymentStatus !== 'SETTLEMENT') {
+        setSettleCashDigits(String(settleAmount));
+      } else {
+        // If already settled, show the recorded cash received
+        const storedCash = data.cashReceived || 0;
+        if (storedCash > 0) {
+          setSettleCashDigits(String(storedCash));
+        }
+      }
+    }
+  }, [data, settleAmount]);
 
   const trackUrl = useMemo(() => {
     if (!data) return null;
@@ -516,6 +534,7 @@ export default function OrderInvoicePage() {
         body: JSON.stringify({
           paid: true,
           paymentNote: 'Pelunasan tunai',
+          cashReceived: settleCashReceived,
         }),
       });
       const json = await res.json().catch(() => null);
@@ -1004,9 +1023,9 @@ export default function OrderInvoicePage() {
 
                           title: (data.dpAmount > 0 ? 'Pelunasan' : 'Pembayaran'),
                           billAmount: settleAmount,
-                          paymentAmount: data.paymentStatus === 'SETTLEMENT' ? (data.cashReceived || settleAmount) : 0,
-                          changeAmount: data.paymentStatus === 'SETTLEMENT' ? Math.max(0, (data.cashReceived || settleAmount) - settleAmount) : 0,
-                          shortfallAmount: data.paymentStatus === 'SETTLEMENT' ? Math.max(0, settleAmount - (data.cashReceived || settleAmount)) : settleAmount,
+                          paymentAmount: data.cashReceived || 0,
+                          changeAmount: data.paymentStatus === 'SETTLEMENT' ? Math.max(0, (data.cashReceived || 0) - settleAmount) : Math.max(0, (data.cashReceived || 0) - data.dpAmount),
+                          shortfallAmount: data.paymentStatus === 'SETTLEMENT' ? Math.max(0, settleAmount - (data.cashReceived || 0)) : Math.max(0, data.dpAmount - (data.cashReceived || 0)),
                           remainingAmount: data.paymentStatus === 'SETTLEMENT' ? 0 : data.remainingAmount,
                           historyDpAmount: data.paymentStatus === 'SETTLEMENT' ? data.dpAmount : undefined,
                           dpAmount: data.dpAmount,
@@ -1115,8 +1134,12 @@ export default function OrderInvoicePage() {
                             <input
                               className="form-control form-control-sm"
                               inputMode="numeric"
-                              value={dpAmountDigits}
-                              onChange={(e) => setDpAmountDigits(toDigitsOnly(e.target.value))}
+                              value={formatThousands(dpAmountDigits)}
+                              onChange={(e) => {
+                                const val = toDigitsOnly(e.target.value);
+                                setDpAmountDigits(val);
+                                setDpCashDigits(val);
+                              }}
                               onClick={(e) => e.stopPropagation()}
                             />
                           </div>
@@ -1125,7 +1148,7 @@ export default function OrderInvoicePage() {
                             <input
                               className="form-control form-control-sm"
                               inputMode="numeric"
-                              value={dpCashDigits}
+                              value={formatThousands(dpCashDigits)}
                               onChange={(e) => setDpCashDigits(toDigitsOnly(e.target.value))}
                               onClick={(e) => e.stopPropagation()}
                             />
@@ -1192,7 +1215,7 @@ export default function OrderInvoicePage() {
                           className="form-control"
                           placeholder="Uang Diterima"
                           inputMode="numeric"
-                          value={settleCashDigits}
+                          value={formatThousands(settleCashDigits)}
                           onChange={(e) => setSettleCashDigits(toDigitsOnly(e.target.value))}
                         />
                       </div>

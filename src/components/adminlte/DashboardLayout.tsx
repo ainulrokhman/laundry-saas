@@ -103,6 +103,12 @@ const menuItems: MenuItem[] = [
     roles: [Role.OWNER, Role.STAFF],
     children: [
       {
+        label: 'Profil Saya',
+        icon: 'fas fa-user-circle',
+        href: '/dashboard/settings/profile',
+        roles: [Role.OWNER, Role.STAFF, Role.SUPERADMIN],
+      },
+      {
         label: 'Manajemen Staff',
         icon: 'fas fa-users',
         href: '/dashboard/settings/staff',
@@ -202,7 +208,6 @@ const menuItems: MenuItem[] = [
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { data: session, update } = useSession();
   const pathname = usePathname();
-  const router = useRouter();
   const user = session?.user as any;
   const userRole = user?.role as Role | undefined;
 
@@ -360,7 +365,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         if (!cancelled) {
           setOwnedOutlets(outlets);
         }
-      } catch (e) {
+      } catch {
         if (!cancelled) {
           setOwnedOutlets([]);
         }
@@ -413,9 +418,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         timerProgressBar: true,
       });
 
-      router.refresh();
-      // Force redirect to dashboard home to avoid 404 on outlet-specific routes
-      router.push('/dashboard');
+      // Refresh the page data softly, without redirecting if possible.
+      // Wait, the requirement says "tidak perlu refresh dan mengalihkan halaman".
+      // So we will just let useSession's reactivity trigger any necessary UI updates.
+      // We will remove router.refresh() and router.push('/dashboard').
     } catch (e) {
       await Swal.fire({
         icon: 'error',
@@ -654,7 +660,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 {/* Menu Items */}
                 <li className="py-1">
                   <Link
-                    href="/dashboard/settings"
+                    href="/dashboard/settings/profile"
                     className="dropdown-item py-2 px-3 d-flex align-items-center"
                   >
                     <i className="fas fa-user-circle me-3 text-secondary" style={{ width: '20px' }}></i>
@@ -717,7 +723,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* App Content */}
         <div className="app-content">
           {/* Container */}
-          <div className="container-fluid">{children}</div>
+          <div className="container-fluid" key={activeOutletId || 'global'}>{children}</div>
           {/* End Container */}
         </div>
         {/* End App Content */}

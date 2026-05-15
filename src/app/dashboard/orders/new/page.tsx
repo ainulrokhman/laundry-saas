@@ -42,7 +42,7 @@ function allowDecimalQty(type: ServiceType): boolean {
 }
 
 export default function NewOrderPage() {
-    const { data: session, status } = useSession();
+    const { data: session, status, update } = useSession();
     const router = useRouter();
     const user = session?.user as any;
     const role = user?.role as string | undefined;
@@ -54,6 +54,11 @@ export default function NewOrderPage() {
     const [serviceLoading, setServiceLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCategory, setSelectedCategory] = useState<ServiceType | "ALL">("ALL");
+    
+    // Global Mode States
+    const [isGlobalMode, setIsGlobalMode] = useState(false);
+    const [ownedOutlets, setOwnedOutlets] = useState<any[]>([]);
+    const [outletsLoading, setOutletsLoading] = useState(false);
 
     const [items, setItems] = useState<CartItem[]>([]);
 
@@ -105,17 +110,54 @@ export default function NewOrderPage() {
                 return;
             }
             if (!user?.outletId) {
+                if (role === "OWNER") {
+                    setIsGlobalMode(true);
+                    void fetchOwnedOutlets();
+                    setLoading(false);
+                    return;
+                }
                 setError("Outlet context required. Silakan hubungi admin.");
                 setLoading(false);
                 return;
             }
+            setIsGlobalMode(false);
             setLoading(false);
             void fetchServices();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [status, session]);
+    }, [status, session, user?.outletId]);
 
     // -- DATA FETCHING --
+    async function fetchOwnedOutlets() {
+        try {
+            setOutletsLoading(true);
+            const res = await fetch("/api/dashboard/outlets", { method: "GET" });
+            const json = await res.json().catch(() => null);
+            if (res.ok && json?.success) {
+                setOwnedOutlets(json.data || []);
+                // If only one outlet, auto select? Maybe better let user confirm
+            }
+        } catch (e) {
+            console.error("Failed to fetch outlets:", e);
+        } finally {
+            setOutletsLoading(false);
+        }
+    }
+
+    async function handleSelectOutlet(outletId: string) {
+        try {
+            setOutletsLoading(true);
+            // Sync session
+            await update({ outletId });
+            // The useEffect will trigger and fetch services
+            setIsGlobalMode(false);
+        } catch (e) {
+            Swal.fire("Gagal", "Gagal mengganti outlet", "error");
+        } finally {
+            setOutletsLoading(false);
+        }
+    }
+
     async function fetchServices() {
         try {
             setServiceLoading(true);
@@ -339,7 +381,11 @@ export default function NewOrderPage() {
     }, [items, adjustmentAmount]);
 
     // -- PAYMENT HELPER --
-    function toDigitsOnly(val: string) { return val.replace(/\D/g, ""); }
+    function toDigitsOnly(val: string) { 
+        const digits = val.replace(/\D/g, "");
+        // Remove leading zeros, but if it becomes empty, return "0"
+        return digits.replace(/^0+/, "") || "0";
+    }
     function parseIdr(digits: string) { return parseInt(digits || "0", 10); }
     function formatThousands(digits: string) {
         if (!digits) return "";
@@ -512,7 +558,65 @@ export default function NewOrderPage() {
     if (error) return <div className="alert alert-danger m-4">{error} <button className="btn btn-sm btn-outline-danger ms-2" onClick={() => fetchServices()}>Retry</button></div>;
 
     return (
-        <div className="d-flex flex-column bg-light" style={{ height: "calc(100vh - 120px)", overflow: "hidden" }}>
+        <div className="d-flex flex-column bg-light position-relative" style={{ height: "calc(100vh - 120px)", overflow: "hidden" }}>
+
+            {/* GLOBAL MODE OUTLET SELECTOR OVERLAY */}
+            {isGlobalMode && !user?.outletId && (
+                <div 
+                    className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" 
+                    style={{ 
+                        zIndex: 2000, 
+                        background: "rgba(255, 255, 255, 0.8)",
+                        backdropFilter: "blur(8px)"
+                    }}
+                >
+                    <div className="card shadow-lg border-0" style={{ width: "90%", maxWidth: "500px" }}>
+                        <div className="card-body p-4 text-center">
+                            <div className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style={{ width: 64, height: 64 }}>
+                                <i className="fas fa-store fa-2x"></i>
+                            </div>
+                            <h4 className="fw-bold mb-1">Pilih Outlet</h4>
+                            <p className="text-muted mb-4">Anda sedang dalam Mode Global. Silakan pilih outlet untuk mulai membuat order.</p>
+                            
+                            {outletsLoading ? (
+                                <div className="py-4">
+                                    <div className="spinner-border text-primary"></div>
+                                    <p className="small text-muted mt-2">Menyiapkan outlet...</p>
+                                </div>
+                            ) : (
+                                <div className="list-group text-start">
+                                    {ownedOutlets.map(outlet => (
+                                        <button 
+                                            key={outlet.id} 
+                                            className="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 border-start-0 border-end-0"
+                                            onClick={() => handleSelectOutlet(outlet.id)}
+                                        >
+                                            <div>
+                                                <div className="fw-bold">{outlet.name}</div>
+                                                <div className="small text-muted">{outlet.address || "No address"}</div>
+                                            </div>
+                                            <i className="fas fa-chevron-right text-primary"></i>
+                                        </button>
+                                    ))}
+                                    {ownedOutlets.length === 0 && (
+                                        <div className="text-center py-4">
+                                            <p className="text-muted">Anda belum memiliki outlet.</p>
+                                            <button className="btn btn-primary" onClick={() => router.push("/dashboard/settings/outlets")}>Buat Outlet</button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            
+                            <button 
+                                className="btn btn-link text-muted mt-3" 
+                                onClick={() => router.push("/dashboard")}
+                            >
+                                Kembali ke Dashboard
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="row g-0 h-100">
 
@@ -731,7 +835,18 @@ export default function NewOrderPage() {
                             <button className="btn btn-secondary flex-grow-1" onClick={clearCart} disabled={items.length === 0}>
                                 <i className="fas fa-refresh me-1"></i> Reset
                             </button>
-                            <button className="btn btn-primary flex-grow-1 fw-bold" onClick={() => { if (items.length > 0) { setCashReceivedDigits(String(totals.totalAmount)); setShowPaymentModal(true); } }} disabled={items.length === 0}>
+                            <button 
+                                className="btn btn-primary flex-grow-1 fw-bold" 
+                                onClick={() => { 
+                                    if (items.length > 0) { 
+                                        setPaymentType("lunas");
+                                        setCashReceivedDigits(String(totals.totalAmount)); 
+                                        setDpAmountDigits("0");
+                                        setShowPaymentModal(true); 
+                                    } 
+                                }} 
+                                disabled={items.length === 0}
+                            >
                                 <i className="fas fa-money-bill-wave me-1"></i> Bayar
                             </button>
                         </div>
@@ -793,15 +908,41 @@ export default function NewOrderPage() {
                                 <div className="mb-3">
                                     <label className="form-label small text-muted">Metode</label>
                                     <div className="btn-group w-100">
-                                        <button className={`btn ${paymentType === "lunas" ? "btn-success" : "btn-outline-secondary"}`} onClick={() => setPaymentType("lunas")}>LUNAS</button>
-                                        <button className={`btn ${paymentType === "dp" ? "btn-warning" : "btn-outline-secondary"}`} onClick={() => setPaymentType("dp")}>DP / UTANG</button>
+                                        <button 
+                                            className={`btn ${paymentType === "lunas" ? "btn-success" : "btn-outline-secondary"}`} 
+                                            onClick={() => {
+                                                setPaymentType("lunas");
+                                                setCashReceivedDigits(String(totals.totalAmount));
+                                            }}
+                                        >
+                                            LUNAS
+                                        </button>
+                                        <button 
+                                            className={`btn ${paymentType === "dp" ? "btn-warning" : "btn-outline-secondary"}`} 
+                                            onClick={() => {
+                                                setPaymentType("dp");
+                                                // Default cash received to DP amount if currently 0 or equal to full total
+                                                const currentDp = parseIdr(dpAmountDigits);
+                                                setCashReceivedDigits(currentDp > 0 ? dpAmountDigits : "0");
+                                            }}
+                                        >
+                                            DP / UTANG
+                                        </button>
                                     </div>
                                 </div>
 
                                 {paymentType === "dp" && (
                                     <div className="mb-3">
                                         <label className="form-label small text-muted">Nominal DP</label>
-                                        <input className="form-control form-control-lg fw-bold text-center" value={formatThousands(dpAmountDigits)} onChange={e => setDpAmountDigits(toDigitsOnly(e.target.value))} />
+                                        <input 
+                                            className="form-control form-control-lg fw-bold text-center" 
+                                            value={formatThousands(dpAmountDigits)} 
+                                            onChange={e => {
+                                                const val = toDigitsOnly(e.target.value);
+                                                setDpAmountDigits(val);
+                                                setCashReceivedDigits(val);
+                                            }} 
+                                        />
                                     </div>
                                 )}
 
@@ -879,6 +1020,10 @@ export default function NewOrderPage() {
                                             remainingAmount: receiptData.paymentType === "dp"
                                                 ? Math.max(0, receiptData.total - receiptData.dpAmount)
                                                 : 0,
+
+                                            // Breakdown for NEW summary
+                                            dpAmount: receiptData.paymentType === "dp" ? receiptData.dpAmount : 0,
+                                            isSettled: receiptData.paymentType === "lunas"
                                         }}
                                     />
                                 </div>

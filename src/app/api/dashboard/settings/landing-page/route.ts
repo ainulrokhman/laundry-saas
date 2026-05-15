@@ -53,16 +53,34 @@ function normalizeDigits(value: string | undefined): string | null | undefined {
   return digits;
 }
 
-export const GET = withOwnerAuth(async (_request: Request, session: ExtendedSession) => {
+export const GET = withOwnerAuth(async (request: Request, session: ExtendedSession) => {
   try {
-    if (!session.outletId) {
-      return Response.json(
-        { success: false, error: 'Outlet context required' },
-        { status: 403 }
-      );
+    const { searchParams } = new URL(request.url);
+    const queryOutletId = searchParams.get('outletId');
+    
+    const targetOutletId = session.outletId || queryOutletId;
+
+    if (!targetOutletId) {
+      // Global Mode: return success but no data yet, so frontend can show picker
+      return Response.json({
+        success: true,
+        data: null,
+        isGlobalMode: !session.outletId,
+      });
     }
 
-    const outlet = await outletRepository.findLandingPageById(session.outletId);
+    // Authorization check for global mode
+    if (!session.outletId && queryOutletId) {
+      const owns = await outletRepository.findOwnedOutletById(session.userId, queryOutletId);
+      if (!owns) {
+        return Response.json(
+          { success: false, error: 'Forbidden', message: 'Anda tidak memiliki akses ke outlet ini' },
+          { status: 403 }
+        );
+      }
+    }
+
+    const outlet = await outletRepository.findLandingPageById(targetOutletId);
     if (!outlet) {
       return Response.json(
         { success: false, error: 'Outlet not found', message: 'Outlet tidak ditemukan' },
@@ -73,6 +91,7 @@ export const GET = withOwnerAuth(async (_request: Request, session: ExtendedSess
     return Response.json({
       success: true,
       data: OutletLandingPageDTO.toResponse(outlet),
+      isGlobalMode: !session.outletId,
     });
   } catch (error) {
     console.error('Error fetching landing page settings:', error);
@@ -85,19 +104,33 @@ export const GET = withOwnerAuth(async (_request: Request, session: ExtendedSess
       { status: 500 }
     );
   }
-});
+}, { requireOutlet: false });
 
 export const PUT = withOwnerAuth(async (request: Request, session: ExtendedSession) => {
   try {
-    if (!session.outletId) {
+    const body: any = await request.json();
+    const validated = updateSchema.parse(body);
+    
+    // outletId can come from body in global mode
+    const targetOutletId = session.outletId || body.outletId;
+
+    if (!targetOutletId) {
       return Response.json(
-        { success: false, error: 'Outlet context required' },
-        { status: 403 }
+        { success: false, error: 'Validation error', message: 'Outlet harus dipilih' },
+        { status: 400 }
       );
     }
 
-    const body: unknown = await request.json();
-    const validated = updateSchema.parse(body);
+    // Authorization check for global mode
+    if (!session.outletId && body.outletId) {
+      const owns = await outletRepository.findOwnedOutletById(session.userId, body.outletId);
+      if (!owns) {
+        return Response.json(
+          { success: false, error: 'Forbidden', message: 'Anda tidak memiliki akses ke outlet ini' },
+          { status: 403 }
+        );
+      }
+    }
 
     const contactPhone = normalizeDigits(validated.contactPhone);
     if (contactPhone !== undefined && contactPhone !== null) {
@@ -129,8 +162,9 @@ export const PUT = withOwnerAuth(async (request: Request, session: ExtendedSessi
       updateData.coverUrl = emptyToNull(validated.coverUrl);
     }
 
-    // Jika semua field undefined, tolak
-    const hasAnyField = Object.values(updateData).some((v) => v !== undefined);
+    // Jika semua field selain outletId undefined, tolak
+    const fieldsToUpdate = { ...updateData };
+    const hasAnyField = Object.values(fieldsToUpdate).some((v) => v !== undefined);
     if (!hasAnyField) {
       return Response.json(
         {
@@ -142,9 +176,9 @@ export const PUT = withOwnerAuth(async (request: Request, session: ExtendedSessi
       );
     }
 
-    await outletRepository.update(session.outletId, updateData);
+    await outletRepository.update(targetOutletId, updateData);
 
-    const outlet = await outletRepository.findLandingPageById(session.outletId);
+    const outlet = await outletRepository.findLandingPageById(targetOutletId);
     if (!outlet) {
       return Response.json(
         { success: false, error: 'Outlet not found', message: 'Outlet tidak ditemukan' },
@@ -156,6 +190,7 @@ export const PUT = withOwnerAuth(async (request: Request, session: ExtendedSessi
       success: true,
       data: OutletLandingPageDTO.toResponse(outlet),
       message: 'Pengaturan landing page berhasil disimpan',
+      isGlobalMode: !session.outletId,
     });
   } catch (error) {
     console.error('Error updating landing page settings:', error);
@@ -185,5 +220,5 @@ export const PUT = withOwnerAuth(async (request: Request, session: ExtendedSessi
       { status: 500 }
     );
   }
-});
+}, { requireOutlet: false });
 

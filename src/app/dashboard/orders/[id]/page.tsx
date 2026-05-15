@@ -66,6 +66,11 @@ type OrderDetail = {
     status: PaymentStatus;
     createdAt: string;
   }>;
+  outlet?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
 };
 
 type ApiDetailResponse = {
@@ -142,7 +147,8 @@ export default function OrderDetailPage() {
         router.push("/dashboard");
         return;
       }
-      if (!user?.outletId) {
+      // Allow OWNER to view order even if outletId is not in session (Global Mode)
+      if (!user?.outletId && role !== "OWNER") {
         setError("Outlet context required. Silakan hubungi admin.");
         setLoading(false);
         return;
@@ -371,6 +377,14 @@ export default function OrderDetailPage() {
               <div className="h5 mb-0">
                 <code>{detail.trackingCode}</code>
               </div>
+              {detail.outlet && (
+                <div className="mt-1">
+                  <span className="badge bg-light text-dark border shadow-sm">
+                    <i className="fas fa-store me-1 text-primary"></i>
+                    {detail.outlet.name}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="d-flex gap-2 flex-wrap">
               <Link

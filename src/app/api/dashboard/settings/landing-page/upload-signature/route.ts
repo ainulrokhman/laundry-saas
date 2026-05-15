@@ -9,9 +9,13 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import { withOwnerAuth } from '@/lib/proxy/route-proxy';
 import { ExtendedSession } from '@/lib/auth';
+import { OutletRepository } from '@/repositories/OutletRepository';
+
+const outletRepository = new OutletRepository();
 
 const schema = z.object({
   kind: z.enum(['logo', 'cover']),
+  outletId: z.string().uuid().optional(),
 });
 
 function envRequired(name: string): string {
@@ -31,7 +35,27 @@ function randomId(): string {
 export const POST = withOwnerAuth(async (request: Request, session: ExtendedSession) => {
   try {
     const body: unknown = await request.json();
-    const { kind } = schema.parse(body);
+    const { kind, outletId } = schema.parse(body);
+
+    const targetOutletId = session.outletId || outletId;
+
+    if (!targetOutletId) {
+      return Response.json(
+        { success: false, error: 'Validation error', message: 'Outlet harus dipilih' },
+        { status: 400 }
+      );
+    }
+
+    // Authorization check for global mode
+    if (!session.outletId && outletId) {
+      const owns = await outletRepository.findOwnedOutletById(session.userId, outletId);
+      if (!owns) {
+        return Response.json(
+          { success: false, error: 'Forbidden', message: 'Anda tidak memiliki akses ke outlet ini' },
+          { status: 403 }
+        );
+      }
+    }
 
     const cloudName = envRequired('CLOUDINARY_CLOUD_NAME');
     const apiKey = envRequired('CLOUDINARY_API_KEY');
@@ -39,7 +63,7 @@ export const POST = withOwnerAuth(async (request: Request, session: ExtendedSess
     const baseFolder = String(process.env.CLOUDINARY_FOLDER ?? 'laundry-saas/outlets').trim();
 
     const timestamp = Math.floor(Date.now() / 1000);
-    const folder = `${baseFolder}/${session.outletId}`;
+    const folder = `${baseFolder}/${targetOutletId}`;
     const publicId = `${kind}-${randomId()}`;
 
     // Cloudinary signature: sort params & sha1("k=v&..."+apiSecret)
@@ -80,5 +104,5 @@ export const POST = withOwnerAuth(async (request: Request, session: ExtendedSess
       { status: 500 }
     );
   }
-});
+}, { requireOutlet: false });
 

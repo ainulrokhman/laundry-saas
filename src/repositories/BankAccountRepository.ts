@@ -32,6 +32,18 @@ export class BankAccountRepository extends BaseRepository {
   }
 
   /**
+   * Find all bank accounts for all outlets owned by an owner
+   */
+  async findByOwnerId(ownerId: string): Promise<BankAccount[]> {
+    return prisma.bankAccount.findMany({
+      where: {
+        outlet: { ownerId },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
    * Find active bank accounts for an outlet
    */
   async findActiveByOutletId(outletId: string): Promise<BankAccount[]> {

@@ -49,23 +49,20 @@ export const GET = withOwnerAuth(async (
   session: ExtendedSession
 ) => {
   try {
-    if (!session.outletId) {
-      return Response.json(
-        {
-          success: false,
-          error: 'Outlet context required',
-        },
-        { status: 403 }
+    let bankAccounts;
+    if (session.outletId) {
+      bankAccounts = await bankAccountRepository.findByOutletId(
+        session.outletId
       );
+    } else {
+      // Global Mode: list bank accounts from all owned outlets
+      bankAccounts = await bankAccountRepository.findByOwnerId(session.userId);
     }
-
-    const bankAccounts = await bankAccountRepository.findByOutletId(
-      session.outletId
-    );
 
     return Response.json({
       success: true,
       data: BankAccountDTO.toResponseArray(bankAccounts),
+      isGlobalMode: !session.outletId,
     });
   } catch (error) {
     console.error('Error fetching bank accounts:', error);
@@ -78,7 +75,7 @@ export const GET = withOwnerAuth(async (
       { status: 500 }
     );
   }
-});
+}, { requireOutlet: false });
 
 /**
  * POST /api/dashboard/settings/bank-accounts

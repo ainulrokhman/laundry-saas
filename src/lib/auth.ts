@@ -166,8 +166,6 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         // - Kepemilikan outlet via Outlet.ownerId
         // - user.outletId dipakai sebagai "outlet aktif" (session.outletId)
         if (user.role === Role.OWNER) {
-          const ownedIds = user.ownedOutlets?.map((o) => o.id) ?? [];
-
           // Auto-migrasi dari desain lama: OWNER lama punya user.outletId (single outlet).
           // Jika outlet tersebut belum memiliki ownerId, set ownerId = user.id.
           if (isValidUuid(user.outletId)) {
@@ -184,38 +182,13 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           }
 
           // Pastikan outlet aktif valid:
-          // - Jika user.outletId kosong / tidak dimiliki, pilih outlet pertama yang dimiliki (jika ada) dan persist.
-          let nextActiveOutletId: string | null = isValidUuid(user.outletId) ? user.outletId : null;
-          if (nextActiveOutletId) {
-            const owns = await prisma.outlet.count({
-              where: { id: nextActiveOutletId, ownerId: user.id },
-            });
-            if (owns <= 0) {
-              nextActiveOutletId = null;
-            }
-          }
-
-          if (!nextActiveOutletId) {
-            // Re-fetch owned outlets from DB (authoritative)
-            const firstOwned = await prisma.outlet.findFirst({
-              where: { ownerId: user.id },
-              orderBy: { createdAt: 'asc' },
-              select: { id: true },
-            });
-            if (firstOwned) {
-              nextActiveOutletId = firstOwned.id;
-              await prisma.user.update({
-                where: { id: user.id },
-                data: { outletId: nextActiveOutletId },
-              });
-            }
-          }
-
-          // If OWNER has no owned outlets, usually we force them to create one.
-          // But with Global Dashboard, we can allow login without an active outlet.
-          // if (!nextActiveOutletId) {
-          //   throw new Error('Akun OWNER Anda belum memiliki outlet. Silakan hubungi admin untuk mengaitkan outlet.');
-          // }
+          // Saat login sebagai owner laundry, otomatis Global dashboard (outletId = null)
+          let nextActiveOutletId: string | null = null;
+          
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { outletId: null },
+          });
 
           // Mutate return payload outletId to ensure session uses active outlet (or null for global).
           (user as any).outletId = nextActiveOutletId;
@@ -269,7 +242,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         // Undefined means it wasn't passed in the update payload.
         const requestedOutletId = (session as any).outletId;
 
-        // Check if outletId property exists in the update payload
+        // Handle outletId update
         if (requestedOutletId !== undefined) {
           const role = token.role as Role | undefined;
           const userId = token.userId as string | undefined;
@@ -313,6 +286,12 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
               throw new Error('STAFF tidak dapat mengganti outlet');
             }
           }
+        }
+
+        // Handle name update
+        const requestedName = (session as any).name;
+        if (requestedName !== undefined) {
+          token.name = requestedName;
         }
       }
 
