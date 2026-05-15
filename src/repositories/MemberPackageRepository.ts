@@ -18,13 +18,13 @@ export class MemberPackageRepository {
     });
   }
 
-  async create(data: Prisma.MemberPackageCreateInput) {
+  async create(data: Prisma.MemberPackageUncheckedCreateInput) {
     return prisma.memberPackage.create({
       data,
     });
   }
 
-  async update(outletId: string, id: string, data: Prisma.MemberPackageUpdateInput) {
+  async update(outletId: string, id: string, data: Prisma.MemberPackageUncheckedUpdateInput) {
     return prisma.memberPackage.update({
       where: { id, outletId },
       data,
