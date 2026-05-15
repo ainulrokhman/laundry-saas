@@ -23,6 +23,7 @@ export class CustomerDTO {
       phone: customer.phone,
       email: customer.email,
       address: customer.address,
+      isMember: (customer as any).isMember || false,
       createdAt: customer.createdAt,
       updatedAt: customer.updatedAt,
       _count: customer._count,

@@ -30,6 +30,7 @@ const createServiceSchema = z
     cogs: z.coerce.number().finite().min(0, 'HPP tidak boleh negatif').optional().default(0),
     unit: z.string().trim().max(20, 'Unit maksimal 20 karakter').optional(),
     description: z.string().trim().max(500, 'Deskripsi maksimal 500 karakter').optional(),
+    memberPrice: z.coerce.number().finite().min(0, 'Harga member tidak boleh negatif').optional().default(0),
     isActive: z.boolean().optional().default(true),
   })
   .strict();
@@ -139,6 +140,7 @@ export const POST = withAuth(async (request: Request, session: ExtendedSession) 
       cogs: validated.cogs,
       unit: validated.unit?.trim() || undefined,
       description: validated.description?.trim() || undefined,
+      memberPrice: validated.memberPrice ?? 0,
       isActive: validated.isActive ?? true,
     });
 

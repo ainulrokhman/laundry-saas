@@ -37,6 +37,7 @@ const updateServiceSchema = z
     cogs: z.coerce.number().finite().min(0, 'HPP tidak boleh negatif').optional(),
     unit: z.string().trim().max(20, 'Unit maksimal 20 karakter').optional(),
     description: z.string().trim().max(500, 'Deskripsi maksimal 500 karakter').optional(),
+    memberPrice: z.coerce.number().finite().min(0, 'Harga member tidak boleh negatif').optional(),
     isActive: z.boolean().optional(),
   })
   .strict();
@@ -164,6 +165,7 @@ export async function PUT(
           cogs: validated.cogs,
           unit: validated.unit,
           description: validated.description,
+          memberPrice: validated.memberPrice,
           isActive: validated.isActive,
         });
 

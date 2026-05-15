@@ -54,6 +54,7 @@ export class ServiceService extends BaseService {
       cogs?: number;
       unit?: string;
       description?: string;
+      memberPrice?: number;
       isActive?: boolean;
     }
   ): Promise<Service> {
@@ -68,6 +69,7 @@ export class ServiceService extends BaseService {
       cogs: data.cogs ?? 0,
       unit: data.unit,
       description: data.description,
+      memberPrice: data.memberPrice ?? 0,
       isActive: data.isActive ?? true,
     });
   }
@@ -85,6 +87,7 @@ export class ServiceService extends BaseService {
       cogs: number;
       unit: string;
       description: string;
+      memberPrice: number;
       isActive: boolean;
     }>
   ): Promise<Service> {

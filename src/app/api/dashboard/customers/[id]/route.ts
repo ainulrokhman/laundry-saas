@@ -23,6 +23,7 @@ const updateSchema = z.object({
     .optional()
     .or(z.literal("")),
   address: z.string().optional(),
+  isMember: z.boolean().optional(),
 });
 
 export const GET = withAuth(
@@ -94,6 +95,7 @@ export const PUT = withAuth(
         phone: parsed.phone ? sanitizePhone(parsed.phone) : undefined,
         email: parsed.email ? sanitizeEmail(parsed.email) : undefined,
         address: parsed.address ? sanitizeString(parsed.address) : undefined,
+        isMember: parsed.isMember,
       };
 
       const customer = await customerService.updateCustomer(

@@ -23,6 +23,7 @@ type Service = {
   name: string;
   type: ServiceType;
   price: number;
+  memberPrice: number;
   cogs: number;
   unit: string | null;
   description: string | null;
@@ -81,6 +82,7 @@ export default function ServiceManagementPage() {
     name?: string;
     type?: string;
     price?: string;
+    memberPrice?: string;
     cogs?: string;
     unit?: string;
     description?: string;
@@ -90,6 +92,7 @@ export default function ServiceManagementPage() {
     name: string;
     type: ServiceType;
     price: string;
+    memberPrice: string;
     cogs: string;
     unit: string;
     description: string;
@@ -98,6 +101,7 @@ export default function ServiceManagementPage() {
     name: '',
     type: 'KILOAN',
     price: '',
+    memberPrice: '',
     cogs: '',
     unit: defaultUnit('KILOAN'),
     description: '',
@@ -202,6 +206,7 @@ export default function ServiceManagementPage() {
       name: '',
       type: 'KILOAN',
       price: '',
+      memberPrice: '',
       cogs: '',
       unit: defaultUnit('KILOAN'),
       description: '',
@@ -218,6 +223,7 @@ export default function ServiceManagementPage() {
       name: target.name ?? '',
       type: target.type,
       price: String(target.price ?? ''),
+      memberPrice: String(target.memberPrice ?? '0'),
       cogs: String(target.cogs ?? '0'),
       unit: target.unit ?? defaultUnit(target.type),
       description: target.description ?? '',
@@ -256,6 +262,12 @@ export default function ServiceManagementPage() {
     else if (!Number.isFinite(priceNum)) errs.price = 'Harga tidak valid';
     else if (priceNum < 0) errs.price = 'Harga tidak boleh negatif';
 
+    const memberPriceNum = Number(String(form.memberPrice).replace(/,/g, '.'));
+    if (String(form.memberPrice).trim().length > 0) {
+      if (!Number.isFinite(memberPriceNum)) errs.memberPrice = 'Harga member tidak valid';
+      else if (memberPriceNum < 0) errs.memberPrice = 'Harga member tidak boleh negatif';
+    }
+
     const cogsNum = Number(String(form.cogs).replace(/,/g, '.'));
     if (String(form.cogs).trim().length > 0) {
       if (!Number.isFinite(cogsNum)) errs.cogs = 'HPP tidak valid';
@@ -292,6 +304,7 @@ export default function ServiceManagementPage() {
         name,
         type: form.type,
         price: priceNum,
+        memberPrice: memberPriceNum || 0,
         cogs: cogsNum || 0,
         unit: unit || undefined,
         description: desc || undefined,
@@ -315,6 +328,7 @@ export default function ServiceManagementPage() {
             if (field === 'name') fe.name = msg;
             if (field === 'type') fe.type = msg;
             if (field === 'price') fe.price = msg;
+            if (field === 'memberPrice') fe.memberPrice = msg;
             if (field === 'cogs') fe.cogs = msg;
             if (field === 'unit') fe.unit = msg;
             if (field === 'description') fe.description = msg;
@@ -683,7 +697,20 @@ export default function ServiceManagementPage() {
                         header: 'Kategori',
                         render: (s) => <span className={`badge ${typeBadgeClass(s.type)}`}>{typeLabel(s.type)}</span>,
                       },
-                      { header: 'Harga', render: (s) => formatCurrency(s.price) },
+                      { 
+                        header: 'Harga', 
+                        render: (s) => (
+                          <div>
+                            <div>Reg: {formatCurrency(s.price)}</div>
+                            {s.memberPrice > 0 && (
+                              <div className="text-success small fw-bold">
+                                <i className="fas fa-star me-1"></i>
+                                Mem: {formatCurrency(s.memberPrice)}
+                              </div>
+                            )}
+                          </div>
+                        ) 
+                      },
                       { 
                         header: 'HPP', 
                         render: (s) => (
@@ -774,7 +801,15 @@ export default function ServiceManagementPage() {
                           <div className="d-flex justify-content-between align-items-center">
                             <div>
                               <div className="text-muted small">Harga</div>
-                              <div className="fw-semibold">{formatCurrency(s.price)}</div>
+                              <div className="fw-semibold">
+                                {formatCurrency(s.price)}
+                                {s.memberPrice > 0 && (
+                                  <span className="text-success ms-2 small">
+                                    <i className="fas fa-star me-1"></i>
+                                    {formatCurrency(s.memberPrice)}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             <div className="text-end">
                               <div className="text-muted small">Dibuat</div>
@@ -961,6 +996,30 @@ export default function ServiceManagementPage() {
                         />
                         {fieldErrors.price && <div className="invalid-feedback">{fieldErrors.price}</div>}
                         <div className="form-text">Isi angka tanpa pemisah ribuan.</div>
+                      </div>
+
+                      <div className="col-md-4">
+                        <label htmlFor="memberPrice" className="form-label text-success">
+                          <i className="fas fa-star me-1"></i>
+                          Harga Member
+                        </label>
+                        <input
+                          id="memberPrice"
+                          type="number"
+                          inputMode="decimal"
+                          min={0}
+                          step="0.01"
+                          className={`form-control border-success ${fieldErrors.memberPrice ? 'is-invalid' : ''}`}
+                          value={form.memberPrice}
+                          onChange={(e) => {
+                            setFormField('memberPrice', e.target.value);
+                            if (fieldErrors.memberPrice) setFieldErrors((p) => ({ ...p, memberPrice: undefined }));
+                          }}
+                          disabled={formLoading}
+                          placeholder="Contoh: 10000"
+                        />
+                        {fieldErrors.memberPrice && <div className="invalid-feedback">{fieldErrors.memberPrice}</div>}
+                        <div className="form-text">Biarkan 0 jika tidak ada harga khusus.</div>
                       </div>
 
                       <div className="col-md-4">

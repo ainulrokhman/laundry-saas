@@ -23,6 +23,7 @@ const createSchema = z.object({
     phone: z.string().optional(),
     email: z.string().email('Format email tidak valid').optional().or(z.literal('')),
     address: z.string().optional(),
+    isMember: z.boolean().optional().default(false),
 });
 
 export const GET = withAuth(
@@ -132,6 +133,7 @@ export const POST = withAuth(
                 phone: parsed.phone ? sanitizePhone(parsed.phone) : undefined,
                 email: parsed.email ? sanitizeEmail(parsed.email) : undefined,
                 address: parsed.address ? sanitizeString(parsed.address) : undefined,
+                isMember: parsed.isMember ?? false,
             };
 
             const customer = await customerService.createCustomer(session.outletId!, sanitizedData);

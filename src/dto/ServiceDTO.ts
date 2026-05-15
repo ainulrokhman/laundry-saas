@@ -26,6 +26,7 @@ export class ServiceDTO {
       name: service.name,
       type: service.type,
       price: service.price,
+      memberPrice: (service as any).memberPrice || 0,
       cogs: (service as any).cogs || 0,
       unit: service.unit || null,
       description: service.description || null,
@@ -58,6 +59,7 @@ export class ServiceDTO {
       name: service.name,
       type: service.type,
       price: service.price,
+      memberPrice: (service as any).memberPrice || 0,
       unit: service.unit || null,
       description: service.description || null,
       // Never include: outletId, createdAt, updatedAt for public

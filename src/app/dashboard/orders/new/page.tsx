@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
 import { formatCurrency } from "@/lib/utils";
-import { Receipt, ReceiptData } from '@/components/dashboard/Receipt';
+import { Receipt } from '@/components/dashboard/Receipt';
 import styles from "./pos-fullscreen.module.css";
 
 // Types derived from original code
@@ -17,6 +17,7 @@ type PosService = {
     name: string;
     type: ServiceType;
     price: number;
+    memberPrice: number;
     unit: string | null;
     description: string | null;
     isActive: boolean;
@@ -51,7 +52,6 @@ export default function NewOrderPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [services, setServices] = useState<PosService[]>([]);
-    const [serviceLoading, setServiceLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCategory, setSelectedCategory] = useState<ServiceType | "ALL">("ALL");
     
@@ -66,7 +66,8 @@ export default function NewOrderPage() {
     const [customerId, setCustomerId] = useState<string | null>(null);
     const [customerName, setCustomerName] = useState("Umum");
     const [customerPhone, setCustomerPhone] = useState("");
-    const [notes, setNotes] = useState("");
+    const [customerIsMember, setCustomerIsMember] = useState(false);
+    const [notes] = useState("");
 
     // Outlet Info
     const [outletName, setOutletName] = useState("LAUNDRY");
@@ -76,7 +77,6 @@ export default function NewOrderPage() {
     const [customerSearchQuery, setCustomerSearchQuery] = useState("");
     const [searchedCustomers, setSearchedCustomers] = useState<any[]>([]);
     const [recentCustomers, setRecentCustomers] = useState<any[]>([]);
-    const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
     const [showAddCustomerForm, setShowAddCustomerForm] = useState(false);
     const [newCustomerName, setNewCustomerName] = useState("");
     const [newCustomerPhone, setNewCustomerPhone] = useState("");
@@ -86,7 +86,7 @@ export default function NewOrderPage() {
     const [showMobileCart, setShowMobileCart] = useState(false);
 
     // Payment
-    const [paymentNote, setPaymentNote] = useState("");
+    const [paymentNote] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [paymentType, setPaymentType] = useState<"lunas" | "dp">("lunas");
@@ -151,7 +151,7 @@ export default function NewOrderPage() {
             await update({ outletId });
             // The useEffect will trigger and fetch services
             setIsGlobalMode(false);
-        } catch (e) {
+        } catch (_e) {
             Swal.fire("Gagal", "Gagal mengganti outlet", "error");
         } finally {
             setOutletsLoading(false);
@@ -160,16 +160,13 @@ export default function NewOrderPage() {
 
     async function fetchServices() {
         try {
-            setServiceLoading(true);
             const res = await fetch("/api/dashboard/pos/services", { method: "GET" });
             const json = await res.json().catch(() => null);
             if (!res.ok || !json?.success) throw new Error(json?.message || "Gagal memuat layanan");
             setServices((json.data || []).filter((s: PosService) => s.isActive));
             if (json.outletName) setOutletName(json.outletName);
-        } catch (e: any) {
-            setError(e.message);
         } finally {
-            setServiceLoading(false);
+            // Service loading handled by main loading
         }
     }
 
@@ -179,26 +176,25 @@ export default function NewOrderPage() {
             const res = await fetch(`/api/dashboard/customers?limit=10`);
             const json = await res.json();
             if (res.ok && json?.success) setRecentCustomers(json.data);
-        } catch (e) { console.error(e); }
+        } catch (_e) { console.error(_e); }
     }
 
     async function searchCustomers(query: string) {
         try {
-            setCustomerSearchLoading(true);
             const res = await fetch(`/api/dashboard/customers?search=${encodeURIComponent(query)}&limit=10`);
             const json = await res.json();
             if (res.ok && json?.success) setSearchedCustomers(json.data);
             else setSearchedCustomers([]);
-        } catch (e) {
+        } catch (_e) {
             setSearchedCustomers([]);
         } finally {
-            setCustomerSearchLoading(false);
+            // Search loading state removed
         }
     }
 
     useEffect(() => {
         if (showCustomerSearch && recentCustomers.length === 0) void fetchRecentCustomers();
-    }, [showCustomerSearch]);
+    }, [showCustomerSearch, recentCustomers.length]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -225,7 +221,7 @@ export default function NewOrderPage() {
             } else {
                 alert(json?.message || "Gagal menambah pelanggan");
             }
-        } catch (e) { alert("Gagal menambah pelanggan"); }
+        } catch (_e) { alert("Gagal menambah pelanggan"); }
         finally { setAddingCustomer(false); }
     }
 
@@ -274,8 +270,29 @@ export default function NewOrderPage() {
         setCustomerId(c.id);
         setCustomerName(c.name);
         setCustomerPhone(c.phone || "");
+        setCustomerIsMember(!!c.isMember);
         setShowCustomerSearch(false);
         setCustomerSearchQuery("");
+
+        // Auto-update prices in cart if applicable
+        if (c.isMember) {
+            setItems(prev => prev.map(item => {
+                const service = services.find(s => s.id === item.serviceId);
+                if (service && service.memberPrice > 0) {
+                    return { ...item, unitPrice: service.memberPrice };
+                }
+                return item;
+            }));
+        } else {
+            // Revert to regular prices if switching to non-member
+            setItems(prev => prev.map(item => {
+                const service = services.find(s => s.id === item.serviceId);
+                if (service) {
+                    return { ...item, unitPrice: service.price };
+                }
+                return item;
+            }));
+        }
     }
 
     // -- CART LOGIC --
@@ -288,6 +305,10 @@ export default function NewOrderPage() {
                 newItems[idx] = { ...newItems[idx], quantity: Math.round((newItems[idx].quantity + inc) * 10) / 10 };
                 return newItems;
             } else {
+                const unitPrice = (customerIsMember && service.memberPrice > 0) 
+                    ? service.memberPrice 
+                    : service.price;
+
                 return [...prev, {
                     key: `${service.id}-${Date.now()}`,
                     serviceId: service.id,
@@ -295,7 +316,7 @@ export default function NewOrderPage() {
                     serviceType: service.type,
                     serviceUnit: service.unit ?? null,
                     quantity: defaultQuantity(service.type),
-                    unitPrice: Math.round(service.price),
+                    unitPrice: Math.round(unitPrice),
                 }];
             }
         });
@@ -368,6 +389,7 @@ export default function NewOrderPage() {
         setCustomerId(null);
         setCustomerName("Umum");
         setCustomerPhone("");
+        setCustomerIsMember(false);
         setAdjustmentAmount(0);
         setDpAmountDigits("0");
         setCashReceivedDigits("0");
@@ -674,7 +696,17 @@ export default function NewOrderPage() {
 
                                             <div className="card-body p-2 text-center d-flex flex-column justify-content-between">
                                                 <p className="card-title fs-7 text-truncate mb-1 small fw-bold" title={service.name}>{service.name}</p>
-                                                <p className="card-text text-primary fw-bold small mb-0">{formatCurrency(service.price)}</p>
+                                                <div className="d-flex flex-column align-items-center">
+                                                    <p className={`card-text small mb-0 ${customerIsMember && service.memberPrice > 0 ? 'text-muted text-decoration-line-through' : 'text-primary fw-bold'}`}>
+                                                        {formatCurrency(service.price)}
+                                                    </p>
+                                                    {service.memberPrice > 0 && (
+                                                        <p className={`card-text fw-bold small mb-0 ${customerIsMember ? 'text-success' : 'text-muted opacity-50'}`}>
+                                                            <i className="fas fa-star me-1"></i>
+                                                            {formatCurrency(service.memberPrice)}
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -735,7 +767,12 @@ export default function NewOrderPage() {
                                     </div>
                                     <div>
                                         <div className="small text-muted" style={{ fontSize: "0.7rem" }}>Pelanggan</div>
-                                        <div className="fw-bold text-dark small">{customerName || "Umum"}</div>
+                                        <div className="fw-bold text-dark small d-flex align-items-center gap-1">
+                                            {customerName || "Umum"}
+                                            {customerIsMember && (
+                                                <span className="text-warning small"><i className="fas fa-crown"></i></span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                                 <i className="fas fa-chevron-right text-muted small"></i>

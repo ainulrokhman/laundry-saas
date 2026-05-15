@@ -16,6 +16,7 @@ type Customer = {
     phone: string | null;
     email: string | null;
     address: string | null;
+    isMember: boolean;
     createdAt: string;
     updatedAt: string;
     outletId?: string;
@@ -69,6 +70,7 @@ export default function CustomersPage() {
         phone: '',
         email: '',
         address: '',
+        isMember: false,
     });
     const [formLoading, setFormLoading] = useState(false);
 
@@ -130,7 +132,7 @@ export default function CustomersPage() {
     // Handlers
     function handleCreate() {
         setEditingItem(null);
-        setFormData({ name: '', phone: '', email: '', address: '' });
+        setFormData({ name: '', phone: '', email: '', address: '', isMember: false });
         setShowModal(true);
     }
 
@@ -141,6 +143,7 @@ export default function CustomersPage() {
             phone: item.phone || '',
             email: item.email || '',
             address: item.address || '',
+            isMember: !!item.isMember,
         });
         setShowModal(true);
     }
@@ -278,7 +281,28 @@ export default function CustomersPage() {
                                 getRowKey={(c) => c.id}
                                 mobileContainerClassName="px-3 pt-2 pb-3"
                                 columns={[
-                                    { header: 'Nama', render: (c) => <div className="fw-semibold">{c.name}</div> },
+                                    { 
+                                        header: 'Nama', 
+                                        render: (c) => (
+                                            <div className="d-flex align-items-center gap-2">
+                                                <div className="fw-semibold">{c.name}</div>
+                                                {c.isMember && (
+                                                    <span className="badge rounded-pill" style={{ 
+                                                        background: 'linear-gradient(45deg, #FFD700, #FFA500)', 
+                                                        color: '#000',
+                                                        fontSize: '0.65rem',
+                                                        fontWeight: 'bold',
+                                                        textTransform: 'uppercase',
+                                                        letterSpacing: '0.5px',
+                                                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                                    }}>
+                                                        <i className="fas fa-crown me-1"></i>
+                                                        Member
+                                                    </span>
+                                                )}
+                                            </div>
+                                        ) 
+                                    },
                                     ...(isGlobalMode ? [{
                                         header: 'Outlet',
                                         render: (c: Customer) => <span className="badge bg-info">{c.outletName || '-'}</span>,
@@ -318,7 +342,20 @@ export default function CustomersPage() {
                                         <div className="card-body">
                                             <div className="d-flex justify-content-between align-items-start mb-2">
                                                 <div>
-                                                    <h5 className="fw-bold mb-0">{c.name}</h5>
+                                                    <div className="d-flex align-items-center gap-2">
+                                                        <h5 className="fw-bold mb-0">{c.name}</h5>
+                                                        {c.isMember && (
+                                                            <span className="badge rounded-pill" style={{ 
+                                                                background: 'linear-gradient(45deg, #FFD700, #FFA500)', 
+                                                                color: '#000',
+                                                                fontSize: '0.65rem',
+                                                                fontWeight: 'bold'
+                                                            }}>
+                                                                <i className="fas fa-crown me-1"></i>
+                                                                M
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     {isGlobalMode && c.outletName && (
                                                         <span className="badge bg-info mt-1">{c.outletName}</span>
                                                     )}
@@ -423,6 +460,25 @@ export default function CustomersPage() {
                                                 value={formData.address}
                                                 onChange={e => setFormData({ ...formData, address: e.target.value })}
                                             ></textarea>
+                                        </div>
+                                        <div className="mb-3">
+                                            <div className="form-check form-switch p-3 bg-light rounded border border-warning border-opacity-25" style={{ cursor: 'pointer' }}>
+                                                <input
+                                                    className="form-check-input ms-0 me-3"
+                                                    type="checkbox"
+                                                    id="isMember"
+                                                    checked={formData.isMember}
+                                                    onChange={e => setFormData({ ...formData, isMember: e.target.checked })}
+                                                    style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
+                                                />
+                                                <label className="form-check-label fw-bold text-dark" htmlFor="isMember" style={{ cursor: 'pointer' }}>
+                                                    <i className="fas fa-star text-warning me-1"></i>
+                                                    Jadikan Member
+                                                </label>
+                                                <div className="small text-muted mt-1 ms-5">
+                                                    Member akan secara otomatis mendapatkan harga khusus (jika diatur) pada setiap order.
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="modal-footer">

@@ -82,6 +82,22 @@ export class OrderService extends BaseService {
       ? normalizePhoneNumber(customerPhoneRaw)
       : undefined;
 
+    // Fetch customer data early to check membership status
+    const customerId = input.customerId?.trim() || null;
+    let isMember = false;
+    let customerData = null;
+
+    if (customerId) {
+      const customerRepo = new CustomerRepository();
+      customerData = await customerRepo.findById(outletId, customerId);
+      if (!customerData) {
+        throw new Error(
+          "Pelanggan tidak ditemukan. Silakan pilih pelanggan yang valid.",
+        );
+      }
+      isMember = (customerData as any).isMember || false;
+    }
+
     // Validasi + build items dengan snapshot data dari Service
     const items: Prisma.OrderItemCreateWithoutOrderInput[] = [];
     let totalAmount = 0;
@@ -108,10 +124,19 @@ export class OrderService extends BaseService {
         throw new Error("Qty untuk layanan satuan/paket harus bilangan bulat");
       }
 
-      const unitPrice =
-        rawItem.unitPrice !== undefined
-          ? Number(rawItem.unitPrice)
-          : Number(service.price);
+      // Determine unit price: use memberPrice if applicable
+      let unitPrice: number;
+      if (rawItem.unitPrice !== undefined) {
+        unitPrice = Number(rawItem.unitPrice);
+      } else {
+        const memberPrice = (service as any).memberPrice;
+        if (isMember && memberPrice > 0) {
+          unitPrice = Number(memberPrice);
+        } else {
+          unitPrice = Number(service.price);
+        }
+      }
+
       if (!Number.isFinite(unitPrice) || unitPrice < 0) {
         throw new Error("Harga layanan tidak valid");
       }
@@ -162,17 +187,7 @@ export class OrderService extends BaseService {
       paymentStatus = PaymentStatus.UNPAID;
     }
 
-    // Validasi customerId jika diberikan
-    const customerId = input.customerId?.trim() || null;
-    if (customerId) {
-      const customerRepo = new CustomerRepository();
-      const customer = await customerRepo.findById(outletId, customerId);
-      if (!customer) {
-        throw new Error(
-          "Pelanggan tidak ditemukan. Silakan pilih pelanggan yang valid.",
-        );
-      }
-    }
+    // customerId is already validated above
 
     // Create order + items. trackingCode harus unik.
     for (let attempt = 0; attempt < 10; attempt++) {

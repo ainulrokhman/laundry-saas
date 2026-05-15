@@ -199,6 +199,7 @@ model Service {
   name        String   // Nama layanan (e.g., "Cuci Kiloan", "Setrika Satuan")
   type        String   // Jenis layanan: "KILOAN", "SATUAN", "PAKET"
   price       Float    // Harga per unit
+  memberPrice Float    @default(0) // Harga khusus untuk member
   cogs        Float    @default(0) // HPP per unit (estimasi)
   unit        String?  // Unit (e.g., "kg", "pcs", "paket")
   description String?  // Deskripsi layanan
@@ -348,6 +349,7 @@ model Customer {
   phone       String?  // Nomor WhatsApp/Telepon (opsional, tapi jika ada harus unik per outlet)
   email       String?  // Email (opsional)
   address     String?  // Alamat (opsional)
+  isMember    Boolean  @default(false) // Status membership
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   orders      Order[]

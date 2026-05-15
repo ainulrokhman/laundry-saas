@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { Customer, Prisma } from "@/generated/prisma";
+import { Prisma } from "@/generated/prisma";
 
 export class CustomerRepository {
   async findAll({
@@ -90,6 +90,7 @@ export class CustomerRepository {
     phone?: string;
     email?: string;
     address?: string;
+    isMember?: boolean;
   }) {
     return prisma.customer.create({
       data,
@@ -104,6 +105,7 @@ export class CustomerRepository {
       phone?: string;
       email?: string;
       address?: string;
+      isMember?: boolean;
     },
   ) {
     return prisma.customer.update({

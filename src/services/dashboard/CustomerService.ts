@@ -28,7 +28,7 @@ export class CustomerService {
 
   async createCustomer(
     outletId: string,
-    data: { name: string; phone?: string; email?: string; address?: string },
+    data: { name: string; phone?: string; email?: string; address?: string; isMember?: boolean },
   ) {
     // Check package limits
     const canAdd = await this.packageFeatureService.canAddCustomer(outletId);
@@ -55,13 +55,14 @@ export class CustomerService {
       phone,
       email: data.email,
       address: data.address,
+      isMember: data.isMember ?? false,
     });
   }
 
   async updateCustomer(
     outletId: string,
     id: string,
-    data: { name?: string; phone?: string; email?: string; address?: string },
+    data: { name?: string; phone?: string; email?: string; address?: string; isMember?: boolean },
   ) {
     // Verify existence
     const existing = await this.customerRepo.findById(outletId, id);
