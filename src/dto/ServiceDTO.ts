@@ -26,6 +26,7 @@ export class ServiceDTO {
       name: service.name,
       type: service.type,
       price: service.price,
+      cogs: (service as any).cogs || 0,
       unit: service.unit || null,
       description: service.description || null,
       isActive: service.isActive,

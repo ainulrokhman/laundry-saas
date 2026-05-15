@@ -97,6 +97,13 @@ const menuItems: MenuItem[] = [
     scope: 'outlet',
   },
   {
+    label: 'Accounting',
+    icon: 'fas fa-file-invoice-dollar',
+    href: '/dashboard/accounting',
+    roles: [Role.OWNER],
+    scope: 'outlet',
+  },
+  {
     label: 'Settings',
     icon: 'fas fa-cog',
     href: '/dashboard/settings',

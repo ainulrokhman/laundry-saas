@@ -85,6 +85,7 @@ export class OrderService extends BaseService {
     // Validasi + build items dengan snapshot data dari Service
     const items: Prisma.OrderItemCreateWithoutOrderInput[] = [];
     let totalAmount = 0;
+    let totalCogs = 0;
 
     for (const rawItem of input.items) {
       const qty = Number(rawItem.quantity);
@@ -118,6 +119,11 @@ export class OrderService extends BaseService {
       const subtotal = roundIdr(qty * unitPrice);
       totalAmount += subtotal;
 
+      // HPP Logic
+      const unitCogs = Number(service.cogs ?? 0);
+      const itemTotalCogs = roundIdr(qty * unitCogs);
+      totalCogs += itemTotalCogs;
+
       items.push({
         service: { connect: { id: service.id } },
         serviceName: service.name,
@@ -126,6 +132,8 @@ export class OrderService extends BaseService {
         quantity: qty,
         unitPrice: roundIdr(unitPrice),
         subtotal,
+        unitCogs: roundIdr(unitCogs),
+        totalCogs: itemTotalCogs,
       });
     }
 
@@ -186,6 +194,7 @@ export class OrderService extends BaseService {
             paidAt,
             paymentNote,
             totalAmount: roundIdr(totalAmount),
+            totalCogs: roundIdr(totalCogs),
             dpAmount,
             dpPaidAt,
             dpNote,

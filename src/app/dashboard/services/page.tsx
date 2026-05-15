@@ -23,6 +23,7 @@ type Service = {
   name: string;
   type: ServiceType;
   price: number;
+  cogs: number;
   unit: string | null;
   description: string | null;
   isActive: boolean;
@@ -80,6 +81,7 @@ export default function ServiceManagementPage() {
     name?: string;
     type?: string;
     price?: string;
+    cogs?: string;
     unit?: string;
     description?: string;
   }>({});
@@ -88,6 +90,7 @@ export default function ServiceManagementPage() {
     name: string;
     type: ServiceType;
     price: string;
+    cogs: string;
     unit: string;
     description: string;
     isActive: boolean;
@@ -95,6 +98,7 @@ export default function ServiceManagementPage() {
     name: '',
     type: 'KILOAN',
     price: '',
+    cogs: '',
     unit: defaultUnit('KILOAN'),
     description: '',
     isActive: true,
@@ -198,6 +202,7 @@ export default function ServiceManagementPage() {
       name: '',
       type: 'KILOAN',
       price: '',
+      cogs: '',
       unit: defaultUnit('KILOAN'),
       description: '',
       isActive: true,
@@ -213,6 +218,7 @@ export default function ServiceManagementPage() {
       name: target.name ?? '',
       type: target.type,
       price: String(target.price ?? ''),
+      cogs: String(target.cogs ?? '0'),
       unit: target.unit ?? defaultUnit(target.type),
       description: target.description ?? '',
       isActive: !!target.isActive,
@@ -250,6 +256,12 @@ export default function ServiceManagementPage() {
     else if (!Number.isFinite(priceNum)) errs.price = 'Harga tidak valid';
     else if (priceNum < 0) errs.price = 'Harga tidak boleh negatif';
 
+    const cogsNum = Number(String(form.cogs).replace(/,/g, '.'));
+    if (String(form.cogs).trim().length > 0) {
+      if (!Number.isFinite(cogsNum)) errs.cogs = 'HPP tidak valid';
+      else if (cogsNum < 0) errs.cogs = 'HPP tidak boleh negatif';
+    }
+
     const unit = form.unit.trim();
     if (unit.length > 20) errs.unit = 'Unit maksimal 20 karakter';
 
@@ -280,6 +292,7 @@ export default function ServiceManagementPage() {
         name,
         type: form.type,
         price: priceNum,
+        cogs: cogsNum || 0,
         unit: unit || undefined,
         description: desc || undefined,
         isActive: !!form.isActive,
@@ -302,6 +315,7 @@ export default function ServiceManagementPage() {
             if (field === 'name') fe.name = msg;
             if (field === 'type') fe.type = msg;
             if (field === 'price') fe.price = msg;
+            if (field === 'cogs') fe.cogs = msg;
             if (field === 'unit') fe.unit = msg;
             if (field === 'description') fe.description = msg;
           }
@@ -670,6 +684,19 @@ export default function ServiceManagementPage() {
                         render: (s) => <span className={`badge ${typeBadgeClass(s.type)}`}>{typeLabel(s.type)}</span>,
                       },
                       { header: 'Harga', render: (s) => formatCurrency(s.price) },
+                      { 
+                        header: 'HPP', 
+                        render: (s) => (
+                          <div className="text-muted small">
+                            {formatCurrency(s.cogs)}
+                            {s.price > 0 && (
+                              <div className={`mt-1 ${s.price - s.cogs > 0 ? 'text-success' : 'text-danger'}`}>
+                                {Math.round(((s.price - s.cogs) / s.price) * 100)}% Margin
+                              </div>
+                            )}
+                          </div>
+                        )
+                      },
                       {
                         header: 'Unit',
                         render: (s) => (s.unit ? <code>{s.unit}</code> : <span className="text-muted">-</span>),
@@ -934,6 +961,30 @@ export default function ServiceManagementPage() {
                         />
                         {fieldErrors.price && <div className="invalid-feedback">{fieldErrors.price}</div>}
                         <div className="form-text">Isi angka tanpa pemisah ribuan.</div>
+                      </div>
+
+                      <div className="col-md-4">
+                        <label htmlFor="cogs" className="form-label">
+                          <i className="fas fa-calculator me-1"></i>
+                          HPP per Unit
+                        </label>
+                        <input
+                          id="cogs"
+                          type="number"
+                          inputMode="decimal"
+                          min={0}
+                          step="0.01"
+                          className={`form-control ${fieldErrors.cogs ? 'is-invalid' : ''}`}
+                          value={form.cogs}
+                          onChange={(e) => {
+                            setFormField('cogs', e.target.value);
+                            if (fieldErrors.cogs) setFieldErrors((p) => ({ ...p, cogs: undefined }));
+                          }}
+                          disabled={formLoading}
+                          placeholder="Contoh: 4500"
+                        />
+                        {fieldErrors.cogs && <div className="invalid-feedback">{fieldErrors.cogs}</div>}
+                        <div className="form-text">Estimasi biaya modal.</div>
                       </div>
 
                       <div className="col-md-4">

@@ -172,6 +172,7 @@ model Outlet {
   paymentGatewayConfigs PaymentGatewayConfig[] // Konfigurasi payment gateway per outlet
   expenses      Expense[]             // Pengeluaran operasional outlet
   transactions  Transaction[]         // Transaksi terkait outlet
+  cogsSimulations CogsSimulation[]    // Simulasi HPP outlet
 
   @@index([ownerId])
 }
@@ -198,6 +199,7 @@ model Service {
   name        String   // Nama layanan (e.g., "Cuci Kiloan", "Setrika Satuan")
   type        String   // Jenis layanan: "KILOAN", "SATUAN", "PAKET"
   price       Float    // Harga per unit
+  cogs        Float    @default(0) // HPP per unit (estimasi)
   unit        String?  // Unit (e.g., "kg", "pcs", "paket")
   description String?  // Deskripsi layanan
   isActive    Boolean  @default(true)
@@ -222,6 +224,7 @@ model Order {
   dpPaidAt     DateTime?      // Timestamp DP dicatat
   dpNote       String?        // Catatan DP (opsional)
   totalAmount  Float
+  totalCogs    Float         @default(0) // Total HPP untuk seluruh order ini
   outletId     String
   outlet       Outlet        @relation(fields: [outletId], references: [id], onDelete: Cascade)
 
@@ -272,6 +275,8 @@ model OrderItem {
   quantity    Float
   unitPrice   Float
   subtotal    Float
+  unitCogs    Float    @default(0) // Snapshot HPP per unit saat order dibuat
+  totalCogs   Float    @default(0) // qty * unitCogs
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -366,4 +371,28 @@ model Expense {
 
   @@index([outletId])
   @@index([date])
+}
+
+model CogsSimulation {
+  id          String               @id @default(uuid())
+  outletId    String
+  outlet      Outlet               @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  name        String               // Nama simulasi (misal: "Simulasi Cuci Kiloan Standard")
+  description String?
+  totalCogs   Float                // Hasil akhir HPP per unit
+  items       CogsSimulationItem[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([outletId])
+}
+
+model CogsSimulationItem {
+  id           String         @id @default(uuid())
+  simulationId String
+  simulation   CogsSimulation @relation(fields: [simulationId], references: [id], onDelete: Cascade)
+  name         String         // Nama komponen (misal: "Deterjen", "Listrik")
+  cost         Float          // Biaya per unit komponen (misal: harga beli / isi)
+  usage        Float          // Jumlah penggunaan per unit layanan
+  subtotal     Float          // cost * usage
 }

@@ -218,6 +218,8 @@ export class OrderRepository extends BaseRepository {
     options?: {
       status?: OrderStatus;
       paymentStatus?: PaymentStatus;
+      dateFrom?: Date;
+      dateTo?: Date;
       limit?: number;
       orderBy?: Prisma.OrderOrderByWithRelationInput;
     }
@@ -230,6 +232,11 @@ export class OrderRepository extends BaseRepository {
     }
     if (options?.paymentStatus) {
       where.paymentStatus = options.paymentStatus;
+    }
+    if (options?.dateFrom || options?.dateTo) {
+      where.createdAt = {};
+      if (options.dateFrom) where.createdAt.gte = options.dateFrom;
+      if (options.dateTo) where.createdAt.lte = options.dateTo;
     }
 
     return prisma.order.findMany({

@@ -7,7 +7,7 @@
 
 import { ServiceRepository } from '@/repositories/ServiceRepository';
 import { BaseService } from './BaseService';
-import { Service, Prisma } from '@/generated/prisma';
+import { Service } from '@/generated/prisma';
 import { SessionUser } from '@/lib/session';
 
 export class ServiceService extends BaseService {
@@ -51,6 +51,7 @@ export class ServiceService extends BaseService {
       name: string;
       type: string;
       price: number;
+      cogs?: number;
       unit?: string;
       description?: string;
       isActive?: boolean;
@@ -64,6 +65,7 @@ export class ServiceService extends BaseService {
       name: data.name,
       type: data.type,
       price: data.price,
+      cogs: data.cogs ?? 0,
       unit: data.unit,
       description: data.description,
       isActive: data.isActive ?? true,
@@ -80,6 +82,7 @@ export class ServiceService extends BaseService {
       name: string;
       type: string;
       price: number;
+      cogs: number;
       unit: string;
       description: string;
       isActive: boolean;
